@@ -17,13 +17,14 @@ type ChatMessage = {
   id: number;
   role: "user" | "assistant";
   text: string;
-  photoPreview?: string;
+  imageDataUrl?: string;
   estimate?: NutritionEstimate;
 };
 
 type HistoryItem = {
   role: "user" | "assistant";
   content: string;
+  imageDataUrl?: string;
 };
 
 type ChatResponse = {
@@ -48,10 +49,9 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
   const { toast } = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [pendingPhoto, setPendingPhoto] = useState<{ file: File; preview: string } | null>(null);
+  const [pendingPhoto, setPendingPhoto] = useState<{ file: File; dataUrl: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,7 +68,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
       photo: File | null;
     }) => {
       const fd = new FormData();
-      fd.append("history", JSON.stringify(history));
+      fd.append("messages", JSON.stringify(history));
       fd.append("message", userText);
       if (photo) fd.append("photo", photo);
 
@@ -106,7 +106,8 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
   function buildHistory(msgs: ChatMessage[]): HistoryItem[] {
     return msgs.map((m) => ({
       role: m.role,
-      content: m.photoPreview ? `[Photo attached] ${m.text}`.trim() : m.text,
+      content: m.text || (m.imageDataUrl ? "" : "…"),
+      ...(m.imageDataUrl ? { imageDataUrl: m.imageDataUrl } : {}),
     }));
   }
 
@@ -119,7 +120,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
       id: nextId(),
       role: "user",
       text,
-      photoPreview: pendingPhoto?.preview,
+      imageDataUrl: pendingPhoto?.dataUrl,
     };
 
     const history = buildHistory(messages);
@@ -153,8 +154,8 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
     }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const preview = ev.target?.result as string;
-      setPendingPhoto({ file, preview });
+      const dataUrl = ev.target?.result as string;
+      setPendingPhoto({ file, dataUrl });
     };
     reader.readAsDataURL(file);
   }
@@ -171,9 +172,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
         className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800"
       >
         <Bot className="mt-0.5 h-4 w-4 shrink-0" />
-        <p>
-          AI chat is not configured. You can still log meals manually using the form below.
-        </p>
+        <p>AI chat is not configured. You can still log meals manually using the form below.</p>
       </div>
     );
   }
@@ -221,23 +220,25 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
                 )}
               </div>
               <div className={`flex max-w-[80%] flex-col gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                {msg.photoPreview && (
+                {msg.imageDataUrl && (
                   <img
-                    src={msg.photoPreview}
+                    src={msg.imageDataUrl}
                     alt="Attached photo"
                     className="max-h-40 rounded-xl object-cover"
                     data-testid={`chat-photo-${msg.id}`}
                   />
                 )}
-                <div
-                  className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                    msg.role === "user"
-                      ? "bg-[#476550] text-white"
-                      : "bg-white text-[#1a1c1a] shadow-sm"
-                  }`}
-                >
-                  {msg.text}
-                </div>
+                {msg.text && (
+                  <div
+                    className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-[#476550] text-white"
+                        : "bg-white text-[#1a1c1a] shadow-sm"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                )}
                 {msg.estimate && (
                   <div
                     data-testid={`chat-estimate-${msg.id}`}
@@ -299,7 +300,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
       {pendingPhoto && (
         <div className="relative mt-3 w-24">
           <img
-            src={pendingPhoto.preview}
+            src={pendingPhoto.dataUrl}
             alt="Photo to attach"
             data-testid="chat-pending-photo"
             className="h-20 w-24 rounded-xl object-cover border border-[#c2c8c14c]"
@@ -317,17 +318,20 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
       )}
 
       <div className="mt-3 flex items-end gap-2">
-        <div className="relative flex-1">
+        <div className="flex-1">
           <Textarea
-            ref={textareaRef}
-            placeholder={messages.length === 0 ? 'e.g. "I ate half of this pasta" or just upload a photo…' : "Reply or ask a follow-up…"}
+            placeholder={
+              messages.length === 0
+                ? 'e.g. "I ate half of this pasta" or just upload a photo…'
+                : "Reply or ask a follow-up…"
+            }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
             rows={2}
             disabled={chat.isPending}
             data-testid="input-chat-message"
-            className="resize-none pr-10 text-sm"
+            className="resize-none text-sm"
           />
         </div>
         <div className="flex shrink-0 flex-col gap-1.5">

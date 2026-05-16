@@ -230,27 +230,28 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(503).json({ message: "AI chat is not configured (missing API key)" });
       }
 
-      let history: { role: "user" | "assistant"; content: string }[] = [];
+      const historyItemSchema = z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(2000),
+        imageDataUrl: z
+          .string()
+          .max(8_000_000)
+          .regex(/^data:image\/(jpeg|png|webp|gif);base64,/)
+          .optional(),
+      });
+
+      let history: z.infer<typeof historyItemSchema>[] = [];
       try {
-        const raw = typeof req.body.history === "string" ? req.body.history : "[]";
-        const parsed: unknown = JSON.parse(raw);
-        if (
-          Array.isArray(parsed) &&
-          parsed.every(
-            (m) =>
-              typeof m === "object" &&
-              m !== null &&
-              (m as Record<string, unknown>).role === "user" ||
-              (typeof m === "object" && m !== null && (m as Record<string, unknown>).role === "assistant"),
-          )
-        ) {
-          history = (parsed as { role: "user" | "assistant"; content: string }[]).slice(-20);
-        }
+        const rawJson = typeof req.body.messages === "string" ? req.body.messages : "[]";
+        const parsedJson: unknown = JSON.parse(rawJson);
+        const validated = z.array(historyItemSchema).max(20).safeParse(parsedJson);
+        if (validated.success) history = validated.data;
       } catch {
         history = [];
       }
 
-      const userText: string = typeof req.body.message === "string" ? req.body.message.slice(0, 1000) : "";
+      const userText: string =
+        typeof req.body.message === "string" ? req.body.message.slice(0, 1000) : "";
 
       try {
         const openai = new OpenAI({ apiKey } as ClientOptions);
@@ -270,10 +271,18 @@ Your job:
 5. If you need more information, ask a single clarifying question and omit the JSON block.`,
         };
 
-        const historyMessages: ChatCompletionMessageParam[] = history.map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
+        const historyMessages: ChatCompletionMessageParam[] = history.map((m) => {
+          if (m.role === "assistant") {
+            return { role: "assistant", content: m.content };
+          }
+          if (m.imageDataUrl) {
+            const parts: ChatCompletionContentPart[] = [];
+            if (m.content) parts.push({ type: "text", text: m.content });
+            parts.push({ type: "image_url", image_url: { url: m.imageDataUrl, detail: "low" } });
+            return { role: "user", content: parts };
+          }
+          return { role: "user", content: m.content };
+        });
 
         let userContent: string | ChatCompletionContentPart[];
         if (req.file) {
@@ -290,20 +299,14 @@ Your job:
         const completion = await openai.chat.completions.create({
           model: "gpt-4o",
           max_tokens: 500,
-          messages: [...[systemMessage], ...historyMessages, { role: "user" as const, content: userContent }],
+          messages: [systemMessage, ...historyMessages, { role: "user", content: userContent }],
         });
 
-        const raw = completion.choices[0]?.message?.content?.trim() ?? "";
+        const rawReply = completion.choices[0]?.message?.content?.trim() ?? "";
 
-        const jsonBlockMatch = raw.match(/```json\s*(\{[\s\S]*?\})\s*```\s*$/);
-        let estimate: {
-          name: string;
-          calories: number;
-          proteins: number;
-          carbs: number;
-          fats: number;
-        } | undefined;
-        let reply = raw;
+        const jsonBlockMatch = rawReply.match(/```json\s*(\{[\s\S]*?\})\s*```\s*$/);
+        let estimate: z.infer<typeof photoAnalysisSchema> | undefined;
+        let reply = rawReply;
 
         if (jsonBlockMatch) {
           try {
@@ -320,7 +323,7 @@ Your job:
           } catch {
             // leave estimate undefined
           }
-          reply = raw.slice(0, raw.lastIndexOf("```json")).trim();
+          reply = rawReply.slice(0, rawReply.lastIndexOf("```json")).trim();
         }
 
         res.json({ reply: reply || "Here is the estimate.", estimate });

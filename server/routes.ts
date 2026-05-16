@@ -55,7 +55,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.delete("/api/meals/:id", requireAuth, async (req, res, next) => {
     try {
-      const ok = await storage.deleteMeal(req.user!.id, req.params.id);
+      const id = String(req.params.id);
+      const ok = await storage.deleteMeal(req.user!.id, id);
       if (!ok) return res.status(404).json({ message: "Not found" });
       res.json({ ok: true });
     } catch (err) {

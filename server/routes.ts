@@ -1,5 +1,8 @@
 import type { Express } from "express";
 import { type Server } from "http";
+import multer from "multer";
+import OpenAI from "openai";
+import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
 import {
@@ -9,6 +12,26 @@ import {
 } from "@shared/schema";
 import { buildDashboardSummary, calorieSeries, lastNDates } from "./stats";
 import { searchFoods } from "@shared/foods";
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMAGE_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME.has(file.mimetype)) cb(null, true);
+    else cb(new Error("Only JPEG, PNG, WebP, or GIF images are accepted"));
+  },
+});
+
+const photoAnalysisSchema = z.object({
+  name: z.string().min(1).max(120),
+  calories: z.number().int().min(0).max(20000),
+  proteins: z.number().min(0).max(2000),
+  carbs: z.number().min(0).max(2000),
+  fats: z.number().min(0).max(2000),
+});
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   setupAuth(app);
@@ -120,6 +143,74 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (err) {
       next(err);
     }
+  });
+
+  app.post("/api/meals/analyze-photo", requireAuth, (req, res, next) => {
+    upload.single("photo")(req, res, async (err) => {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ message: "Image must be smaller than 10 MB" });
+      }
+      if (err) {
+        return res.status(400).json({ message: err.message || "Invalid file" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ message: "AI photo analysis is not configured (missing API key)" });
+      }
+
+      try {
+        const openai = new OpenAI({ apiKey });
+        const base64 = req.file.buffer.toString("base64");
+        const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          max_tokens: 300,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Analyze this food photo and estimate the nutritional content of the entire meal shown. Return ONLY a valid JSON object with these exact keys: "name" (string, brief descriptive meal name), "calories" (integer, total kcal), "proteins" (number, grams), "carbs" (number, grams), "fats" (number, grams). If the image does not show food, return {"error": "No food detected"}. No explanation, just the JSON.`,
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: dataUrl, detail: "low" },
+                },
+              ],
+            },
+          ],
+        });
+
+        const raw = completion.choices[0]?.message?.content?.trim() ?? "";
+        let parsed: unknown;
+        try {
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+        } catch {
+          return res.status(422).json({ message: "AI returned an unreadable response. Please try again." });
+        }
+
+        if (typeof parsed === "object" && parsed !== null && "error" in parsed) {
+          return res.status(422).json({ message: "No food detected in the image. Please try a clearer photo." });
+        }
+
+        const validated = photoAnalysisSchema.safeParse(parsed);
+        if (!validated.success) {
+          return res.status(422).json({ message: "AI returned incomplete nutritional data. Please try again." });
+        }
+
+        res.json(validated.data);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Analysis failed";
+        next(new Error(message));
+      }
+    });
   });
 
   app.get("/api/stats/calories", requireAuth, async (req, res, next) => {

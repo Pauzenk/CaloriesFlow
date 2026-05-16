@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Trash2, Search } from "lucide-react";
+import { Pencil, Trash2, X, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,18 +18,21 @@ import { mealsForDate, todayStr } from "@/lib/calorieflow";
 export default function LogMeal() {
   const { toast } = useToast();
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const defaultValues: InsertMeal = {
+    date: todayStr(),
+    mealType: "breakfast",
+    name: "",
+    calories: 0,
+    proteins: 0,
+    carbs: 0,
+    fats: 0,
+  };
 
   const form = useForm<InsertMeal>({
     resolver: zodResolver(insertMealSchema),
-    defaultValues: {
-      date: todayStr(),
-      mealType: "breakfast",
-      name: "",
-      calories: 0,
-      proteins: 0,
-      carbs: 0,
-      fats: 0,
-    },
+    defaultValues,
   });
 
   const [foodQuery, setFoodQuery] = useState("");
@@ -102,6 +105,20 @@ export default function LogMeal() {
     setGrams(selectedFood.servings[idx].grams);
   }
 
+  const onError = (err: unknown) =>
+    toast({
+      title: "Failed",
+      description: err instanceof Error ? err.message : "Something went wrong",
+      variant: "destructive",
+    });
+
+  const resetForm = () => {
+    setEditingId(null);
+    form.reset(defaultValues);
+    setFoodQuery("");
+    clearFood();
+  };
+
   const create = useMutation({
     mutationFn: async (data: InsertMeal) => {
       const res = await apiRequest("POST", "/api/meals", data);
@@ -109,36 +126,57 @@ export default function LogMeal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
-      form.reset({
-        date: todayStr(),
-        mealType: "breakfast",
-        name: "",
-        calories: 0,
-        proteins: 0,
-        carbs: 0,
-        fats: 0,
-      });
-      setFoodQuery("");
-      clearFood();
+      resetForm();
       toast({ title: "Meal added" });
     },
-    onError: (err: unknown) =>
-      toast({
-        title: "Failed",
-        description: err instanceof Error ? err.message : "Something went wrong",
-        variant: "destructive",
-      }),
+    onError,
+  });
+
+  const update = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: InsertMeal }) => {
+      const res = await apiRequest("PATCH", `/api/meals/${id}`, data);
+      return (await res.json()) as Meal;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      resetForm();
+      toast({ title: "Meal updated" });
+    },
+    onError,
   });
 
   const del = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/meals/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_d, id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      if (editingId === id) resetForm();
       toast({ title: "Meal removed" });
     },
   });
+
+  const startEdit = (m: Meal) => {
+    setEditingId(m.id);
+    clearFood();
+    setFoodQuery(m.name);
+    form.reset({
+      date: m.date,
+      mealType: m.mealType as InsertMeal["mealType"],
+      name: m.name,
+      calories: m.calories,
+      proteins: m.proteins,
+      carbs: m.carbs,
+      fats: m.fats,
+    });
+  };
+
+  const onSubmit = (data: InsertMeal) => {
+    if (editingId) update.mutate({ id: editingId, data });
+    else create.mutate(data);
+  };
+
+  const isPending = create.isPending || update.isPending;
 
   const todays = mealsForDate(meals, todayStr());
 
@@ -147,14 +185,34 @@ export default function LogMeal() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
         <Card className="rounded-3xl border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
-            <h3 className="text-xl font-bold text-[#1a1c1a]">Add a meal</h3>
-            <p className="mt-1 text-sm text-[#424843]">
-              Search the food database or type a custom name. Macros auto-fill when you pick a food.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-bold text-[#1a1c1a]" data-testid="text-form-title">
+                  {editingId ? "Edit meal" : "Add a meal"}
+                </h3>
+                <p className="mt-1 text-sm text-[#424843]">
+                  {editingId
+                    ? "Update the details and save your changes."
+                    : "Search the food database or type a custom name. Macros auto-fill when you pick a food."}
+                </p>
+              </div>
+              {editingId && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetForm}
+                  data-testid="button-cancel-edit"
+                  className="text-[#424843]"
+                >
+                  <X className="mr-1 h-4 w-4" /> Cancel
+                </Button>
+              )}
+            </div>
             <Form {...form}>
               <form
                 className="mt-6 space-y-4"
-                onSubmit={form.handleSubmit((data) => create.mutate(data))}
+                onSubmit={form.handleSubmit(onSubmit)}
               >
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormField
@@ -358,11 +416,11 @@ export default function LogMeal() {
                 </div>
                 <Button
                   type="submit"
-                  disabled={create.isPending}
+                  disabled={isPending}
                   className="w-full bg-[#476550] hover:bg-[#3f5b47] md:w-auto"
                   data-testid="button-save-meal"
                 >
-                  {create.isPending ? "Saving..." : "Save meal"}
+                  {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
                 </Button>
               </form>
             </Form>
@@ -392,15 +450,26 @@ export default function LogMeal() {
                       {m.calories} kcal · P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    data-testid={`button-delete-meal-${m.id}`}
-                    onClick={() => del.mutate(m.id)}
-                    className="h-9 w-9 text-[#424843] hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      data-testid={`button-edit-meal-${m.id}`}
+                      onClick={() => startEdit(m)}
+                      className={`h-9 w-9 text-[#424843] hover:text-[#476550] ${editingId === m.id ? "text-[#476550]" : ""}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      data-testid={`button-delete-meal-${m.id}`}
+                      onClick={() => del.mutate(m.id)}
+                      className="h-9 w-9 text-[#424843] hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

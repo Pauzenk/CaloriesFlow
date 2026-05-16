@@ -64,6 +64,19 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.patch("/api/meals/:id", requireAuth, async (req, res, next) => {
+    const parsed = insertMealSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+    try {
+      const id = String(req.params.id);
+      const meal = await storage.updateMeal(req.user!.id, id, parsed.data);
+      if (!meal) return res.status(404).json({ message: "Not found" });
+      res.json(meal);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.delete("/api/meals/:id", requireAuth, async (req, res, next) => {
     try {
       const id = String(req.params.id);

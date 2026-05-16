@@ -25,6 +25,7 @@ export interface IStorage {
 
   listMeals(userId: string, fromDate?: string, toDate?: string): Promise<Meal[]>;
   createMeal(userId: string, data: InsertMeal): Promise<Meal>;
+  updateMeal(userId: string, id: string, data: InsertMeal): Promise<Meal | undefined>;
   deleteMeal(userId: string, id: string): Promise<boolean>;
 
   listWeights(userId: string): Promise<Weight[]>;
@@ -91,6 +92,15 @@ export class DbStorage implements IStorage {
   async createMeal(userId: string, data: InsertMeal) {
     const [created] = await db.insert(meals).values({ ...data, userId }).returning();
     return created;
+  }
+
+  async updateMeal(userId: string, id: string, data: InsertMeal) {
+    const [updated] = await db
+      .update(meals)
+      .set(data)
+      .where(and(eq(meals.id, id), eq(meals.userId, userId)))
+      .returning();
+    return updated;
   }
 
   async deleteMeal(userId: string, id: string) {

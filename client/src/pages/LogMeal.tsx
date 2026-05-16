@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, Trash2, X, Search, Camera, Sparkles } from "lucide-react";
+import { Pencil, Trash2, X, Search, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { insertMealSchema, MEAL_TYPES, type InsertMeal, type Meal } from "@shared/schema";
 import { type Food, macrosForServing } from "@shared/foods";
 import { mealsForDate, todayStr } from "@/lib/calorieflow";
-
-type PhotoAnalysisResult = {
-  name: string;
-  calories: number;
-  proteins: number;
-  carbs: number;
-  fats: number;
-};
+import { MealChat, type NutritionEstimate } from "@/components/MealChat";
 
 const defaultValues: InsertMeal = {
   date: todayStr(),
@@ -36,6 +29,9 @@ const defaultValues: InsertMeal = {
 export default function LogMeal() {
   const { toast } = useToast();
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
+  const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({
+    queryKey: ["/api/ai/status"],
+  });
 
   const form = useForm<InsertMeal>({
     resolver: zodResolver(insertMealSchema),
@@ -49,10 +45,7 @@ export default function LogMeal() {
   const [grams, setGrams] = useState<number>(100);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isAiEstimate, setIsAiEstimate] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: foodResults = [] } = useQuery<Food[]>({
     queryKey: ["/api/foods", { q: foodQuery }],
@@ -92,9 +85,8 @@ export default function LogMeal() {
     setShowSuggestions(false);
     setFoodQuery(food.name);
     form.setValue("name", food.name);
-    const defaultIdx = 0;
-    setServingIdx(String(defaultIdx));
-    setGrams(food.servings[defaultIdx].grams);
+    setServingIdx("0");
+    setGrams(food.servings[0].grams);
     setIsAiEstimate(false);
   }
 
@@ -118,10 +110,16 @@ export default function LogMeal() {
     setGrams(selectedFood.servings[idx].grams);
   }
 
-  function clearPhoto() {
-    setPhotoPreview(null);
-    setIsAiEstimate(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  function applyEstimate(estimate: NutritionEstimate) {
+    form.setValue("name", estimate.name);
+    form.setValue("calories", estimate.calories);
+    form.setValue("proteins", estimate.proteins);
+    form.setValue("carbs", estimate.carbs);
+    form.setValue("fats", estimate.fats);
+    setFoodQuery(estimate.name);
+    clearFood();
+    setIsAiEstimate(true);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 
   const onError = (err: unknown) =>
@@ -136,73 +134,8 @@ export default function LogMeal() {
     form.reset(defaultValues);
     setFoodQuery("");
     clearFood();
-    clearPhoto();
-  };
-
-  const analyzePhoto = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("photo", file);
-      const res = await fetch("/api/meals/analyze-photo", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: "Analysis failed" }));
-        throw new Error(err.message || "Analysis failed");
-      }
-      return (await res.json()) as PhotoAnalysisResult;
-    },
-    onSuccess: (data) => {
-      form.setValue("name", data.name);
-      form.setValue("calories", data.calories);
-      form.setValue("proteins", data.proteins);
-      form.setValue("carbs", data.carbs);
-      form.setValue("fats", data.fats);
-      setFoodQuery(data.name);
-      clearFood();
-      setIsAiEstimate(true);
-    },
-    onError: (err: unknown) => {
-      toast({
-        title: "Photo analysis failed",
-        description: err instanceof Error ? err.message : "Something went wrong. You can still fill in the details manually.",
-        variant: "destructive",
-      });
-      clearPhoto();
-    },
-  });
-
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!ALLOWED.includes(file.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a JPEG, PNG, WebP, or GIF image.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "Image too large",
-        description: "Please choose an image smaller than 10 MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
-    reader.readAsDataURL(file);
-
     setIsAiEstimate(false);
-    analyzePhoto.mutate(file);
-  }
+  };
 
   const create = useMutation({
     mutationFn: async (data: InsertMeal) => {
@@ -232,7 +165,7 @@ export default function LogMeal() {
 
   function startEdit(meal: Meal) {
     setEditingId(meal.id);
-    clearPhoto();
+    setIsAiEstimate(false);
     form.reset({
       date: meal.date,
       mealType: meal.mealType as InsertMeal["mealType"],
@@ -251,15 +184,14 @@ export default function LogMeal() {
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/meals/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      if (editingId === id) resetForm();
       toast({ title: "Meal removed" });
     },
   });
 
   const isPending = create.isPending || update.isPending;
-  const isAnalyzing = analyzePhoto.isPending;
-
   const todays = mealsForDate(meals, todayStr());
 
   return (
@@ -275,7 +207,7 @@ export default function LogMeal() {
                 <p className="mt-1 text-sm text-[#424843]">
                   {editingId
                     ? "Update the details and save your changes."
-                    : "Search the food database or type a custom name. Macros auto-fill when you pick a food."}
+                    : "Ask AI to estimate nutrition, or search the food database below."}
                 </p>
               </div>
               {editingId && (
@@ -295,70 +227,26 @@ export default function LogMeal() {
 
             {!editingId && (
               <div className="mt-6">
-                <p className="text-sm font-medium text-[#1a1c1a] mb-2">Analyze a photo</p>
-                <p className="text-xs text-[#424843] mb-3">
-                  Snap or upload a photo of your plate and AI will estimate the nutrition for you.
-                </p>
-
-                {!photoPreview ? (
-                  <label
-                    data-testid="button-upload-photo"
-                    className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#c2c8c14c] bg-[#f4f3ef] px-4 py-5 text-sm text-[#476550] hover:border-[#476550] hover:bg-[#edf0eb] transition-colors"
-                  >
-                    <Camera className="h-5 w-5 shrink-0" />
-                    <span>Upload photo or take a picture</span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      capture="environment"
-                      className="sr-only"
-                      onChange={onFileChange}
-                      data-testid="input-photo-file"
-                    />
-                  </label>
-                ) : (
-                  <div className="relative rounded-2xl overflow-hidden border border-[#c2c8c14c]">
-                    <img
-                      src={photoPreview}
-                      alt="Meal photo preview"
-                      data-testid="img-photo-preview"
-                      className="w-full max-h-52 object-cover"
-                    />
-                    {isAnalyzing && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
-                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        <p className="text-sm font-medium text-white">Analyzing photo…</p>
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      data-testid="button-clear-photo"
-                      onClick={clearPhoto}
-                      disabled={isAnalyzing}
-                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50"
-                      aria-label="Remove photo"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-
-                {isAiEstimate && (
-                  <div
-                    data-testid="banner-ai-estimate"
-                    className="mt-4 flex items-start gap-2 rounded-xl border border-[#476550]/30 bg-[#edf0eb] px-4 py-3 text-sm text-[#476550]"
-                  >
-                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>
-                      <strong>AI estimate</strong> — these values were pre-filled from your photo. Please review and adjust before saving.
-                    </span>
-                  </div>
-                )}
+                <p className="mb-3 text-sm font-medium text-[#1a1c1a]">AI nutrition chat</p>
+                <MealChat
+                  hasApiKey={aiStatus?.hasApiKey ?? true}
+                  onUseEstimate={applyEstimate}
+                />
               </div>
             )}
 
             <div className="mt-6 border-t border-[#c2c8c14c] pt-6">
+              {isAiEstimate && (
+                <div
+                  data-testid="banner-ai-estimate"
+                  className="mb-4 flex items-start gap-2 rounded-xl border border-[#476550]/30 bg-[#edf0eb] px-4 py-3 text-sm text-[#476550]"
+                >
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    <strong>AI estimate applied</strong> — values were pre-filled from the chat. Review and adjust before saving.
+                  </span>
+                </div>
+              )}
               <Form {...form}>
                 <form
                   className="space-y-4"
@@ -604,7 +492,7 @@ export default function LogMeal() {
                   </div>
                   <Button
                     type="submit"
-                    disabled={isPending || isAnalyzing}
+                    disabled={isPending}
                     className="w-full bg-[#476550] hover:bg-[#3f5b47] md:w-auto"
                     data-testid="button-save-meal"
                   >

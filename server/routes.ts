@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { type Server } from "http";
 import multer from "multer";
-import OpenAI from "openai";
+import OpenAI, { type ClientOptions } from "openai";
+import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
@@ -35,6 +36,10 @@ const photoAnalysisSchema = z.object({
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   setupAuth(app);
+
+  app.get("/api/ai/status", requireAuth, (_req, res) => {
+    res.json({ hasApiKey: !!process.env.OPENAI_API_KEY });
+  });
 
   app.get("/api/settings", requireAuth, async (req, res, next) => {
     try {
@@ -209,6 +214,118 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Analysis failed";
         next(new Error(message));
+      }
+    });
+  });
+
+  app.post("/api/meals/chat", requireAuth, (req, res, next) => {
+    upload.single("photo")(req, res, async (err) => {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ message: "Image must be smaller than 10 MB" });
+      }
+      if (err) return res.status(400).json({ message: err.message || "Invalid file" });
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ message: "AI chat is not configured (missing API key)" });
+      }
+
+      let history: { role: "user" | "assistant"; content: string }[] = [];
+      try {
+        const raw = typeof req.body.history === "string" ? req.body.history : "[]";
+        const parsed: unknown = JSON.parse(raw);
+        if (
+          Array.isArray(parsed) &&
+          parsed.every(
+            (m) =>
+              typeof m === "object" &&
+              m !== null &&
+              (m as Record<string, unknown>).role === "user" ||
+              (typeof m === "object" && m !== null && (m as Record<string, unknown>).role === "assistant"),
+          )
+        ) {
+          history = (parsed as { role: "user" | "assistant"; content: string }[]).slice(-20);
+        }
+      } catch {
+        history = [];
+      }
+
+      const userText: string = typeof req.body.message === "string" ? req.body.message.slice(0, 1000) : "";
+
+      try {
+        const openai = new OpenAI({ apiKey } as ClientOptions);
+
+        const systemMessage: ChatCompletionMessageParam = {
+          role: "system",
+          content: `You are a helpful nutrition assistant embedded in a calorie-tracking app. The user wants to log a meal. They may send a photo, a text description, or both.
+
+Your job:
+1. Respond conversationally and briefly (1-3 sentences) — explain your reasoning, acknowledge partial servings or combinations.
+2. Whenever you have enough information to estimate nutrition, append a JSON block at the very end of your response in this exact format (no text after it):
+\`\`\`json
+{"estimate":{"name":"<short meal name>","calories":<integer>,"proteins":<number>,"carbs":<number>,"fats":<number>}}
+\`\`\`
+3. For partial servings (e.g. "I ate half"), divide accordingly.
+4. Protein, carbs, fats should be rounded to 1 decimal place. Calories must be an integer.
+5. If you need more information, ask a single clarifying question and omit the JSON block.`,
+        };
+
+        const historyMessages: ChatCompletionMessageParam[] = history.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+        let userContent: string | ChatCompletionContentPart[];
+        if (req.file) {
+          const base64 = req.file.buffer.toString("base64");
+          const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+          const parts: ChatCompletionContentPart[] = [];
+          parts.push({ type: "text", text: userText || "Please analyze this food photo." });
+          parts.push({ type: "image_url", image_url: { url: dataUrl, detail: "low" } });
+          userContent = parts;
+        } else {
+          userContent = userText || "What can you tell me?";
+        }
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          max_tokens: 500,
+          messages: [...[systemMessage], ...historyMessages, { role: "user" as const, content: userContent }],
+        });
+
+        const raw = completion.choices[0]?.message?.content?.trim() ?? "";
+
+        const jsonBlockMatch = raw.match(/```json\s*(\{[\s\S]*?\})\s*```\s*$/);
+        let estimate: {
+          name: string;
+          calories: number;
+          proteins: number;
+          carbs: number;
+          fats: number;
+        } | undefined;
+        let reply = raw;
+
+        if (jsonBlockMatch) {
+          try {
+            const parsed: unknown = JSON.parse(jsonBlockMatch[1]);
+            if (
+              typeof parsed === "object" &&
+              parsed !== null &&
+              "estimate" in parsed &&
+              typeof (parsed as { estimate: unknown }).estimate === "object"
+            ) {
+              const v = photoAnalysisSchema.safeParse((parsed as { estimate: unknown }).estimate);
+              if (v.success) estimate = v.data;
+            }
+          } catch {
+            // leave estimate undefined
+          }
+          reply = raw.slice(0, raw.lastIndexOf("```json")).trim();
+        }
+
+        res.json({ reply: reply || "Here is the estimate.", estimate });
+      } catch (err: unknown) {
+        next(new Error(err instanceof Error ? err.message : "AI chat failed"));
       }
     });
   });

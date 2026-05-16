@@ -15,7 +15,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
   const [location, navigate] = useLocation();
   const { user, logout } = useAuth();
 
-  const initials = (user?.name || user?.username || "U")
+  const initials = (user?.name || user?.email || "U")
     .split(" ")
     .map((s) => s[0])
     .slice(0, 2)
@@ -85,7 +85,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                 </Avatar>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <p className="truncate text-sm font-medium leading-5 text-[#1a1c1a]" data-testid="text-user-name">
-                    {user?.name || user?.username}
+                    {user?.name || user?.email}
                   </p>
                   <p className="truncate text-[10px] uppercase tracking-[0.5px] text-[#424843]">Member</p>
                 </div>

@@ -48,7 +48,12 @@ export default function LogMeal() {
       });
       toast({ title: "Meal added" });
     },
-    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed",
+        description: err instanceof Error ? err.message : "Something went wrong",
+        variant: "destructive",
+      }),
   });
 
   const del = useMutation({

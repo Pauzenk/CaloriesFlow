@@ -45,7 +45,12 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({ title: "Settings saved" });
     },
-    onError: (e: any) => toast({ title: "Failed to save", description: e.message, variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to save",
+        description: err instanceof Error ? err.message : "Something went wrong",
+        variant: "destructive",
+      }),
   });
 
   return (

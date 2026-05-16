@@ -13,15 +13,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Required"),
+  email: z.string().email("Enter a valid email"),
   password: z.string().min(1, "Required"),
 });
 
 const registerSchema = z.object({
   name: z.string().min(1, "Required"),
-  username: z.string().min(3, "Min 3 characters"),
+  email: z.string().email("Enter a valid email"),
   password: z.string().min(6, "Min 6 characters"),
 });
+
+function describeError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return "Something went wrong";
+}
 
 export default function AuthPage() {
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -35,23 +40,25 @@ export default function AuthPage() {
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: "", password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", username: "", password: "" },
+    defaultValues: { name: "", email: "", password: "" },
   });
 
   const onLogin = loginForm.handleSubmit((values) => {
     login.mutate(values, {
-      onError: (e: any) => toast({ title: "Login failed", description: e.message, variant: "destructive" }),
+      onError: (err: unknown) =>
+        toast({ title: "Login failed", description: describeError(err), variant: "destructive" }),
     });
   });
 
   const onRegister = registerForm.handleSubmit((values) => {
     register.mutate(values, {
-      onError: (e: any) => toast({ title: "Sign up failed", description: e.message, variant: "destructive" }),
+      onError: (err: unknown) =>
+        toast({ title: "Sign up failed", description: describeError(err), variant: "destructive" }),
     });
   });
 
@@ -85,7 +92,7 @@ export default function AuthPage() {
             </div>
             <h2 className="text-2xl font-bold text-[#1a1c1a]">Welcome</h2>
             <p className="mt-1 text-sm text-[#424843]">Log in or create an account to continue.</p>
-            <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mt-6">
+            <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "register")} className="mt-6">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login" data-testid="tab-login">Log in</TabsTrigger>
                 <TabsTrigger value="register" data-testid="tab-register">Sign up</TabsTrigger>
@@ -95,12 +102,12 @@ export default function AuthPage() {
                   <form onSubmit={onLogin} className="space-y-4">
                     <FormField
                       control={loginForm.control}
-                      name="username"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input data-testid="input-login-username" {...field} />
+                            <Input type="email" autoComplete="email" data-testid="input-login-email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -113,7 +120,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
-                            <Input type="password" data-testid="input-login-password" {...field} />
+                            <Input type="password" autoComplete="current-password" data-testid="input-login-password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -140,7 +147,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Name</FormLabel>
                           <FormControl>
-                            <Input data-testid="input-register-name" {...field} />
+                            <Input autoComplete="name" data-testid="input-register-name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -148,12 +155,12 @@ export default function AuthPage() {
                     />
                     <FormField
                       control={registerForm.control}
-                      name="username"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input data-testid="input-register-username" {...field} />
+                            <Input type="email" autoComplete="email" data-testid="input-register-email" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -166,7 +173,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Password</FormLabel>
                           <FormControl>
-                            <Input type="password" data-testid="input-register-password" {...field} />
+                            <Input type="password" autoComplete="new-password" data-testid="input-register-password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

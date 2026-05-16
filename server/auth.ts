@@ -1,13 +1,13 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as LocalStrategy, type IVerifyOptions } from "passport-local";
 import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { pool } from "./db";
 import { storage } from "./storage";
-import { insertUserSchema, loginSchema, type User } from "@shared/schema";
+import { insertUserSchema, loginSchema, type AuthUser, type User } from "@shared/schema";
 
 const scryptAsync = promisify(scrypt);
 
@@ -27,15 +27,18 @@ async function verifyPassword(stored: string, supplied: string): Promise<boolean
 
 declare global {
   namespace Express {
-    interface User {
-      id: string;
-      username: string;
-      name: string;
-    }
+    interface User extends AuthUser {}
   }
 }
 
+function sanitizeUser(user: User): AuthUser {
+  return { id: user.id, email: user.email, name: user.name };
+}
+
 export function setupAuth(app: Express) {
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
   const PgStore = connectPgSimple(session);
   const sessionStore = new PgStore({
     pool,
@@ -44,9 +47,6 @@ export function setupAuth(app: Express) {
   });
 
   const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-me";
-  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET must be set in production");
-  }
 
   app.set("trust proxy", 1);
   app.use(
@@ -65,27 +65,30 @@ export function setupAuth(app: Express) {
   );
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user) return done(null, false, { message: "Invalid credentials" });
-        const ok = await verifyPassword(user.password, password);
-        if (!ok) return done(null, false, { message: "Invalid credentials" });
-        return done(null, sanitizeUser(user));
-      } catch (err) {
-        return done(err);
-      }
-    }),
+    new LocalStrategy(
+      { usernameField: "email", passwordField: "password" },
+      async (email: string, password: string, done: (err: Error | null, user?: AuthUser | false, options?: IVerifyOptions) => void) => {
+        try {
+          const user = await storage.getUserByEmail(email);
+          if (!user) return done(null, false, { message: "Invalid credentials" });
+          const ok = await verifyPassword(user.password, password);
+          if (!ok) return done(null, false, { message: "Invalid credentials" });
+          return done(null, sanitizeUser(user));
+        } catch (err) {
+          return done(err as Error);
+        }
+      },
+    ),
   );
 
-  passport.serializeUser((user: any, done) => done(null, user.id));
-  passport.deserializeUser(async (id: string, done) => {
+  passport.serializeUser((user: Express.User, done: (err: Error | null, id?: string) => void) => done(null, user.id));
+  passport.deserializeUser(async (id: string, done: (err: Error | null, user?: AuthUser | false) => void) => {
     try {
       const user = await storage.getUser(id);
       if (!user) return done(null, false);
       done(null, sanitizeUser(user));
     } catch (err) {
-      done(err);
+      done(err as Error);
     }
   });
 
@@ -98,13 +101,14 @@ export function setupAuth(app: Express) {
       return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
     }
     try {
-      const existing = await storage.getUserByUsername(parsed.data.username);
-      if (existing) return res.status(409).json({ message: "Username already taken" });
+      const existing = await storage.getUserByEmail(parsed.data.email);
+      if (existing) return res.status(409).json({ message: "Email already registered" });
       const hashed = await hashPassword(parsed.data.password);
       const user = await storage.createUser({ ...parsed.data, password: hashed });
-      req.login(sanitizeUser(user), (err) => {
+      const safe = sanitizeUser(user);
+      req.login(safe, (err) => {
         if (err) return next(err);
-        res.status(201).json(sanitizeUser(user));
+        res.status(201).json(safe);
       });
     } catch (err) {
       next(err);
@@ -114,7 +118,7 @@ export function setupAuth(app: Express) {
   app.post("/api/auth/login", (req, res, next) => {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid input" });
-    passport.authenticate("local", (err: any, user: Express.User | false, info: any) => {
+    passport.authenticate("local", (err: Error | null, user: AuthUser | false, info: IVerifyOptions | undefined) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ message: info?.message || "Invalid credentials" });
       req.login(user, (err2) => {
@@ -138,10 +142,6 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated || !req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
     res.json(req.user);
   });
-}
-
-function sanitizeUser(user: User): Express.User {
-  return { id: user.id, username: user.username, name: user.name };
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {

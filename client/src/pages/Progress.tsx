@@ -46,7 +46,12 @@ export default function ProgressPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({ title: "Weight logged" });
     },
-    onError: (e: any) => toast({ title: "Failed to log weight", description: e.message, variant: "destructive" }),
+    onError: (err: unknown) =>
+      toast({
+        title: "Failed to log weight",
+        description: err instanceof Error ? err.message : "Something went wrong",
+        variant: "destructive",
+      }),
   });
 
   const goal = settings?.dailyCalorieGoal || 2000;

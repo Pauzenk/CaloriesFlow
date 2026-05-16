@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
@@ -7,6 +7,7 @@ import {
   insertWeightSchema,
   upsertSettingsSchema,
 } from "@shared/schema";
+import { buildDashboardSummary, calorieSeries, lastNDates } from "./stats";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   setupAuth(app);
@@ -79,6 +80,36 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const w = await storage.createWeight(req.user!.id, parsed.data);
       res.status(201).json(w);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/stats/dashboard", requireAuth, async (req, res, next) => {
+    try {
+      const userId = req.user!.id;
+      const [settings, meals, weights] = await Promise.all([
+        storage.getSettings(userId),
+        storage.listMeals(userId),
+        storage.listWeights(userId),
+      ]);
+      res.json(buildDashboardSummary(meals, weights, settings));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/stats/calories", requireAuth, async (req, res, next) => {
+    try {
+      const userId = req.user!.id;
+      const periodRaw = typeof req.query.period === "string" ? req.query.period : "week";
+      const period = periodRaw === "day" || periodRaw === "month" ? periodRaw : "week";
+      const n = period === "day" ? 1 : period === "week" ? 7 : 30;
+      const [settings, meals] = await Promise.all([
+        storage.getSettings(userId),
+        storage.listMeals(userId),
+      ]);
+      res.json(calorieSeries(meals, lastNDates(n), settings.dailyCalorieGoal));
     } catch (err) {
       next(err);
     }

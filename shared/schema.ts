@@ -5,25 +5,26 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull().default(""),
 });
 
 export const insertUserSchema = createInsertSchema(users)
-  .pick({ username: true, password: true, name: true })
+  .pick({ email: true, password: true, name: true })
   .extend({
-    username: z.string().min(3).max(50),
+    email: z.string().email().max(200),
     password: z.string().min(6).max(100),
     name: z.string().min(1).max(80),
   });
 
 export const loginSchema = z.object({
-  username: z.string().min(1),
+  email: z.string().email(),
   password: z.string().min(1),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
 export type User = typeof users.$inferSelect;
 
 export const settings = pgTable("settings", {
@@ -93,3 +94,37 @@ export const insertWeightSchema = createInsertSchema(weights)
 
 export type Weight = typeof weights.$inferSelect;
 export type InsertWeight = z.infer<typeof insertWeightSchema>;
+
+export type AuthUser = { id: string; email: string; name: string };
+
+export type DaySummary = {
+  date: string;
+  calories: number;
+  proteins: number;
+  carbs: number;
+  fats: number;
+  byMealType: Record<MealType, number>;
+};
+
+export type CalorieSeriesPoint = {
+  date: string;
+  label: string;
+  shortLabel: string;
+  calories: number;
+  goal: number;
+};
+
+export type WeeklyWeightPoint = {
+  week: string;
+  delta: number;
+  weightKg: number;
+};
+
+export type DashboardSummary = {
+  today: DaySummary;
+  goal: number;
+  journeyDay: number;
+  weekSeries: CalorieSeriesPoint[];
+  weeklyWeights: WeeklyWeightPoint[];
+  totalWeightChange: number;
+};

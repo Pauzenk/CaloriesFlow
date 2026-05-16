@@ -1,16 +1,87 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
+import type { Express, Request, Response, NextFunction } from "express";
+import { type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, requireAuth } from "./auth";
+import {
+  insertMealSchema,
+  insertWeightSchema,
+  upsertSettingsSchema,
+} from "@shared/schema";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  setupAuth(app);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  app.get("/api/settings", requireAuth, async (req, res, next) => {
+    try {
+      const s = await storage.getSettings(req.user!.id);
+      res.json(s);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.put("/api/settings", requireAuth, async (req, res, next) => {
+    const parsed = upsertSettingsSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+    try {
+      const s = await storage.upsertSettings(req.user!.id, parsed.data);
+      res.json(s);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/meals", requireAuth, async (req, res, next) => {
+    try {
+      const from = typeof req.query.from === "string" ? req.query.from : undefined;
+      const to = typeof req.query.to === "string" ? req.query.to : undefined;
+      const list = await storage.listMeals(req.user!.id, from, to);
+      res.json(list);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/meals", requireAuth, async (req, res, next) => {
+    const parsed = insertMealSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+    try {
+      const meal = await storage.createMeal(req.user!.id, parsed.data);
+      res.status(201).json(meal);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.delete("/api/meals/:id", requireAuth, async (req, res, next) => {
+    try {
+      const ok = await storage.deleteMeal(req.user!.id, req.params.id);
+      if (!ok) return res.status(404).json({ message: "Not found" });
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/weights", requireAuth, async (req, res, next) => {
+    try {
+      const list = await storage.listWeights(req.user!.id);
+      res.json(list);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/weights", requireAuth, async (req, res, next) => {
+    const parsed = insertWeightSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+    try {
+      const w = await storage.createWeight(req.user!.id, parsed.data);
+      res.status(201).json(w);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   return httpServer;
 }

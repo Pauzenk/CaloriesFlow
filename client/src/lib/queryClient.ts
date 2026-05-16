@@ -29,9 +29,10 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
+    const url = queryKey
+      .map((segment) => (typeof segment === "string" ? segment : JSON.stringify(segment)))
+      .join("/");
+    const res = await fetch(url, { credentials: "include" });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Coffee, UtensilsCrossed, Soup, Sparkles } from "lucide-react";
+import { Coffee, UtensilsCrossed, Soup, Sparkles, Target, Plus, Leaf } from "lucide-react";
 import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
 import { AppShell } from "@/components/AppShell";
 import type { Meal, Settings, Weight } from "@shared/schema";
@@ -56,8 +58,51 @@ export default function Dashboard() {
   const weightDeltas = weeklyWeightDeltas(weights, settings);
   const totalLoss = weightDeltas.reduce((a, d) => a + d.delta, 0);
 
+  const showOnboarding = meals.length === 0;
+
   return (
     <AppShell title="Overview">
+      {showOnboarding && (
+        <Card
+          data-testid="card-onboarding"
+          className="mb-6 overflow-hidden rounded-3xl border-0 bg-gradient-to-br from-[#476550] to-[#3f5b47] shadow-[0px_4px_6px_-4px_#0000001a,0px_10px_15px_-3px_#0000001a]"
+        >
+          <CardContent className="p-6 md:p-8">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
+                  <Leaf className="h-6 w-6" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-2xl font-bold text-white">Welcome to CalorieFlow</h3>
+                  <p className="max-w-xl text-base text-white/90">
+                    Set your daily calorie goal in Settings, then log your first meal to start tracking your journey.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row md:shrink-0">
+                <Link href="/settings">
+                  <Button
+                    data-testid="button-onboarding-settings"
+                    variant="outline"
+                    className="h-11 w-full gap-2 rounded-xl border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white sm:w-auto"
+                  >
+                    <Target className="h-4 w-4" /> Set Goal
+                  </Button>
+                </Link>
+                <Link href="/log">
+                  <Button
+                    data-testid="button-onboarding-log"
+                    className="h-11 w-full gap-2 rounded-xl bg-white text-base font-bold text-[#476550] hover:bg-white/90 sm:w-auto"
+                  >
+                    <Plus className="h-4 w-4" /> Log Daily Meal
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,418px)]">
         <Card className="rounded-3xl border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="flex h-full flex-col p-6 md:p-8">

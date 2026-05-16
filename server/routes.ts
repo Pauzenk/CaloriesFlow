@@ -8,6 +8,7 @@ import {
   upsertSettingsSchema,
 } from "@shared/schema";
 import { buildDashboardSummary, calorieSeries, lastNDates } from "./stats";
+import { searchFoods } from "@shared/foods";
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   setupAuth(app);
@@ -27,6 +28,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     try {
       const s = await storage.upsertSettings(req.user!.id, parsed.data);
       res.json(s);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get("/api/foods", requireAuth, async (req, res, next) => {
+    try {
+      const q = typeof req.query.q === "string" ? req.query.q : "";
+      res.json(searchFoods(q, 12));
     } catch (err) {
       next(err);
     }

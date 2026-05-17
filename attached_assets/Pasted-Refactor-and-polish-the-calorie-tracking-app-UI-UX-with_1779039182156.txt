@@ -1,0 +1,76 @@
+Refactor and polish the calorie tracking app UI/UX without changing the overall visual identity, typography family, or color palette. Do not redesign the branding or create a completely new style. This is a UX polish and layout restructuring task focused on readability, hierarchy, spacing, clarity, and usability.
+
+General UX Rules:
+- Improve readability across the app.
+- Improve contrast and reduce transparency where text becomes difficult to read.
+- Improve hierarchy and spacing.
+- Make layouts easier to scan.
+- Use more balanced padding and margins.
+- Reduce clutter and improve alignment consistency.
+- Improve navigation clarity.
+- Keep the current visual style, fonts, and colors.
+- Only improve layout, structure, hierarchy, spacing, and component organization.
+- Follow senior-level product UX best practices.
+
+Dashboard:
+- Do NOT modify the current “Today Stats” section.
+- Keep protein, carbs, fat, and current layout there exactly as they are.
+- Remove the “7-day volume” section completely.
+- Make the “Add Entry” button much more visible and easier to notice.
+
+Progress Page:
+- The first/top block is good and can stay mostly as is.
+- Keep the current “Projection” and “Goal” logic.
+- Move the “Current Weight (Estimated)” block to the very top of the page.
+- Remove the separate “Log Actual Weight” section.
+- Instead, place the actual weight input inline next to the estimated weight in a cleaner and more compact way.
+- Keep “Goal with activities” as it currently works.
+- Replace percentage-based progress display (like 6%) with a timeframe-based display (example: “2 months”).
+- Replace “Total Calories” with:
+  - “Calorie Deficit”
+- Keep:
+  - “Average per day”
+- Also display:
+  - total calorie deficit achieved
+  - estimated kilograms lost
+
+Charts:
+- Improve readability of the intake/progress charts.
+- Current Y-axis logic is confusing.
+- The chart should visually scale around maintenance calories (around 1800–1900).
+- Goal calories should appear as a dotted line.
+- Maintenance calories should appear as another dotted line.
+- Make the difference between maintenance and goal visually clear.
+
+Settings:
+- Keep the current logic for calorie target and goal settings.
+- Improve the visual layout of the goal selection cards/blocks.
+- “Pick how long you want to reach your goal” should feel cleaner and easier to understand.
+- Keep automatic calorie adjustments when changing goal duration.
+
+Log Meal:
+- When clicking the Nutrition Chat / AI Chat:
+  - do NOT simply expand the chat downward
+  - instead, open it as a full overlay/modal experience
+  - the chat should temporarily replace/hide:
+    - meal list
+    - meal type
+    - entry fields
+- After adding the entry, close the chat overlay and return to the normal Log Meal screen.
+- Keep the interaction smooth and simple.
+
+Activity Logging:
+- Users should be able to type activities naturally in chat.
+- Example:
+  “Cardio 25 minutes”
+- The app should estimate calories burned automatically and subtract them from daily intake.
+
+Visual Direction:
+- Cleaner structure
+- Better spacing
+- Better readability
+- Better contrast
+- Better visual hierarchy
+- More polished layouts
+- Less visual clutter
+- Keep the same design identity

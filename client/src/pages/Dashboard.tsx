@@ -228,44 +228,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ── 7-day volume chart ── */}
-        <div className="mb-16">
-          <div className="text-xs uppercase tracking-widest opacity-60 mb-6 text-center">
-            7-Day Volume
-          </div>
-          <div className="flex items-end justify-between h-32 px-2">
-            {series.map((d, i) => {
-              const isToday = d.date === today;
-              const heightPct = d.calories > 0 ? Math.max(4, (d.calories / chartMax) * 100) : 1;
-              const overGoal = d.calories > goal;
-              return (
-                <div key={i} className="flex flex-col items-center gap-2 flex-1">
-                  <div
-                    className="w-full max-w-[28px] transition-all relative group"
-                    style={{
-                      height: `${heightPct}%`,
-                      backgroundColor: overGoal ? "#9B4A2E" : "#1C1714",
-                      opacity: d.calories === 0 ? 0.15 : isToday ? 1 : 0.55,
-                    }}
-                    data-testid={`bar-week-${d.label}`}
-                  >
-                    {d.calories > 0 && (
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
-                        {d.calories}
-                      </div>
-                    )}
-                  </div>
-                  <div className={`text-[10px] uppercase ${isToday ? "font-bold opacity-100" : "opacity-40"}`}>
-                    {d.label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="border-t border-[#1C1714] mt-3 pt-2 text-center text-[10px] uppercase opacity-40 tracking-widest">
-            End of Record
-          </div>
-        </div>
+        <div className="text-center text-[10px] uppercase tracking-widest opacity-30 mb-8">— End of Record —</div>
 
       </div>
     </AppShell>

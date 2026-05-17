@@ -1,8 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
-import { Settings2 } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -218,7 +216,14 @@ export default function ProgressPage() {
     ? ACTIVITY_LEVEL_LABELS[settings.activityLevel as ActivityLevel]
     : null;
 
-  const intakeChartMax = Math.max(1950, ...chartData.map((d) => d.calories ?? 0));
+  const intakeChartMax = Math.max(
+    (estimatedTDEE ?? goal) + 200,
+    ...chartData.map((d) => d.calories ?? 0),
+  );
+  const intakeChartMin = Math.max(
+    0,
+    Math.floor((Math.min(goal, estimatedTDEE ?? goal) - 400) / 100) * 100,
+  );
 
   useEffect(() => {
     if (selectedWeekKey === null) return;
@@ -233,7 +238,63 @@ export default function ProgressPage() {
 
   return (
     <AppShell title="Progress">
-      <div className="w-full font-['Space_Mono'] text-[#1C1714] space-y-10">
+      <div className="w-full font-['Space_Mono'] text-[#1C1714] space-y-8">
+
+        {/* ══ Current Weight — top of page ══ */}
+        <div className="border-2 border-[#1C1714] p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
+                Current Weight
+                <span className="ml-2 opacity-60">({isActualWeight ? "Actual" : "Estimated"})</span>
+              </p>
+              <div className="flex items-end gap-2">
+                <span className="text-4xl tabular-nums tracking-tighter leading-none" data-testid="text-estimated-weight">
+                  {displayWeight !== null ? displayWeight.toFixed(1) : "—"}
+                </span>
+                <span className="text-xl opacity-40 mb-0.5">kg</span>
+                {settings?.goalWeightKg && (
+                  <span className="text-sm opacity-35 mb-0.5">/ {settings.goalWeightKg} kg goal</span>
+                )}
+              </div>
+              {displayWeight !== null && (
+                <p className="text-[10px] opacity-40 mt-1">
+                  {isActualWeight && mostRecentActualWeight
+                    ? `Logged ${formatGoalDate(mostRecentActualWeight.date)}`
+                    : activityLabel
+                    ? `Calculated from calorie deficit · ${activityLabel}`
+                    : "Calculated from calorie deficit"}
+                </p>
+              )}
+            </div>
+            <form
+              className="flex gap-2 sm:max-w-[280px] w-full"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const kg = parseFloat(weightInput);
+                if (!isNaN(kg) && kg > 0) addWeight.mutate(kg);
+              }}
+            >
+              <Input
+                data-testid="input-weight"
+                type="number"
+                step="0.1"
+                value={weightInput}
+                onChange={(e) => setWeightInput(e.target.value)}
+                placeholder="Log actual (kg)"
+                className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40 h-9 text-sm flex-1"
+              />
+              <button
+                type="submit"
+                data-testid="button-log-weight"
+                disabled={addWeight.isPending || !weightInput}
+                className="shrink-0 bg-[#1C1714] text-[#F2EDE7] px-4 py-2 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 transition-colors disabled:opacity-40 whitespace-nowrap"
+              >
+                {addWeight.isPending ? "…" : "Add"}
+              </button>
+            </form>
+          </div>
+        </div>
 
         {/* ══ Journey Statement ══ */}
         <div className="border border-[#1C1714] p-5">
@@ -248,35 +309,11 @@ export default function ProgressPage() {
               <div className="text-right">
                 <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">Goal</p>
                 <p className="text-lg tabular-nums">{settings.goalWeightKg} kg</p>
+                {projectedGoalDate && (
+                  <p className="text-[10px] opacity-35 mt-0.5">{relativeTime(projectedGoalDate)}</p>
+                )}
               </div>
             )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Current Wt</div>
-              <div className="text-lg" data-testid="text-total-weight-change">
-                {displayWeight !== null ? `${displayWeight.toFixed(1)} kg` : "— kg"}
-              </div>
-              {displayWeight !== null && (
-                <div className="text-[10px] opacity-35 mt-0.5">
-                  {isActualWeight && mostRecentActualWeight
-                    ? `Logged ${formatGoalDate(mostRecentActualWeight.date)}`
-                    : activityLabel
-                    ? `Calc from deficit · ${activityLabel}`
-                    : "Calculated from deficit"}
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Goal Wt</div>
-              <div className="text-lg">
-                {settings?.goalWeightKg ? `${settings.goalWeightKg.toFixed(1)} kg` : "Not set"}
-              </div>
-              {projectedGoalDate && (
-                <div className="text-[10px] opacity-35 mt-0.5">{relativeTime(projectedGoalDate)}</div>
-              )}
-            </div>
           </div>
 
           {canProject && (
@@ -311,10 +348,7 @@ export default function ProgressPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_280px]">
-
-            {/* Left: projection chart */}
-            <div ref={projectionContainerRef}>
+          <div ref={projectionContainerRef}>
               {canProject && projectionChartData.length > 0 ? (
                 <>
                   <div className="flex flex-wrap gap-5 mb-3 text-[10px] uppercase tracking-widest opacity-50">
@@ -499,77 +533,6 @@ export default function ProgressPage() {
                   Add height, age, sex &amp; goal weight in Settings to see projections.
                 </div>
               )}
-            </div>
-
-            {/* Right: Current Weight display + log */}
-            <div>
-              <div className="border border-[#1C1714] p-5">
-                {canProject && displayWeight !== null ? (
-                  <>
-                    <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">
-                      Current Weight ({isActualWeight ? "Actual" : "Estimated"})
-                    </p>
-                    <div className="flex items-end gap-1.5 mb-0.5">
-                      <span className="text-4xl tabular-nums tracking-tighter" data-testid="text-estimated-weight">
-                        {displayWeight.toFixed(1)}
-                      </span>
-                      <span className="text-lg opacity-50 mb-0.5">kg</span>
-                    </div>
-                    {!isActualWeight && (
-                      <p className="text-[10px] opacity-35 mb-1">
-                        Calculated from calorie deficit{activityLabel ? ` · ${activityLabel}` : ""}
-                      </p>
-                    )}
-                    {isActualWeight && mostRecentActualWeight && (
-                      <p className="text-[10px] opacity-35 mb-1">
-                        Logged {formatGoalDate(mostRecentActualWeight.date)}
-                      </p>
-                    )}
-                    <form
-                      className="flex gap-2 mt-4"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const kg = parseFloat(weightInput);
-                        if (!isNaN(kg) && kg > 0) addWeight.mutate(kg);
-                      }}
-                    >
-                      <Input
-                        data-testid="input-weight"
-                        type="number"
-                        step="0.1"
-                        value={weightInput}
-                        onChange={(e) => setWeightInput(e.target.value)}
-                        placeholder="Log actual weight (kg)"
-                        className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40 h-9 text-sm"
-                      />
-                      <button
-                        type="submit"
-                        data-testid="button-log-weight"
-                        disabled={addWeight.isPending || !weightInput}
-                        className="shrink-0 bg-[#1C1714] text-[#F2EDE7] px-5 py-2 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 transition-colors disabled:opacity-40"
-                      >
-                        {addWeight.isPending ? "…" : "Add to Journey"}
-                      </button>
-                    </form>
-                    <p className="mt-1.5 text-[10px] opacity-30">Anchors projection to real weight.</p>
-                  </>
-                ) : (
-                  <div>
-                    <p className="text-xs opacity-60 mb-3">
-                      Add height, age, sex &amp; goal weight in Settings to see your estimated weight.
-                    </p>
-                    <Link href="/settings">
-                      <button
-                        data-testid="button-go-to-settings"
-                        className="flex items-center gap-1.5 text-xs uppercase tracking-widest border border-[#1C1714]/30 px-4 py-2 hover:border-[#1C1714] hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors"
-                      >
-                        <Settings2 className="h-3.5 w-3.5" /> Open Settings
-                      </button>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -627,7 +590,7 @@ export default function ProgressPage() {
                   axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                   tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
                   width={36}
-                  domain={[0, intakeChartMax]}
+                  domain={[intakeChartMin, intakeChartMax]}
                 />
                 <Tooltip {...CHART_TOOLTIP} formatter={(v: number) => [`${v} kcal`]} />
                 <ReferenceLine

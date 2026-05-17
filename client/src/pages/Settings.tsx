@@ -144,12 +144,12 @@ export default function SettingsPage() {
                   <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
                     Daily Target
                   </div>
-                  <p className="text-[10px] opacity-50 mb-4 mt-2">
-                    Pick how long you want to reach your goal — the calorie target updates automatically.
+                  <p className="text-[10px] opacity-50 mb-5 mt-2 leading-relaxed">
+                    Choose your timeline — the calorie target adjusts automatically based on your goal weight.
                   </p>
                   {canComputeTarget ? (
                     <div>
-                      <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="grid grid-cols-1 gap-2 mb-4">
                         {DURATION_MONTHS.map((m) => {
                           const suggested = calcGoalForDuration(m);
                           const isSelected = selectedDuration === m;
@@ -159,39 +159,48 @@ export default function SettingsPage() {
                               type="button"
                               data-testid={`button-duration-${m}`}
                               onClick={() => handleDurationSelect(m)}
-                              className={`flex flex-col items-start px-4 py-2.5 text-xs border transition-colors ${
+                              className={`flex items-center justify-between px-5 py-4 border transition-colors text-left ${
                                 isSelected
                                   ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
                                   : "border-[#1C1714]/30 hover:border-[#1C1714] hover:bg-[#1C1714]/5"
                               }`}
                             >
-                              <span className="uppercase tracking-widest">{m} mo</span>
-                              {suggested !== null && (
-                                <span className={`text-[9px] tabular-nums mt-0.5 ${isSelected ? "opacity-70" : "opacity-50"}`}>
-                                  {suggested.toLocaleString()} kcal
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-sm uppercase tracking-widest font-bold">
+                                  {m} month{m !== 1 ? "s" : ""}
                                 </span>
+                                <span className={`text-[10px] ${isSelected ? "opacity-55" : "opacity-40"}`}>
+                                  Goal by {calcGoalDateFromMonths(m)}
+                                </span>
+                              </div>
+                              {suggested !== null && (
+                                <div className="text-right">
+                                  <span className={`text-lg tabular-nums font-medium ${isSelected ? "opacity-90" : "opacity-70"}`}>
+                                    {suggested.toLocaleString()}
+                                  </span>
+                                  <span className={`text-[10px] ml-1 ${isSelected ? "opacity-50" : "opacity-40"}`}>kcal/day</span>
+                                </div>
                               )}
-                              <span className={`text-[9px] mt-0.5 ${isSelected ? "opacity-50" : "opacity-35"}`}>
-                                by {calcGoalDateFromMonths(m)}
-                              </span>
                             </button>
                           );
                         })}
                       </div>
                       {selectedDuration !== null && (
-                        <div className="text-[10px] opacity-50 mb-1">
-                          Daily goal updated to{" "}
-                          <span className="opacity-100 font-bold">
-                            {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} kcal
-                          </span>{" "}
-                          · save to apply.
+                        <div className="border border-[#1C1714]/20 px-4 py-3 text-[10px] opacity-60">
+                          Target set to{" "}
+                          <span className="opacity-100 font-bold text-[#1C1714]">
+                            {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} kcal/day
+                          </span>
+                          {" "}· save below to apply.
                         </div>
                       )}
                     </div>
                   ) : (
-                    <p className="text-[10px] opacity-40">
-                      Add body metrics and goal weight to enable automatic target calculation.
-                    </p>
+                    <div className="border border-dashed border-[#1C1714]/20 px-5 py-6 text-center">
+                      <p className="text-[10px] opacity-40 leading-relaxed">
+                        Fill in your body metrics and goal weight (right column) to enable automatic target calculation.
+                      </p>
+                    </div>
                   )}
                 </div>
 

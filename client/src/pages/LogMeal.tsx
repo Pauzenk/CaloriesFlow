@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Trash2, X, Sparkles } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -30,9 +29,7 @@ const defaultValues: InsertMeal = {
 export default function LogMeal() {
   const { toast } = useToast();
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
-  const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({
-    queryKey: ["/api/ai/status"],
-  });
+  const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({ queryKey: ["/api/ai/status"] });
 
   const form = useForm<InsertMeal>({
     resolver: zodResolver(insertMealSchema),
@@ -179,39 +176,39 @@ export default function LogMeal() {
 
   return (
     <AppShell title="Log Daily Meal">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
-        <Card className="border border-[#D4CFC8] bg-white shadow-none" style={{ borderRadius: 0 }}>
-          <CardContent className="p-6 md:p-8">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Meal Entry</p>
-                <h3 className="mt-1 text-xl font-bold text-[#1C1714]" data-testid="text-form-title">
-                  {editingId ? "Edit meal" : "Add a meal"}
-                </h3>
-                <p className="mt-1 text-sm text-[#6B6560]">
-                  {editingId
-                    ? "Update the details and save your changes."
-                    : "Ask AI to estimate nutrition, or search the food database below."}
-                </p>
-              </div>
-              {editingId && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  data-testid="button-cancel-edit"
-                  onClick={resetForm}
-                  className="shrink-0 text-[#6B6560]"
-                >
-                  <X className="mr-1 h-4 w-4" />
-                  Cancel
-                </Button>
-              )}
-            </div>
+      <div className="font-['Space_Mono'] text-[#1C1714] grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,400px)]">
 
+        {/* ── Entry form ── */}
+        <div className="border border-[#1C1714]">
+          {/* Header */}
+          <div className="flex items-start justify-between border-b-2 border-[#1C1714] px-6 py-5">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest opacity-60">
+                {editingId ? "Editing Entry" : "New Entry"}
+              </p>
+              <h3 className="mt-1 text-xl tracking-tight" data-testid="text-form-title">
+                {editingId ? "Edit meal" : "Add a meal"}
+              </h3>
+            </div>
+            {editingId && (
+              <button
+                type="button"
+                data-testid="button-cancel-edit"
+                onClick={resetForm}
+                className="flex items-center gap-1 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+              >
+                <X className="h-3 w-3" /> Cancel
+              </button>
+            )}
+          </div>
+
+          <div className="px-6 py-5 space-y-6">
+            {/* AI chat */}
             {!editingId && (
-              <div className="mt-6">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#6B6560]">AI nutrition chat</p>
+              <div>
+                <div className="text-xs uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-[#1C1714]/20">
+                  AI Nutrition Chat
+                </div>
                 <MealChat
                   hasApiKey={aiStatus?.hasApiKey ?? true}
                   onUseEstimate={applyEstimate}
@@ -219,18 +216,24 @@ export default function LogMeal() {
               </div>
             )}
 
-            <div className="mt-6 border-t border-[#D4CFC8] pt-6">
+            {/* Form */}
+            <div>
+              <div className="text-xs uppercase tracking-widest opacity-60 mb-4 pb-2 border-b border-[#1C1714]/20">
+                Meal Details
+              </div>
+
               {isAiEstimate && (
                 <div
                   data-testid="banner-ai-estimate"
-                  className="mb-4 flex items-start gap-2 border border-[#AD3419]/30 bg-[#F0EBE3] px-4 py-3 text-sm text-[#AD3419]"
+                  className="mb-4 flex items-start gap-2 border border-[#AD3419]/30 bg-[#AD3419]/5 px-4 py-3 text-sm text-[#AD3419]"
                 >
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
-                    <strong>AI estimate applied</strong> — values were pre-filled from the chat. Review and adjust before saving.
+                    <strong>AI estimate applied</strong> — review and adjust before saving.
                   </span>
                 </div>
               )}
+
               <Form {...form}>
                 <form
                   className="space-y-4"
@@ -244,10 +247,10 @@ export default function LogMeal() {
                       name="mealType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Meal</FormLabel>
+                          <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Meal type</FormLabel>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <FormControl>
-                              <SelectTrigger data-testid="select-meal-type">
+                              <SelectTrigger data-testid="select-meal-type" className="border-[#1C1714]/30 bg-transparent focus:ring-[#AD3419]">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
@@ -268,9 +271,14 @@ export default function LogMeal() {
                       name="date"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Date</FormLabel>
+                          <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Date</FormLabel>
                           <FormControl>
-                            <Input type="date" data-testid="input-meal-date" {...field} />
+                            <Input
+                              type="date"
+                              data-testid="input-meal-date"
+                              className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -283,7 +291,7 @@ export default function LogMeal() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Food</FormLabel>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Food</FormLabel>
                         <FormControl>
                           <MealNameAutocomplete
                             value={field.value}
@@ -292,12 +300,8 @@ export default function LogMeal() {
                               setIsAiEstimate(false);
                             }}
                             onPickHistory={onPickHistory}
-                            onPickFood={(food) => {
-                              pickFood(food);
-                            }}
-                            onClearFood={() => {
-                              if (selectedFood) clearFood(true);
-                            }}
+                            onPickFood={(food) => pickFood(food)}
+                            onClearFood={() => { if (selectedFood) clearFood(true); }}
                             disabled={isPending}
                             placeholder="Search foods or past meals…"
                           />
@@ -310,30 +314,24 @@ export default function LogMeal() {
                   {selectedFood && (
                     <div
                       data-testid="panel-serving-picker"
-                      className="grid grid-cols-1 gap-4 border border-[#D4CFC8] bg-[#F5F1EB] p-4 md:grid-cols-2"
+                      className="grid grid-cols-1 gap-4 border border-dashed border-[#1C1714]/30 p-4 md:grid-cols-2"
                     >
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#AD3419]">
-                          Serving size
-                        </FormLabel>
+                        <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">Serving size</p>
                         <Select value={servingIdx} onValueChange={onServingChange}>
-                          <SelectTrigger className="mt-1 bg-white" data-testid="select-serving-size">
+                          <SelectTrigger className="border-[#1C1714]/30 bg-transparent" data-testid="select-serving-size">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {selectedFood.servings.map((s, i) => (
-                              <SelectItem key={i} value={String(i)}>
-                                {s.label}
-                              </SelectItem>
+                              <SelectItem key={i} value={String(i)}>{s.label}</SelectItem>
                             ))}
                             <SelectItem value="custom">Custom (grams)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#AD3419]">
-                          Amount (g)
-                        </FormLabel>
+                        <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">Amount (g)</p>
                         <Input
                           type="number"
                           min={0}
@@ -345,164 +343,127 @@ export default function LogMeal() {
                             setGrams(v);
                             setServingIdx("custom");
                           }}
-                          className="mt-1 bg-white"
+                          className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
                           data-testid="input-serving-grams"
                         />
                       </div>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    <FormField
-                      control={form.control}
-                      name="calories"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Calories</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              data-testid="input-meal-calories"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="proteins"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Protein (g)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              data-testid="input-meal-proteins"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="carbs"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Carbs (g)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              data-testid="input-meal-carbs"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="fats"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fats (g)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              data-testid="input-meal-fats"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  {/* Macro fields */}
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-[#1C1714]/10">
+                      Nutrition
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                      {(["calories", "proteins", "carbs", "fats"] as const).map((fname) => (
+                        <FormField
+                          key={fname}
+                          control={form.control}
+                          name={fname}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">
+                                {fname === "calories" ? "kcal" : fname === "proteins" ? "protein" : fname}
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step={fname === "calories" ? "1" : "0.1"}
+                                  data-testid={`input-meal-${fname}`}
+                                  className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419] tabular-nums"
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e.target.valueAsNumber || 0);
+                                    setIsAiEstimate(false);
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <Button
+
+                  <button
                     type="submit"
                     disabled={isPending}
-                    className="h-11 w-full bg-[#AD3419] text-sm font-bold text-white hover:bg-[#8A2913] md:w-auto md:px-10"
                     data-testid="button-save-meal"
+                    className="w-full border-2 border-[#AD3419] bg-[#AD3419] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#8A2913] hover:border-[#8A2913] transition-colors disabled:opacity-50 md:w-auto md:px-12"
                   >
                     {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
-                  </Button>
+                  </button>
                 </form>
               </Form>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border border-[#D4CFC8] bg-white shadow-none" style={{ borderRadius: 0 }}>
-          <CardContent className="p-6 md:p-8">
-            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Today's Meals</p>
-            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">{todays.length} {todays.length === 1 ? "entry" : "entries"}</h3>
-            <ul className="mt-4 space-y-2">
-              {todays.length === 0 && (
-                <li className="border border-dashed border-[#D4CFC8] p-6 text-center text-sm text-[#6B6560]">
-                  Nothing logged yet today.
-                </li>
-              )}
-              {todays.map((m) => (
-                <li
-                  key={m.id}
-                  data-testid={`row-meal-${m.id}`}
-                  className="flex items-center justify-between border border-[#D4CFC8] bg-[#F5F1EB] px-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#AD3419]">{m.mealType}</p>
-                    <p className="truncate text-sm font-medium text-[#1C1714]">{m.name}</p>
-                    <p className="text-xs text-[#6B6560]">
-                      {m.calories} kcal · P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
-                    </p>
+        {/* ── Today's ledger ── */}
+        <div className="border border-[#1C1714]">
+          <div className="border-b-2 border-[#1C1714] px-6 py-5">
+            <p className="text-[10px] uppercase tracking-widest opacity-60">Today's Record</p>
+            <div className="mt-1 flex justify-between items-end">
+              <span className="text-xl tracking-tight">
+                {todays.length} {todays.length === 1 ? "entry" : "entries"}
+              </span>
+              <span className="text-xs opacity-50 tabular-nums">
+                {todays.reduce((a, m) => a + m.calories, 0)} kcal
+              </span>
+            </div>
+          </div>
+
+          <div className="px-4 py-2">
+            {todays.length === 0 ? (
+              <div className="py-10 text-center">
+                <p className="text-xs uppercase tracking-widest opacity-40">Nothing logged yet today</p>
+              </div>
+            ) : (
+              <>
+                {todays.map((m) => (
+                  <div
+                    key={m.id}
+                    data-testid={`row-meal-${m.id}`}
+                    className="flex items-center py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/30 transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="text-[10px] uppercase tracking-widest text-[#AD3419] mb-0.5">{m.mealType}</div>
+                      <div className="text-sm truncate leading-tight">{m.name}</div>
+                      <div className="text-[10px] opacity-40 mt-0.5 tabular-nums">
+                        P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
+                      </div>
+                    </div>
+                    <div className="shrink-0 tabular-nums text-sm mr-2">{m.calories}</div>
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        data-testid={`button-edit-meal-${m.id}`}
+                        onClick={() => startEdit(m)}
+                        className="h-7 w-7 flex items-center justify-center text-[#6B6560] hover:text-[#AD3419] transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        data-testid={`button-delete-meal-${m.id}`}
+                        onClick={() => del.mutate(m.id)}
+                        className="h-7 w-7 flex items-center justify-center text-[#6B6560] hover:text-[#AD3419] transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      data-testid={`button-edit-meal-${m.id}`}
-                      onClick={() => startEdit(m)}
-                      className="h-9 w-9 text-[#6B6560] hover:text-[#AD3419]"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      data-testid={`button-delete-meal-${m.id}`}
-                      onClick={() => del.mutate(m.id)}
-                      className="h-9 w-9 text-[#6B6560] hover:text-[#AD3419]"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+                ))}
+                <div className="flex justify-between items-center py-3 border-b-2 border-[#1C1714]">
+                  <span className="text-[10px] uppercase tracking-widest opacity-60">Subtotal</span>
+                  <span className="tabular-nums text-sm font-bold">
+                    {todays.reduce((a, m) => a + m.calories, 0)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </AppShell>
   );

@@ -1,20 +1,16 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Leaf, Activity } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import type { Meal, Settings, Weight } from "@shared/schema";
+import type { Meal, Settings } from "@shared/schema";
 import type { Activity as ActivityType } from "@shared/schema";
 import {
   dailyCaloriesSeries,
-  daysSince,
   lastNDates,
   mealsForDate,
   sumMacros,
   todayStr,
-  weeklyWeightDeltas,
-  weightProjectionSeries,
 } from "@/lib/calorieflow";
 
 function fmtTime(iso: string): string {
@@ -25,7 +21,6 @@ function fmtTime(iso: string): string {
 export default function Dashboard() {
   const { data: settings, isLoading: sLoading } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const { data: meals = [], isLoading: mLoading } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
-  const { data: weights = [] } = useQuery<Weight[]>({ queryKey: ["/api/weights"] });
   const today = todayStr();
   const { data: activities = [] } = useQuery<ActivityType[]>({
     queryKey: ["/api/activities", today],
@@ -35,35 +30,6 @@ export default function Dashboard() {
       return res.json();
     },
   });
-
-  const canProject = !!(
-    settings?.heightCm &&
-    settings?.ageYears &&
-    settings?.sexAtBirth &&
-    settings?.goalWeightKg &&
-    settings?.startingWeightKg
-  );
-
-  const { points: projectionPoints } = useMemo(
-    () => (settings ? weightProjectionSeries(settings, meals, weights) : { points: [], projectedGoalDate: null }),
-    [settings, meals, weights],
-  );
-
-  const currentEstimatedWeight = useMemo(() => {
-    if (projectionPoints.length === 0) return null;
-    const t = todayStr();
-    const todayPoint = projectionPoints.find((p) => p.date === t);
-    if (todayPoint) return todayPoint.estimatedWeightKg;
-    const past = projectionPoints.filter((p) => p.date <= t);
-    return past.length > 0 ? past[past.length - 1].estimatedWeightKg : projectionPoints[0].estimatedWeightKg;
-  }, [projectionPoints]);
-
-  const weightProgressPct = useMemo(() => {
-    if (!settings?.startingWeightKg || !settings?.goalWeightKg || currentEstimatedWeight === null) return 0;
-    const total = Math.abs(settings.startingWeightKg - settings.goalWeightKg);
-    const done = Math.abs(settings.startingWeightKg - currentEstimatedWeight);
-    return Math.max(0, Math.min(100, Math.round((done / total) * 100)));
-  }, [settings, currentEstimatedWeight]);
 
   if (sLoading || mLoading) {
     return (
@@ -86,14 +52,10 @@ export default function Dashboard() {
   const netCalories = totals.calories - totalActivityCalories;
   const goal = settings?.dailyCalorieGoal || 2000;
   const remaining = Math.max(0, goal - netCalories);
-  const dayNum = settings ? daysSince(settings.journeyStartDate) : 1;
 
   const weekDates = lastNDates(7);
   const series = dailyCaloriesSeries(meals, weekDates);
   const chartMax = Math.max(...series.map((s) => s.calories), goal, 1);
-
-  const weightDeltas = weeklyWeightDeltas(weights, settings);
-  const totalLoss = weightDeltas.reduce((a, d) => a + d.delta, 0);
 
   const showOnboarding = meals.length === 0 && todayActivities.length === 0;
 
@@ -101,8 +63,8 @@ export default function Dashboard() {
     <AppShell title="Overview">
       <div className="w-full font-['Space_Mono'] text-[#1C1714]" data-testid="card-dashboard-feed">
 
-        {/* ── Sticky tally header ── */}
-        <div className="sticky top-0 z-10 bg-[#F2EDE7] pb-4 border-b-2 border-[#1C1714] mb-8">
+        {/* ── Tally header ── */}
+        <div className="pb-4 border-b-2 border-[#1C1714] mb-8">
           <div className="flex justify-between items-end">
             <div>
               <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Today's Tally</p>
@@ -153,42 +115,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Journey block ── */}
-        <div className="border border-[#1C1714] p-4 mb-8 text-sm">
-          <div className="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-[#1C1714]/20">
-            <div className="uppercase tracking-widest text-xs opacity-60">Journey Statement</div>
-            <div data-testid="text-journey-day">DAY {String(dayNum).padStart(2, "0")}</div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Current Wt</div>
-              <div className="text-lg" data-testid="text-total-weight-change">
-                {canProject && currentEstimatedWeight !== null
-                  ? `${currentEstimatedWeight.toFixed(1)} kg`
-                  : totalLoss !== 0
-                  ? `${totalLoss > 0 ? "+" : ""}${totalLoss.toFixed(1)} kg`
-                  : "— kg"}
-              </div>
-            </div>
-            <div>
-              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Goal Wt</div>
-              <div className="text-lg">
-                {settings?.goalWeightKg ? `${settings.goalWeightKg.toFixed(1)} kg` : "Not set"}
-              </div>
-            </div>
-          </div>
-          {canProject && (
-            <div className="mt-4 pt-3 border-t border-dashed border-[#1C1714]/20 flex items-center justify-between">
-              <div className="text-xs uppercase opacity-60">Progress</div>
-              <div data-testid="text-goal-percent">{weightProgressPct}% Complete</div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Ledger ── */}
+        {/* ── Daily Food Log ── */}
         <div className="mb-12">
           <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
-            Ledger
+            Daily Food Log
           </div>
 
           {showOnboarding ? (

@@ -104,7 +104,7 @@ export default function Dashboard() {
         </Card>
       )}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,418px)]">
-        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="flex h-full flex-col p-6 md:p-8">
             <div className="flex flex-col justify-between gap-6 md:flex-row">
               <div className="flex-1">
@@ -124,7 +124,7 @@ export default function Dashboard() {
                     { label: "Carbs", value: `${Math.round(totals.carbs)}g` },
                     { label: "Fats", value: `${Math.round(totals.fats)}g` },
                   ].map((m) => (
-                    <div key={m.label} className="rounded border border-[#c2c8c14c] bg-[#eeeeea] px-4 py-2">
+                    <div key={m.label} className="rounded border border-[#c0cdd14c] bg-[#eeeeea] px-4 py-2">
                       <p className="text-center text-xs text-[#424843]">{m.label}</p>
                       <p className="text-center text-base font-bold text-[#475C65]" data-testid={`text-macro-${m.label.toLowerCase()}`}>
                         {m.value}
@@ -161,7 +161,7 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+          <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
             <CardContent className="p-6 md:p-8">
               <p className="text-sm font-bold uppercase tracking-[1.4px] text-[#424843]">Weight Progress</p>
               <div className="mt-4 flex items-end gap-2">
@@ -182,7 +182,7 @@ export default function Dashboard() {
                           {item.delta > 0 ? "+" : ""}{item.delta.toFixed(1)} kg
                         </span>
                       </div>
-                      {i < weightDeltas.length - 1 && <Separator className="bg-[#c2c8c133]" />}
+                      {i < weightDeltas.length - 1 && <Separator className="bg-[#c0cdd133]" />}
                     </div>
                   ))
                 )}
@@ -199,7 +199,7 @@ export default function Dashboard() {
           const val = byType[key] || 0;
           const w = Math.min(100, (val / goal) * 100);
           return (
-            <Card key={key} className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+            <Card key={key} className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
               <CardContent className="p-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded bg-[#eeeeea]">
                   <Icon className="h-6 w-6 text-[#475C65]" />
@@ -218,7 +218,7 @@ export default function Dashboard() {
         })}
       </section>
 
-      <Card className="mt-6 rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+      <Card className="mt-6 rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col gap-2">
             <h3 className="text-2xl text-[#1a1c1a]">This Week</h3>

@@ -56,7 +56,7 @@ export default function SettingsPage() {
   return (
     <AppShell title="Settings">
       <div className="mx-auto max-w-2xl">
-        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <h3 className="text-xl font-bold text-[#1a1c1a]">Your goals</h3>
             <p className="mt-1 text-sm text-[#424843]">These power your dashboard and progress charts.</p>

@@ -77,7 +77,7 @@ export default function ProgressPage() {
   return (
     <AppShell title="Progress">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
@@ -135,7 +135,7 @@ export default function ProgressPage() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <h3 className="text-xl font-bold text-[#1a1c1a]">Weight Trend</h3>
             <p className="mt-1 text-sm text-[#424843]">Track your weight over time</p>
@@ -188,7 +188,7 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <p className="text-sm font-bold uppercase tracking-[1.4px] text-[#424843]">Weekly Breakdown</p>
             <div className="mt-4 flex items-end gap-2">
@@ -209,7 +209,7 @@ export default function ProgressPage() {
                         {item.delta > 0 ? "+" : ""}{item.delta.toFixed(1)} kg
                       </span>
                     </div>
-                    {i < weightDeltas.length - 1 && <Separator className="bg-[#c2c8c133]" />}
+                    {i < weightDeltas.length - 1 && <Separator className="bg-[#c0cdd133]" />}
                   </div>
                 ))
               )}

@@ -28,7 +28,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     <main className="min-h-screen bg-[#f4f3ef]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
         {/* Desktop sidebar */}
-        <aside className="hidden w-72 shrink-0 flex-col border-r border-[#c2c8c1] bg-[#ebe9e4] shadow-[4px_0px_12px_#0000000a] md:flex">
+        <aside className="hidden w-72 shrink-0 flex-col border-r border-[#c0cdd1] bg-[#ebe9e4] shadow-[4px_0px_12px_#0000000a] md:flex">
           <div className="flex h-full flex-col px-4 py-5">
             <header className="ml-2 flex items-start gap-3">
               <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#475C65] text-white">
@@ -79,7 +79,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               </Button>
             </div>
             <div className="mt-auto px-2 pb-2">
-              <div className="flex items-center gap-3 rounded border border-[#c2c8c1] px-2 py-2">
+              <div className="flex items-center gap-3 rounded border border-[#c0cdd1] px-2 py-2">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-[#475C65] text-white">{initials}</AvatarFallback>
                 </Avatar>
@@ -121,7 +121,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#c2c8c1] bg-[#ebe9e4] py-1.5 shadow-[0_-4px_12px_#0000000a] md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#c0cdd1] bg-[#ebe9e4] py-1.5 shadow-[0_-4px_12px_#0000000a] md:hidden">
         {navItems.map((item) => {
           const active = location === item.path;
           const Icon = item.icon;

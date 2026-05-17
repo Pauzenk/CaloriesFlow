@@ -197,7 +197,7 @@ export default function LogMeal() {
   return (
     <AppShell title="Log Daily Meal">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
-        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -235,7 +235,7 @@ export default function LogMeal() {
               </div>
             )}
 
-            <div className="mt-6 border-t border-[#c2c8c14c] pt-6">
+            <div className="mt-6 border-t border-[#c0cdd14c] pt-6">
               {isAiEstimate && (
                 <div
                   data-testid="banner-ai-estimate"
@@ -331,7 +331,7 @@ export default function LogMeal() {
                     {showSuggestions && foodResults.length > 0 && (
                       <div
                         data-testid="list-food-suggestions"
-                        className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded border border-[#c2c8c14c] bg-white shadow-lg"
+                        className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded border border-[#c0cdd14c] bg-white shadow-lg"
                       >
                         {foodResults.map((f) => (
                           <button
@@ -359,7 +359,7 @@ export default function LogMeal() {
                   {selectedFood && (
                     <div
                       data-testid="panel-serving-picker"
-                      className="grid grid-cols-1 gap-4 rounded border border-[#c2c8c14c] bg-[#f4f3ef] p-4 md:grid-cols-2"
+                      className="grid grid-cols-1 gap-4 rounded border border-[#c0cdd14c] bg-[#f4f3ef] p-4 md:grid-cols-2"
                     >
                       <div>
                         <FormLabel className="text-xs uppercase tracking-wider text-[#475C65]">
@@ -504,13 +504,13 @@ export default function LogMeal() {
           </CardContent>
         </Card>
 
-        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <h3 className="text-xl font-bold text-[#1a1c1a]">Today's meals</h3>
             <p className="mt-1 text-sm text-[#424843]">{todays.length} entries</p>
             <ul className="mt-4 space-y-2">
               {todays.length === 0 && (
-                <li className="rounded border border-dashed border-[#c2c8c14c] p-6 text-center text-sm text-[#424843]">
+                <li className="rounded border border-dashed border-[#c0cdd14c] p-6 text-center text-sm text-[#424843]">
                   Nothing logged yet today.
                 </li>
               )}
@@ -518,7 +518,7 @@ export default function LogMeal() {
                 <li
                   key={m.id}
                   data-testid={`row-meal-${m.id}`}
-                  className="flex items-center justify-between rounded border border-[#c2c8c14c] bg-[#f4f3ef] px-4 py-3"
+                  className="flex items-center justify-between rounded border border-[#c0cdd14c] bg-[#f4f3ef] px-4 py-3"
                 >
                   <div className="min-w-0">
                     <p className="text-xs uppercase tracking-wider text-[#475C65]">{m.mealType}</p>

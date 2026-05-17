@@ -82,7 +82,7 @@ export default function AuthPage() {
             <li>• Track weight loss week by week</li>
           </ul>
         </div>
-        <Card className="rounded border-[#c2c8c14c] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c0cdd14c] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-10">
             <div className="mb-6 flex items-center gap-3 md:hidden">
               <div className="flex h-10 w-10 items-center justify-center rounded bg-[#475C65] text-white">

@@ -182,7 +182,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
   return (
     <div data-testid="meal-chat" className="flex flex-col gap-0">
       {messages.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded border border-dashed border-[#c2c8c14c] bg-[#f4f3ef] px-5 py-7 text-center">
+        <div className="flex flex-col items-center gap-3 rounded border border-dashed border-[#c0cdd14c] bg-[#f4f3ef] px-5 py-7 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded bg-[#475C65]/10">
             <Sparkles className="h-6 w-6 text-[#475C65]" />
           </div>
@@ -200,7 +200,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
       {messages.length > 0 && (
         <div
           data-testid="chat-thread"
-          className="flex max-h-80 flex-col gap-3 overflow-y-auto rounded border border-[#c2c8c14c] bg-[#f4f3ef] p-3"
+          className="flex max-h-80 flex-col gap-3 overflow-y-auto rounded border border-[#c0cdd14c] bg-[#f4f3ef] p-3"
         >
           {messages.map((msg) => (
             <div
@@ -303,7 +303,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
             src={pendingPhoto.dataUrl}
             alt="Photo to attach"
             data-testid="chat-pending-photo"
-            className="h-20 w-24 rounded object-cover border border-[#c2c8c14c]"
+            className="h-20 w-24 rounded object-cover border border-[#c0cdd14c]"
           />
           <button
             type="button"
@@ -337,7 +337,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
         <div className="flex shrink-0 flex-col gap-1.5">
           <label
             data-testid="button-chat-attach-photo"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-[#c2c8c14c] bg-[#f4f3ef] text-[#475C65] hover:bg-[#e8eff1] transition-colors"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-[#c0cdd14c] bg-[#f4f3ef] text-[#475C65] hover:bg-[#e8eff1] transition-colors"
             title="Attach photo"
           >
             <Camera className="h-4 w-4" />

@@ -89,8 +89,9 @@ export function setupAuth(app: Express) {
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (googleClientId && googleClientSecret) {
-    const callbackURL = process.env.NODE_ENV === "production"
-      ? `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}/api/auth/google/callback`
+    const domain = process.env.REPLIT_DOMAINS?.split(",")[0];
+    const callbackURL = domain
+      ? `https://${domain}/api/auth/google/callback`
       : "http://localhost:5000/api/auth/google/callback";
 
     passport.use(

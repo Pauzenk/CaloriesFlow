@@ -221,6 +221,17 @@ export default function AuthPage() {
                   >
                     {login.isPending ? "Logging in…" : "Log in"}
                   </Button>
+                  <p className="text-center text-xs text-[#6B6560]">
+                    No account?{" "}
+                    <button
+                      type="button"
+                      data-testid="link-switch-to-signup"
+                      onClick={() => setTab("register")}
+                      className="underline text-[#3c3a40] font-semibold hover:text-[#1C1714]"
+                    >
+                      Sign up
+                    </button>
+                  </p>
                 </form>
               </Form>
             </TabsContent>

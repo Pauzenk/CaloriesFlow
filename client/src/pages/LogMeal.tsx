@@ -799,9 +799,9 @@ export default function LogMeal() {
             </form>
           </Form>
 
-          {/* ── Compact entries list ── */}
+          {/* ── Compact entries list — hidden on mobile (see Dashboard) ── */}
           {todays.length > 0 && (
-            <div className="mt-10 border-t-2 border-[#1C1714] pt-6">
+            <div className="hidden md:block mt-10 border-t-2 border-[#1C1714] pt-6">
               <div className="flex items-baseline justify-between mb-4">
                 <p className="text-[10px] uppercase tracking-widest opacity-60">Today's Ledger</p>
                 <p className="text-sm tabular-nums opacity-60">{todays.length} {todays.length === 1 ? "entry" : "entries"}</p>

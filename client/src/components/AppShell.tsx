@@ -31,7 +31,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <aside className="hidden w-64 shrink-0 flex-col border-r border-[#C8C4E0] bg-[#E4E0F2] md:flex">
           <div className="flex h-full flex-col px-4 py-6">
             <header className="ml-2 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#6B5FC0] text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center text-white bg-[#636392]">
                 <Leaf className="h-4 w-4" />
               </div>
               <div className="flex flex-col">

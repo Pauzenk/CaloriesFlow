@@ -50,11 +50,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                         <button
                           type="button"
                           data-testid={`link-nav-${item.label.toLowerCase()}`}
-                          className={`flex h-10 w-full items-center gap-3 px-3 text-left transition-colors ${
-                            active
-                              ? "border-l-2 border-[#6B5FC0] bg-[#DDD8D0] text-[#1A1B2E]"
-                              : "border-l-2 border-transparent text-[#6B6880] hover:bg-[#E3DED7] hover:text-[#1A1B2E]"
-                          }`}
+                          className="flex h-10 w-full items-center gap-3 px-3 text-left transition-colors border-l-2 border-[#6B5FC0] text-[#1A1B2E] bg-[#f0eef7]"
                         >
                           <Icon className="h-4 w-4 shrink-0" />
                           <span className="text-sm font-medium">{item.label}</span>
@@ -69,7 +65,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               <Button
                 data-testid="button-log-meal"
                 onClick={() => navigate("/log")}
-                className="h-12 w-full gap-2 bg-[#6B5FC0] text-sm font-bold text-white hover:bg-[#5548A0]"
+                className="h-12 w-full gap-2 bg-[#636396] text-sm font-bold text-white hover:bg-[#5548A0]"
               >
                 <Plus className="h-4 w-4" /> Log Meal
               </Button>
@@ -115,7 +111,6 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           <section className="flex-1 px-4 pb-10 pt-4 md:px-8">{children}</section>
         </div>
       </div>
-
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#C8C4E0] bg-[#E4E0F2] py-1.5 md:hidden">
         {navItems.map((item) => {

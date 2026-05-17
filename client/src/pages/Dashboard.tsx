@@ -133,7 +133,7 @@ export default function Dashboard() {
         {/* ── Journey block ── */}
         <div className="border border-[#1C1714] p-4 mb-8 text-sm">
           <div className="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-[#1C1714]/20">
-            <div className="uppercase tracking-widest text-xs opacity-60">Journey Statement</div>
+            <div className="uppercase tracking-widest text-xs opacity-[1]">Journey Statement</div>
             <div data-testid="text-journey-day">DAY {String(dayNum).padStart(2, "0")}</div>
           </div>
           <div className="grid grid-cols-2 gap-4">

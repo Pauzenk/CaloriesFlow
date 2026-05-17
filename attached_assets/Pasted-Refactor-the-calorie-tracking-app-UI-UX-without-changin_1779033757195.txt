@@ -1,0 +1,134 @@
+Refactor the calorie tracking app UI/UX without changing the overall visual identity, typography style, or color palette. Do NOT redesign the brand style. Keep the current fonts, colors, and overall aesthetic direction. The goal is to improve readability, hierarchy, spacing, layout logic, and UX clarity like a senior product designer would do during a UX polish phase.
+
+You may:
+- reorganize layouts
+- improve spacing and alignment
+- improve visual hierarchy
+- adjust opacity/transparency
+- improve readability
+- resize text where necessary
+- switch between regular / medium / semibold / bold weights when needed
+- improve component structure
+- simplify cluttered sections
+- improve charts and information architecture
+
+Do NOT:
+- change the design language
+- change typography family
+- change main colors
+- redesign branding
+- introduce completely new aesthetics
+
+General UX Improvements:
+- Improve readability across the entire app.
+- Increase clarity of information hierarchy.
+- Make layouts easier to scan.
+- Use more consistent spacing and padding.
+- Reduce visual clutter.
+- Improve gray/transparency usage because some sections currently feel too faded and hard to read.
+- Create better balance between dense and empty areas.
+- Make important actions more visually obvious.
+- Follow modern senior-level product UX principles focused on clarity and usability.
+
+Dashboard:
+- Replace the current “Today/Left” section with a circular progress indicator called “Today’s Progress”.
+- The circular progress should clearly show:
+  - calories consumed
+  - calories remaining
+  - progress toward daily calorie goal
+- Add a linear progress bar for overall journey progress.
+- Replace plain “Day X” display with a proper progress bar.
+- Move the “Journey Statement” section lower on the page:
+  - first show the meal entries/feed
+  - then show journey progress and motivational information
+- Make the “Add Entry” button much more visible and prominent.
+- Remove the “7-day volume” block from dashboard.
+- Keep protein/carbs/fat quick stats on dashboard.
+- Show food entries as positive calories (+).
+- Show sport/activity entries as negative calories (-).
+
+Activity / Sports Tracking:
+- Users should be able to log activities directly inside the chat experience.
+- Example:
+  “45 min cardio + strength training”
+- The app should estimate calories burned and subtract them from the daily total automatically.
+- Activity should affect:
+  - remaining calories
+  - estimated progress
+  - projected goal date
+  - recommended daily calories
+
+Chat UX:
+- Do not redirect users to a separate chat page from meal logging.
+- Instead, expand the chat inline on the same screen.
+- When opening AI/chat assistance from meal logging, the chat should smoothly expand downward inside the current page layout.
+- The expanded chat should visually resemble the existing chat UI but embedded inline.
+
+Progress Page:
+This page requires the biggest UX simplification and restructuring.
+
+Charts:
+- Redesign the weight projection chart for clarity.
+- X axis should represent weeks.
+- Y axis should represent kilograms.
+- Clearly separate:
+  - goal weight line
+  - projected weight line
+  - actual logged weight line
+- Actual logged weight must appear once user logs real weight.
+- Current chart is confusing and difficult to read.
+
+Weight System:
+- Replace “Weight Progress” wording with:
+  - “Current Weight (Estimated)”
+- Estimated weight should update automatically over time.
+- Add the ability to manually enter real/current weight.
+- Once real weight is entered:
+  - replace estimated current weight with actual weight
+  - recalculate projections
+  - recalculate projected goal date
+  - recalculate calorie recommendations
+
+Goal Planning:
+- Add selectable goal duration options:
+  - 1 month
+  - 2 months
+  - 3 months
+  - 4 months
+  - etc.
+- When user selects a timeframe:
+  - automatically calculate recommended daily calorie target
+  - dynamically update projected goal date
+- Make this system extremely understandable and visually clear.
+
+Progress Stats Section:
+Simplify aggressively.
+
+Remove:
+- protein stats
+- carbs
+- fats
+- breakfast/lunch/dinner/snack breakdown
+- BRK labels
+
+Keep only:
+- Total Calories
+- Average Per Day
+
+Remove:
+- “Log Today’s Weight” block completely
+
+Keep:
+- Weekly Weight Breakdown (optional but simplified)
+
+Visual Direction:
+- Cleaner brutalist-inspired structure
+- Better grid usage
+- Sharper layout organization
+- Distinct modular blocks
+- More breathable spacing
+- Less visual heaviness
+- Cleaner chart presentation
+- Functional and structured
+- Minimal but readable
+- Strong UX clarity

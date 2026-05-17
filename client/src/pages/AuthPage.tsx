@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Leaf } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -60,85 +62,84 @@ export default function AuthPage() {
   });
 
   return (
-    <main className="font-['Space_Mono'] min-h-screen bg-[#F0EEF8] px-4 py-8 text-[#1A1B2E]">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-0 md:grid-cols-2">
-
+    <main className="min-h-screen bg-[#F2EDE7] px-4 py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-8 md:grid-cols-2">
         {/* Left brand panel */}
-        <div className="hidden flex-col bg-[#1A1B2E] p-10 text-[#F0EEF8] md:flex h-full">
+        <div className="hidden flex-col gap-4 bg-[#5C4A3A] p-10 text-white md:flex">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center border border-[#F0EEF8]/20">
-              <Leaf className="h-4 w-4" />
+            <div className="flex h-10 w-10 items-center justify-center bg-white/15">
+              <Leaf className="h-5 w-5" />
             </div>
-            <span className="text-sm uppercase tracking-widest opacity-70">CalorieFlow</span>
+            <span className="text-xl font-bold tracking-tight">CalorieFlow</span>
           </div>
-          <div className="mt-auto">
-            <p className="text-[10px] uppercase tracking-widest opacity-40 mb-4">About</p>
-            <h1 className="text-4xl leading-tight tracking-tight">
-              Mindful nutrition,<br />every day.
-            </h1>
-            <p className="mt-4 text-sm opacity-50 leading-relaxed">
-              Track your daily calories, watch your weight trend, and stay consistent with your weight-loss journey.
-            </p>
-            <ul className="mt-8 space-y-3">
-              {[
-                "Log breakfast, lunch, dinner & snacks",
-                "See macros and weekly progress at a glance",
-                "Track weight loss week by week",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-xs opacity-40">
-                  <span className="h-px w-4 bg-current shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <h1 className="mt-10 text-4xl font-bold leading-tight">Mindful nutrition, every day.</h1>
+          <p className="mt-2 text-base text-white/80">
+            Track your daily calories, watch your weight trend, and stay consistent with your weight-loss journey.
+          </p>
+          <ul className="mt-8 space-y-3 text-sm text-white/70">
+            <li className="flex items-center gap-2">
+              <span className="h-px w-4 bg-white/40" />
+              Log breakfast, lunch, dinner &amp; snacks
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="h-px w-4 bg-white/40" />
+              See macros and weekly progress at a glance
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="h-px w-4 bg-white/40" />
+              Track weight loss week by week
+            </li>
+          </ul>
         </div>
 
-        {/* Right auth panel */}
-        <div className="border border-[#1A1B2E] bg-[#F0EEF8]">
+        {/* Right auth card */}
+        <div className="border border-[#D4CFC8] bg-white p-6 md:p-10">
           {/* Mobile logo */}
-          <div className="flex items-center gap-3 border-b border-[#1A1B2E]/20 px-6 py-4 md:hidden">
-            <div className="flex h-8 w-8 items-center justify-center bg-[#5f5b80] text-[#F0EEF8]">
+          <div className="mb-6 flex items-center gap-3 md:hidden">
+            <div className="flex h-9 w-9 items-center justify-center bg-[#7A7869] text-white">
               <Leaf className="h-4 w-4" />
             </div>
-            <span className="text-sm uppercase tracking-widest opacity-70">CalorieFlow</span>
+            <span className="text-xl font-bold text-[#1C1714]">CalorieFlow</span>
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex border-b-2 border-[#1A1B2E]">
-            {(["login", "register"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                data-testid={`tab-${t === "login" ? "login" : "register"}`}
-                onClick={() => setTab(t)}
-                className={`flex-1 py-4 text-xs uppercase tracking-widest transition-colors ${
-                  tab === t
-                    ? "bg-[#1A1B2E] text-[#F0EEF8]"
-                    : "opacity-40 hover:opacity-70"
-                }`}
+          <h2 className="text-2xl font-bold text-[#1C1714]">Welcome</h2>
+          <p className="mt-1 text-sm text-[#6B6560]">Log in or create an account to continue.</p>
+
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "register")} className="mt-6">
+            <TabsList className="grid w-full grid-cols-2 border border-[#D4CFC8] bg-[#F5F1EB]">
+              <TabsTrigger
+                value="login"
+                data-testid="tab-login"
+                className="data-[state=active]:bg-white data-[state=active]:text-[#1C1714]"
               >
-                {t === "login" ? "Log in" : "Sign up"}
-              </button>
-            ))}
-          </div>
+                Log in
+              </TabsTrigger>
+              <TabsTrigger
+                value="register"
+                data-testid="tab-register"
+                className="data-[state=active]:bg-white data-[state=active]:text-[#1C1714]"
+              >
+                Sign up
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="px-8 py-8">
-            {tab === "login" ? (
+            <TabsContent value="login" className="mt-6">
               <Form {...loginForm}>
-                <form onSubmit={onLogin} className="space-y-5">
+                <form onSubmit={onLogin} className="space-y-4">
                   <FormField
                     control={loginForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">Email</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                          Email
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="email"
                             autoComplete="email"
                             data-testid="input-login-email"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
                             {...field}
                           />
                         </FormControl>
@@ -151,13 +152,15 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">Password</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                          Password
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="password"
                             autoComplete="current-password"
                             data-testid="input-login-password"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
                             {...field}
                           />
                         </FormControl>
@@ -165,30 +168,34 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <button
+                  <Button
                     type="submit"
                     disabled={login.isPending}
+                    className="h-11 w-full bg-[#7A7869] text-sm font-bold text-white hover:bg-[#5C5B52]"
                     data-testid="button-submit-login"
-                    className="w-full border-2 border-[#5f5b80] bg-[#5f5b80] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#4a476a] hover:border-[#4a476a] transition-colors disabled:opacity-50"
                   >
                     {login.isPending ? "Logging in…" : "Log in"}
-                  </button>
+                  </Button>
                 </form>
               </Form>
-            ) : (
+            </TabsContent>
+
+            <TabsContent value="register" className="mt-6">
               <Form {...registerForm}>
-                <form onSubmit={onRegister} className="space-y-5">
+                <form onSubmit={onRegister} className="space-y-4">
                   <FormField
                     control={registerForm.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">Name</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                          Name
+                        </FormLabel>
                         <FormControl>
                           <Input
                             autoComplete="name"
                             data-testid="input-register-name"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
                             {...field}
                           />
                         </FormControl>
@@ -201,13 +208,15 @@ export default function AuthPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">Email</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                          Email
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="email"
                             autoComplete="email"
                             data-testid="input-register-email"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
                             {...field}
                           />
                         </FormControl>
@@ -220,13 +229,15 @@ export default function AuthPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">Password</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                          Password
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="password"
                             autoComplete="new-password"
                             data-testid="input-register-password"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
                             {...field}
                           />
                         </FormControl>
@@ -234,20 +245,19 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <button
+                  <Button
                     type="submit"
                     disabled={register.isPending}
+                    className="h-11 w-full bg-[#7A7869] text-sm font-bold text-white hover:bg-[#5C5B52]"
                     data-testid="button-submit-register"
-                    className="w-full border-2 border-[#5f5b80] bg-[#5f5b80] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#4a476a] hover:border-[#4a476a] transition-colors disabled:opacity-50"
                   >
                     {register.isPending ? "Creating account…" : "Create account"}
-                  </button>
+                  </Button>
                 </form>
               </Form>
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
-
       </div>
     </main>
   );

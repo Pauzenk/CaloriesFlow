@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -93,29 +94,118 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="Settings">
-      <div className="font-['Space_Mono'] text-[#1A1B2E] mx-auto max-w-2xl">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => save.mutate(data))} className="space-y-0">
+      <div className="mx-auto max-w-2xl space-y-0">
 
-            {/* ── Daily goal ── */}
-            <div className="border border-[#1A1B2E]">
-              <div className="border-b border-[#1A1B2E]/20 px-6 py-4">
-                <p className="text-xs uppercase tracking-widest opacity-60">Daily Goal</p>
-              </div>
-              <div className="px-6 py-5">
+        {/* ── Goal section ── */}
+        <section className="border border-[#D4CFC8] bg-white">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Daily Goal</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">Calorie target</h3>
+          </div>
+          <Form {...form}>
+            <form
+              className="px-6 py-5 md:px-8"
+              onSubmit={form.handleSubmit((data) => save.mutate(data))}
+              id="settings-form"
+            >
+              <FormField
+                control={form.control}
+                name="dailyCalorieGoal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                      Daily calorie goal (kcal)
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        data-testid="input-goal"
+                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </section>
+
+        {/* ── Activity level — PROMINENT separate section ── */}
+        <section className="border border-t-0 border-[#D4CFC8] bg-[#F5F1EB]">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Activity Level</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">How active are you?</h3>
+            <p className="mt-1 text-sm text-[#6B6560]">
+              This affects your calorie burn estimate (TDEE) and projected goal date.
+            </p>
+          </div>
+          <Form {...form}>
+            <form className="px-6 py-5 md:px-8" id="settings-form-activity">
+              <FormField
+                control={form.control}
+                name="activityLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {ACTIVITY_LEVELS.map((level) => {
+                        const active = field.value === level;
+                        return (
+                          <button
+                            key={level}
+                            type="button"
+                            data-testid={`radio-activity-${level}`}
+                            onClick={() => field.onChange(level)}
+                            className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
+                              active
+                                ? "border-[#7A7869] bg-[#7A7869] text-white"
+                                : "border-[#D4CFC8] bg-white text-[#1C1714] hover:border-[#7A7869]"
+                            }`}
+                          >
+                            <span className="text-sm font-bold">{ACTIVITY_LEVEL_LABELS[level]}</span>
+                            <span className={`text-xs ${active ? "text-white/80" : "text-[#6B6560]"}`}>
+                              {ACTIVITY_DESCRIPTIONS[level]}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </section>
+
+        {/* ── Body metrics ── */}
+        <section className="border border-t-0 border-[#D4CFC8] bg-white">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Body Metrics</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">Your measurements</h3>
+            <p className="mt-1 text-sm text-[#6B6560]">
+              Used to calculate TDEE and project your goal date — never shared.
+            </p>
+          </div>
+          <Form {...form}>
+            <form className="space-y-4 px-6 py-5 md:px-8">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="dailyCalorieGoal"
+                  name="startingWeightKg"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">
-                        Calorie target (kcal)
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Starting weight (kg)
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          data-testid="input-goal"
-                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
+                          step="0.1"
+                          data-testid="input-starting-weight"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
                           {...field}
                           onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                         />
@@ -124,209 +214,25 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
-
-            {/* ── Activity level ── */}
-            <div className="border border-t-0 border-[#1A1B2E]">
-              <div className="border-b border-[#1A1B2E]/20 px-6 py-4">
-                <p className="text-xs uppercase tracking-widest opacity-60">Activity Level</p>
-              </div>
-              <div className="px-6 py-5">
                 <FormField
                   control={form.control}
-                  name="activityLevel"
+                  name="goalWeightKg"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {ACTIVITY_LEVELS.map((level) => {
-                          const active = field.value === level;
-                          return (
-                            <button
-                              key={level}
-                              type="button"
-                              data-testid={`radio-activity-${level}`}
-                              onClick={() => field.onChange(level)}
-                              className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
-                                active
-                                  ? "border-[#5f5b80] bg-[#5f5b80] text-white"
-                                  : "border-[#1A1B2E]/20 text-[#1A1B2E] hover:border-[#5f5b80]"
-                              }`}
-                            >
-                              <span className="text-xs uppercase tracking-widest font-bold">
-                                {ACTIVITY_LEVEL_LABELS[level]}
-                              </span>
-                              <span className={`text-xs ${active ? "text-white/70" : "opacity-50"}`}>
-                                {ACTIVITY_DESCRIPTIONS[level]}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* ── Body metrics ── */}
-            <div className="border border-t-0 border-[#1A1B2E]">
-              <div className="border-b border-[#1A1B2E]/20 px-6 py-4">
-                <p className="text-xs uppercase tracking-widest opacity-60">Body Metrics</p>
-              </div>
-              <div className="px-6 py-5 space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="startingWeightKg"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">
-                          Starting weight (kg)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            data-testid="input-starting-weight"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="goalWeightKg"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">
-                          Goal weight (kg)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            data-testid="input-goal-weight"
-                            placeholder="e.g. 68.0"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
-                            value={field.value ?? ""}
-                            onChange={(e) =>
-                              field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <FormField
-                    control={form.control}
-                    name="heightCm"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">
-                          Height (cm)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            data-testid="input-height"
-                            placeholder="e.g. 175"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
-                            value={field.value ?? ""}
-                            onChange={(e) =>
-                              field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="ageYears"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">
-                          Age (years)
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            data-testid="input-age"
-                            placeholder="e.g. 30"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
-                            value={field.value ?? ""}
-                            onChange={(e) =>
-                              field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sexAtBirth"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">
-                          Sex at birth
-                        </FormLabel>
-                        <Select
-                          value={field.value ?? ""}
-                          onValueChange={(v) => field.onChange(v === "" ? null : v)}
-                        >
-                          <FormControl>
-                            <SelectTrigger
-                              data-testid="select-sex"
-                              className="border-[#1A1B2E]/30 bg-transparent focus:ring-[#5f5b80]"
-                            >
-                              <SelectValue placeholder="Select…" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ── Journey start date ── */}
-            <div className="border border-t-0 border-[#1A1B2E]">
-              <div className="border-b border-[#1A1B2E]/20 px-6 py-4">
-                <p className="text-xs uppercase tracking-widest opacity-60">Journey</p>
-              </div>
-              <div className="px-6 py-5">
-                <FormField
-                  control={form.control}
-                  name="journeyStartDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-50">
-                        Start date
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Goal weight (kg)
                       </FormLabel>
                       <FormControl>
                         <Input
-                          type="date"
-                          data-testid="input-start-date"
-                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
-                          {...field}
+                          type="number"
+                          step="0.1"
+                          data-testid="input-goal-weight"
+                          placeholder="e.g. 68.0"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -334,64 +240,185 @@ export default function SettingsPage() {
                   )}
                 />
               </div>
-            </div>
-
-            {/* ── TDEE panel ── */}
-            {estimatedTDEE !== null && (
-              <div className="border border-t-0 border-[#1A1B2E]">
-                <div className="border-b border-[#1A1B2E]/20 px-6 py-4">
-                  <p className="text-xs uppercase tracking-widest opacity-60">Estimates</p>
-                </div>
-                <div className="grid grid-cols-1 divide-y divide-[#1A1B2E]/10 md:grid-cols-2 md:divide-x md:divide-y-0">
-                  <div className="px-6 py-5" data-testid="panel-tdee">
-                    <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">Maintenance</p>
-                    <p className="text-3xl tabular-nums" data-testid="text-tdee">
-                      {estimatedTDEE.toLocaleString()}
-                      <span className="ml-1 text-base opacity-40">kcal/day</span>
-                    </p>
-                    <p className="mt-2 text-xs opacity-40">
-                      Calories burned daily at current activity level.
-                    </p>
-                  </div>
-                  <div
-                    className="flex items-center justify-between gap-4 px-6 py-5"
-                    data-testid="panel-suggested-goal"
-                  >
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">Suggested Goal</p>
-                      <p className="text-3xl text-[#5f5b80] tabular-nums" data-testid="text-suggested-goal">
-                        {(estimatedTDEE - 500).toLocaleString()}
-                        <span className="ml-1 text-base opacity-60">kcal/day</span>
-                      </p>
-                      <p className="mt-2 text-xs opacity-40">TDEE − 500 · ~0.5 kg/week loss</p>
-                    </div>
-                    <button
-                      type="button"
-                      data-testid="button-use-suggested-goal"
-                      onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
-                      className="shrink-0 border border-[#5f5b80] px-4 py-2 text-xs uppercase tracking-widest text-[#5f5b80] hover:bg-[#5f5b80] hover:text-white transition-colors"
-                    >
-                      Use
-                    </button>
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="heightCm"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Height (cm)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          data-testid="input-height"
+                          placeholder="e.g. 175"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="ageYears"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Age (years)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          data-testid="input-age"
+                          placeholder="e.g. 30"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sexAtBirth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Sex at birth
+                      </FormLabel>
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={(v) => field.onChange(v === "" ? null : v)}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            data-testid="select-sex"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus:ring-[#7A7869]"
+                          >
+                            <SelectValue placeholder="Select…" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-            )}
+            </form>
+          </Form>
+        </section>
 
-            {/* ── Save ── */}
-            <div className="border border-t-0 border-[#1A1B2E] px-6 py-5">
-              <button
+        {/* ── Journey dates ── */}
+        <section className="border border-t-0 border-[#D4CFC8] bg-white">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Journey</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">Start date</h3>
+          </div>
+          <Form {...form}>
+            <form className="px-6 py-5 md:px-8">
+              <FormField
+                control={form.control}
+                name="journeyStartDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                      Journey start date
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        data-testid="input-start-date"
+                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </section>
+
+        {/* ── TDEE + Suggestion panel ── */}
+        {estimatedTDEE !== null && (
+          <section className="border border-t-0 border-[#D4CFC8] bg-[#F5F1EB]">
+            <div className="grid grid-cols-1 divide-y divide-[#D4CFC8] md:grid-cols-2 md:divide-x md:divide-y-0">
+              <div className="px-6 py-5 md:px-8" data-testid="panel-tdee">
+                <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">
+                  Your Maintenance
+                </p>
+                <p className="mt-1 text-3xl font-bold text-[#1C1714]" data-testid="text-tdee">
+                  {estimatedTDEE.toLocaleString()}
+                  <span className="ml-1 text-base font-normal text-[#6B6560]">kcal/day</span>
+                </p>
+                <p className="mt-1.5 text-xs text-[#6B6560]">
+                  Calories you burn daily at your current activity level. Eating below this creates a deficit.
+                </p>
+              </div>
+              <div
+                className="flex items-center justify-between gap-4 px-6 py-5 md:px-8"
+                data-testid="panel-suggested-goal"
+              >
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">
+                    Suggested Goal
+                  </p>
+                  <p
+                    className="mt-1 text-3xl font-bold text-[#7A7869]"
+                    data-testid="text-suggested-goal"
+                  >
+                    {(estimatedTDEE - 500).toLocaleString()}
+                    <span className="ml-1 text-base font-normal text-[#6B6560]">kcal/day</span>
+                  </p>
+                  <p className="mt-1.5 text-xs text-[#6B6560]">
+                    TDEE − 500 kcal · targets ~0.5 kg/week loss
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  data-testid="button-use-suggested-goal"
+                  className="shrink-0 bg-[#7A7869] text-white hover:bg-[#5C5B52]"
+                  onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
+                >
+                  Use
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── Save button ── */}
+        <div className="border border-t-0 border-[#D4CFC8] bg-white px-6 py-5 md:px-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => save.mutate(data))}>
+              <Button
                 type="submit"
                 disabled={save.isPending}
+                className="h-12 w-full bg-[#7A7869] text-base font-bold text-white hover:bg-[#5C5B52] md:w-auto md:px-12"
                 data-testid="button-save-settings"
-                className="w-full border-2 border-[#5f5b80] bg-[#5f5b80] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#4a476a] hover:border-[#4a476a] transition-colors disabled:opacity-50 md:w-auto md:px-12"
               >
                 {save.isPending ? "Saving…" : "Save changes"}
-              </button>
-            </div>
+              </Button>
+            </form>
+          </Form>
+        </div>
 
-          </form>
-        </Form>
       </div>
     </AppShell>
   );

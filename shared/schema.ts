@@ -27,12 +27,22 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type User = typeof users.$inferSelect;
 
+const nullableNumber = (min: number, max: number) =>
+  z.preprocess(
+    (v) => (v === null || v === undefined || v === "" || isNaN(Number(v)) ? null : Number(v)),
+    z.number().min(min).max(max).nullable().optional(),
+  );
+
 export const settings = pgTable("settings", {
   userId: varchar("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   dailyCalorieGoal: integer("daily_calorie_goal").notNull().default(2000),
   startingWeightKg: real("starting_weight_kg").notNull().default(0),
   currentWeightKg: real("current_weight_kg").notNull().default(0),
   journeyStartDate: date("journey_start_date").notNull().default(sql`CURRENT_DATE`),
+  heightCm: integer("height_cm"),
+  ageYears: integer("age_years"),
+  sexAtBirth: text("sex_at_birth"),
+  goalWeightKg: real("goal_weight_kg"),
 });
 
 export const upsertSettingsSchema = createInsertSchema(settings)
@@ -42,6 +52,10 @@ export const upsertSettingsSchema = createInsertSchema(settings)
     startingWeightKg: z.coerce.number().min(0).max(500),
     currentWeightKg: z.coerce.number().min(0).max(500),
     journeyStartDate: z.string().min(1),
+    heightCm: nullableNumber(50, 300),
+    ageYears: nullableNumber(5, 120),
+    sexAtBirth: z.enum(["male", "female"]).nullable().optional(),
+    goalWeightKg: nullableNumber(20, 500),
   });
 
 export type Settings = typeof settings.$inferSelect;

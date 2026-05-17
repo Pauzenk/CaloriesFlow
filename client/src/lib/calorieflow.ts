@@ -61,7 +61,6 @@ export function weeklyWeightDeltas(weights: Weight[], settings: Settings | undef
   if (!settings || weights.length === 0) return [] as { week: string; delta: number }[];
   const sorted = [...weights].sort((a, b) => a.date.localeCompare(b.date));
   const start = new Date(settings.journeyStartDate + "T00:00:00");
-  // group by week index relative to start
   const groups = new Map<number, number[]>();
   for (const w of sorted) {
     const d = new Date(w.date + "T00:00:00");
@@ -84,4 +83,103 @@ export function weeklyWeightDeltas(weights: Weight[], settings: Settings | undef
     prev = last;
   }
   return out;
+}
+
+// ─── BMR / TDEE ────────────────────────────────────────────────────────────────
+
+export function computeBMR(
+  weightKg: number,
+  heightCm: number,
+  ageYears: number,
+  sex: "male" | "female",
+): number {
+  // Mifflin-St Jeor equation
+  if (sex === "male") return 10 * weightKg + 6.25 * heightCm - 5 * ageYears + 5;
+  return 10 * weightKg + 6.25 * heightCm - 5 * ageYears - 161;
+}
+
+export function computeTDEE(bmr: number): number {
+  return bmr * 1.2; // sedentary activity multiplier
+}
+
+// ─── Weight Projection Engine ──────────────────────────────────────────────────
+
+export type WeightProjectionPoint = {
+  date: string;
+  estimatedWeightKg: number;
+};
+
+export function weightProjectionSeries(
+  settings: Settings,
+  meals: Meal[],
+): { points: WeightProjectionPoint[]; projectedGoalDate: string | null } {
+  const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate, dailyCalorieGoal } =
+    settings;
+
+  if (!heightCm || !ageYears || !sexAtBirth || !goalWeightKg || !startingWeightKg) {
+    return { points: [], projectedGoalDate: null };
+  }
+
+  const bmr = computeBMR(startingWeightKg, heightCm, ageYears, sexAtBirth as "male" | "female");
+  const tdee = computeTDEE(bmr);
+
+  // Build per-day calorie map from actual meals
+  const calByDate = new Map<string, number>();
+  for (const meal of meals) {
+    calByDate.set(meal.date, (calByDate.get(meal.date) || 0) + meal.calories);
+  }
+
+  // Average calorie intake over last 7 logged days (for future projection)
+  const today = todayStr();
+  const last7 = lastNDates(7);
+  const last7Logged = last7.filter((d) => calByDate.has(d));
+  const avgActual =
+    last7Logged.length > 0
+      ? last7Logged.reduce((sum, d) => sum + (calByDate.get(d) ?? 0), 0) / last7Logged.length
+      : dailyCalorieGoal;
+  const projectedDailyDeficit = tdee - avgActual;
+
+  const isLosingWeight = goalWeightKg < startingWeightKg;
+  const startDateObj = new Date(journeyStartDate + "T00:00:00");
+  const todayDateObj = new Date(today + "T00:00:00");
+
+  const points: WeightProjectionPoint[] = [];
+  let currentWeight = startingWeightKg;
+  let projectedGoalDate: string | null = null;
+
+  for (let i = 0; i < 730; i++) {
+    const d = new Date(startDateObj);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().slice(0, 10);
+
+    if (i === 0) {
+      points.push({ date: dateStr, estimatedWeightKg: currentWeight });
+      continue;
+    }
+
+    let dailyDeficit: number;
+    if (dateStr <= today) {
+      const actual = calByDate.get(dateStr);
+      dailyDeficit = actual !== undefined ? tdee - actual : 0;
+    } else {
+      const daysFromToday = Math.floor((d.getTime() - todayDateObj.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysFromToday > 365) break;
+      dailyDeficit = projectedDailyDeficit;
+    }
+
+    currentWeight = currentWeight - dailyDeficit / 7700;
+    points.push({ date: dateStr, estimatedWeightKg: +currentWeight.toFixed(2) });
+
+    if (!projectedGoalDate) {
+      if (isLosingWeight && currentWeight <= goalWeightKg) {
+        projectedGoalDate = dateStr;
+        break;
+      } else if (!isLosingWeight && currentWeight >= goalWeightKg) {
+        projectedGoalDate = dateStr;
+        break;
+      }
+    }
+  }
+
+  return { points, projectedGoalDate };
 }

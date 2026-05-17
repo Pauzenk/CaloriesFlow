@@ -184,29 +184,62 @@ export default function ProgressPage() {
     return Math.round(computeTDEE(bmr));
   }, [settings]);
 
+  // ─── Schedule delta: compare actual projected date vs planned (eating at goal) ─
+  const scheduleDelta = useMemo(() => {
+    if (
+      !canProject ||
+      recentAvgCalories === 0 ||
+      !settings ||
+      !estimatedTDEE ||
+      !currentEstimatedWeight ||
+      !projectedGoalDate
+    )
+      return null;
+
+    const goalWeight = settings.goalWeightKg!;
+    const remainingWeight = Math.abs(currentEstimatedWeight - goalWeight);
+    if (remainingWeight <= 0) return { deltaDays: 0 };
+
+    // Planned deficit per day if eating exactly at calorie goal
+    const plannedDailyDeficit = estimatedTDEE - goal;
+    if (Math.abs(plannedDailyDeficit) < 10) return null; // negligible planned deficit
+
+    const plannedDaysToGoal = Math.ceil((remainingWeight * 7700) / Math.abs(plannedDailyDeficit));
+    const todayDateObj = new Date(todayStr() + "T00:00:00");
+    const plannedGoalDateObj = new Date(todayDateObj);
+    plannedGoalDateObj.setDate(plannedGoalDateObj.getDate() + plannedDaysToGoal);
+
+    const actualGoalDateObj = new Date(projectedGoalDate + "T00:00:00");
+    // Positive = actual date is LATER than planned → behind schedule
+    const deltaDays = Math.round(
+      (actualGoalDateObj.getTime() - plannedGoalDateObj.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    return { deltaDays };
+  }, [
+    canProject,
+    recentAvgCalories,
+    settings,
+    estimatedTDEE,
+    currentEstimatedWeight,
+    projectedGoalDate,
+    goal,
+  ]);
+
   const goalMessage = useMemo(() => {
-    if (!canProject || recentAvgCalories === 0 || !settings) return null;
-    const diff = goal - recentAvgCalories;
-    const isLosingWeight = (settings.goalWeightKg ?? 0) < settings.startingWeightKg;
-    if (Math.abs(diff) < 100) return "You're right on track — keep it up!";
-    if (isLosingWeight) {
-      if (diff > 0)
-        return `Eating ${diff} kcal/day below your goal — you're ahead of schedule!`;
-      return `Eating ${Math.abs(diff)} kcal/day over your goal. Cutting back will get you there sooner.`;
-    } else {
-      if (diff < 0)
-        return `Eating ${Math.abs(diff)} kcal/day above your goal — great progress for gaining!`;
-      return `Eating ${diff} kcal/day below your goal. Aiming higher will get you there sooner.`;
+    if (!canProject || recentAvgCalories === 0 || !scheduleDelta) return null;
+    const { deltaDays } = scheduleDelta;
+    if (Math.abs(deltaDays) <= 3) return "You're right on track — keep it up!";
+    if (deltaDays > 0) {
+      return `At this pace you'll reach your goal ${deltaDays} day${deltaDays !== 1 ? "s" : ""} later than planned.`;
     }
-  }, [canProject, recentAvgCalories, goal, settings]);
+    const ahead = Math.abs(deltaDays);
+    return `Great! You're ahead of schedule by ${ahead} day${ahead !== 1 ? "s" : ""}.`;
+  }, [canProject, recentAvgCalories, scheduleDelta]);
+
+  const goalMessageIsPositive = scheduleDelta !== null && (scheduleDelta.deltaDays <= 3);
 
   const weightDeltas = weeklyWeightDeltas(weights, settings);
   const totalLoss = weightDeltas.reduce((a, d) => a + d.delta, 0);
-
-  const isLosingWeight = (settings?.goalWeightKg ?? 0) < (settings?.startingWeightKg ?? 0);
-  const goalMsgPositive = goalMessage?.startsWith("Eating") && goalMessage?.includes("below your goal") && isLosingWeight
-    ? false
-    : true;
 
   return (
     <AppShell title="Progress">
@@ -350,7 +383,7 @@ export default function ProgressPage() {
                 {goalMessage && (
                   <div className="mt-auto rounded bg-white/10 px-3 py-2.5">
                     <div className="flex items-start gap-2">
-                      {goalMessage.includes("ahead") || goalMessage.includes("on track") ? (
+                      {goalMessageIsPositive ? (
                         <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
                       ) : (
                         <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />

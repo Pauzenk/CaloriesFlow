@@ -7,7 +7,9 @@ import { AppShell } from "@/components/AppShell";
 import type { Meal, Settings, Weight } from "@shared/schema";
 import type { Activity as ActivityType } from "@shared/schema";
 import {
+  dailyCaloriesSeries,
   daysSince,
+  lastNDates,
   mealsForDate,
   sumMacros,
   todayStr,
@@ -18,85 +20,6 @@ import {
 function fmtTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-}
-
-function CalorieRing({
-  consumed,
-  goal,
-}: {
-  consumed: number;
-  goal: number;
-}) {
-  const R = 52;
-  const CX = 64;
-  const STROKE = 9;
-  const circumference = 2 * Math.PI * R;
-  const pct = Math.min(1, consumed / goal);
-  const overGoal = consumed > goal;
-  const dashOffset = circumference * (1 - pct);
-  const remaining = Math.max(0, goal - consumed);
-
-  return (
-    <div className="flex items-center gap-6">
-      <div className="relative shrink-0" style={{ width: 128, height: 128 }}>
-        <svg width={128} height={128} viewBox="0 0 128 128">
-          <circle
-            cx={CX}
-            cy={CX}
-            r={R}
-            fill="none"
-            stroke="#1C1714"
-            strokeOpacity={0.1}
-            strokeWidth={STROKE}
-          />
-          <circle
-            cx={CX}
-            cy={CX}
-            r={R}
-            fill="none"
-            stroke={overGoal ? "#9B4A2E" : "#1C1714"}
-            strokeWidth={STROKE}
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
-            strokeLinecap="square"
-            transform={`rotate(-90 ${CX} ${CX})`}
-            style={{ transition: "stroke-dashoffset 0.4s ease" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span
-            className="text-xl leading-none tabular-nums tracking-tighter"
-            data-testid="text-today-calories"
-          >
-            {consumed}
-          </span>
-          <span className="text-[9px] uppercase tracking-widest opacity-40 mt-0.5">kcal</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <div>
-          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">Goal</p>
-          <div className="text-lg tabular-nums tracking-tighter leading-none">{goal}</div>
-        </div>
-        <div>
-          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">Remaining</p>
-          <div
-            className={`text-lg tabular-nums tracking-tighter leading-none ${overGoal ? "text-[#9B4A2E]" : ""}`}
-            data-testid="text-remaining-calories"
-          >
-            {overGoal ? `+${consumed - goal}` : remaining}
-          </div>
-        </div>
-        <div>
-          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">Progress</p>
-          <div className="text-sm tabular-nums tracking-tighter leading-none">
-            {Math.round(pct * 100)}%
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function Dashboard() {
@@ -146,8 +69,8 @@ export default function Dashboard() {
     return (
       <AppShell title="Overview">
         <div className="mx-auto max-w-md space-y-4 font-['Space_Mono']">
-          <Skeleton className="h-36 w-full" />
           <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-36 w-full" />
           <Skeleton className="h-48 w-full" />
         </div>
       </AppShell>
@@ -162,7 +85,12 @@ export default function Dashboard() {
   const totalActivityCalories = todayActivities.reduce((s, a) => s + a.caloriesBurned, 0);
   const netCalories = totals.calories - totalActivityCalories;
   const goal = settings?.dailyCalorieGoal || 2000;
+  const remaining = Math.max(0, goal - netCalories);
   const dayNum = settings ? daysSince(settings.journeyStartDate) : 1;
+
+  const weekDates = lastNDates(7);
+  const series = dailyCaloriesSeries(meals, weekDates);
+  const chartMax = Math.max(...series.map((s) => s.calories), goal, 1);
 
   const weightDeltas = weeklyWeightDeltas(weights, settings);
   const totalLoss = weightDeltas.reduce((a, d) => a + d.delta, 0);
@@ -171,18 +99,30 @@ export default function Dashboard() {
 
   return (
     <AppShell title="Overview">
-      <div
-        className="w-full font-['Space_Mono'] text-[#1C1714]"
-        data-testid="card-dashboard-feed"
-      >
-        {/* ── Circular calorie ring header ── */}
+      <div className="w-full font-['Space_Mono'] text-[#1C1714]" data-testid="card-dashboard-feed">
+
+        {/* ── Sticky tally header ── */}
         <div className="sticky top-0 z-10 bg-[#F2EDE7] pb-4 border-b-2 border-[#1C1714] mb-8">
-          <div className="mb-4">
-            <p className="text-[10px] uppercase tracking-widest opacity-60 mb-3">Today's Progress</p>
-            <CalorieRing consumed={totals.calories} goal={goal} />
+          <div className="flex justify-between items-end">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Today's Tally</p>
+              <div className="text-5xl tracking-tighter leading-none" data-testid="text-today-calories">
+                {netCalories}
+                <span className="text-lg opacity-50 ml-1">/ {goal}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Remaining</p>
+              <div
+                className={`text-3xl tracking-tighter leading-none ${netCalories > goal ? "text-[#9B4A2E]" : ""}`}
+                data-testid="text-remaining-calories"
+              >
+                {netCalories > goal ? `+${netCalories - goal}` : remaining}
+              </div>
+            </div>
           </div>
 
-          <div className="flex justify-between border-t border-[#1C1714]/20 pt-3 text-sm">
+          <div className="flex justify-between border-t border-[#1C1714]/20 pt-3 mt-4 text-sm">
             <div className="flex gap-4">
               <div>
                 <span className="opacity-50">PRO</span>{" "}
@@ -200,8 +140,40 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Ledger (meals + activities) ── */}
-        <div className="mb-8">
+        {/* ── Journey block ── */}
+        <div className="border border-[#1C1714] p-4 mb-8 text-sm">
+          <div className="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-[#1C1714]/20">
+            <div className="uppercase tracking-widest text-xs opacity-60">Journey Statement</div>
+            <div data-testid="text-journey-day">DAY {String(dayNum).padStart(2, "0")}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Current Wt</div>
+              <div className="text-lg" data-testid="text-total-weight-change">
+                {canProject && currentEstimatedWeight !== null
+                  ? `${currentEstimatedWeight.toFixed(1)} kg`
+                  : totalLoss !== 0
+                  ? `${totalLoss > 0 ? "+" : ""}${totalLoss.toFixed(1)} kg`
+                  : "— kg"}
+              </div>
+            </div>
+            <div>
+              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Goal Wt</div>
+              <div className="text-lg">
+                {settings?.goalWeightKg ? `${settings.goalWeightKg.toFixed(1)} kg` : "Not set"}
+              </div>
+            </div>
+          </div>
+          {canProject && (
+            <div className="mt-4 pt-3 border-t border-dashed border-[#1C1714]/20 flex items-center justify-between">
+              <div className="text-xs uppercase opacity-60">Progress</div>
+              <div data-testid="text-goal-percent">{weightProgressPct}% Complete</div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Ledger ── */}
+        <div className="mb-12">
           <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
             Ledger
           </div>
@@ -234,16 +206,12 @@ export default function Dashboard() {
                     data-testid={`row-meal-${m.id}`}
                     className="flex py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors"
                   >
-                    <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0">
-                      {fmtTime(m.createdAt)}
-                    </div>
+                    <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0">{fmtTime(m.createdAt)}</div>
                     <div className="flex-1 px-2 min-w-0">
                       <div className="leading-tight truncate">{m.name}</div>
                       <div className="text-[10px] uppercase opacity-50 tracking-widest mt-1">{m.mealType}</div>
                     </div>
-                    <div className="text-right shrink-0 tabular-nums">
-                      +{m.calories}
-                    </div>
+                    <div className="text-right shrink-0 tabular-nums">+{m.calories}</div>
                   </div>
                 ))}
                 {todayActivities.map((a) => (
@@ -261,9 +229,7 @@ export default function Dashboard() {
                         {a.activityType} · {a.durationMinutes}min
                       </div>
                     </div>
-                    <div className="text-right shrink-0 tabular-nums text-[#9B4A2E]">
-                      −{a.caloriesBurned}
-                    </div>
+                    <div className="text-right shrink-0 tabular-nums text-[#9B4A2E]">−{a.caloriesBurned}</div>
                   </div>
                 ))}
               </div>
@@ -278,9 +244,9 @@ export default function Dashboard() {
                   <button
                     type="button"
                     data-testid="button-add-meal"
-                    className="w-full bg-[#1C1714] text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714]/90 transition-colors flex items-center justify-center gap-2"
+                    className="w-full border border-[#9e4515]/40 py-2.5 text-xs uppercase tracking-widest text-[#9e4515] hover:border-[#9e4515] hover:bg-[#9e4515]/5 transition-all"
                   >
-                    <Plus className="h-3 w-3" /> Add entry
+                    <Plus className="inline h-3 w-3 mr-1" /> Add entry
                   </button>
                 </Link>
               </div>
@@ -288,48 +254,45 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ── Journey block ── */}
-        <div className="border border-[#1C1714] p-4 mb-12 text-sm">
-          <div className="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-[#1C1714]/20">
-            <div className="uppercase tracking-widest text-xs opacity-60">Journey Statement</div>
-            <div data-testid="text-journey-day">DAY {String(dayNum).padStart(2, "0")}</div>
+        {/* ── 7-day volume chart ── */}
+        <div className="mb-16">
+          <div className="text-xs uppercase tracking-widest opacity-60 mb-6 text-center">
+            7-Day Volume
           </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Current Wt</div>
-              <div className="text-lg" data-testid="text-total-weight-change">
-                {canProject && currentEstimatedWeight !== null
-                  ? `${currentEstimatedWeight.toFixed(1)} kg`
-                  : totalLoss !== 0
-                  ? `${totalLoss > 0 ? "+" : ""}${totalLoss.toFixed(1)} kg`
-                  : "— kg"}
-              </div>
-            </div>
-            <div>
-              <div className="opacity-50 text-xs mb-1 uppercase tracking-wide">Goal Wt</div>
-              <div className="text-lg">
-                {settings?.goalWeightKg ? `${settings.goalWeightKg.toFixed(1)} kg` : "Not set"}
-              </div>
-            </div>
+          <div className="flex items-end justify-between h-32 px-2">
+            {series.map((d, i) => {
+              const isToday = d.date === today;
+              const heightPct = d.calories > 0 ? Math.max(4, (d.calories / chartMax) * 100) : 1;
+              const overGoal = d.calories > goal;
+              return (
+                <div key={i} className="flex flex-col items-center gap-2 flex-1">
+                  <div
+                    className="w-full max-w-[28px] transition-all relative group"
+                    style={{
+                      height: `${heightPct}%`,
+                      backgroundColor: overGoal ? "#9B4A2E" : "#1C1714",
+                      opacity: d.calories === 0 ? 0.15 : isToday ? 1 : 0.55,
+                    }}
+                    data-testid={`bar-week-${d.label}`}
+                  >
+                    {d.calories > 0 && (
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
+                        {d.calories}
+                      </div>
+                    )}
+                  </div>
+                  <div className={`text-[10px] uppercase ${isToday ? "font-bold opacity-100" : "opacity-40"}`}>
+                    {d.label}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          {canProject && (
-            <div className="pt-3 border-t border-dashed border-[#1C1714]/20">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs uppercase opacity-60">Journey Progress</div>
-                <div data-testid="text-goal-percent" className="text-xs">{weightProgressPct}%</div>
-              </div>
-              <div className="w-full h-2 bg-[#1C1714]/10 overflow-hidden">
-                <div
-                  className="h-full bg-[#1C1714] transition-all duration-500"
-                  style={{ width: `${weightProgressPct}%` }}
-                  data-testid="bar-journey-progress"
-                />
-              </div>
-            </div>
-          )}
+          <div className="border-t border-[#1C1714] mt-3 pt-2 text-center text-[10px] uppercase opacity-40 tracking-widest">
+            End of Record
+          </div>
         </div>
+
       </div>
     </AppShell>
   );

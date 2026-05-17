@@ -576,34 +576,46 @@ export default function LogMeal() {
               </div>
             </div>
 
-            {/* ── Inline AI Chat accordion ── */}
+            {/* ── AI Chat trigger button ── */}
             {!editingId && (
               <div className="mb-8">
                 <button
                   type="button"
                   data-testid="button-toggle-ai-chat"
-                  onClick={() => setChatOpen((o) => !o)}
-                  className="w-full border border-[#1C1714]/30 p-4 flex items-center justify-between hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors group"
+                  onClick={() => setChatOpen(true)}
+                  className="w-full bg-[#1C1714] text-[#F2EDE7] p-4 flex items-center justify-between hover:bg-[#1C1714]/90 transition-colors group"
                 >
                   <div className="text-left">
-                    <div className="text-xs uppercase tracking-widest opacity-60 mb-0.5">AI Nutrition Chat</div>
-                    <div className="text-sm opacity-50 group-hover:opacity-80 transition-opacity">
+                    <div className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">AI Nutrition Chat</div>
+                    <div className="text-sm">
                       Describe what you ate — AI estimates calories &amp; macros
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-4">
-                    <MessageSquare className="h-4 w-4 opacity-30 group-hover:opacity-70 transition-opacity" />
-                    <ChevronDown
-                      className={`h-4 w-4 opacity-40 transition-transform duration-200 ${chatOpen ? "rotate-180" : ""}`}
-                    />
-                  </div>
+                  <MessageSquare className="h-5 w-5 opacity-60 shrink-0 ml-4" />
                 </button>
+              </div>
+            )}
 
-                {chatOpen && (
-                  <div className="border border-t-0 border-[#1C1714]/30">
-                    <InlineChat onApplyEstimate={applyEstimate} />
+            {/* ── AI Chat full-screen overlay ── */}
+            {chatOpen && (
+              <div className="fixed inset-0 z-50 bg-[#F2EDE7] flex flex-col font-['Space_Mono']">
+                <div className="flex items-center justify-between px-4 py-4 border-b-2 border-[#1C1714] shrink-0">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">AI Nutrition Chat</p>
+                    <p className="text-xl tracking-tighter leading-none">What did you eat?</p>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    data-testid="button-close-ai-chat"
+                    onClick={() => setChatOpen(false)}
+                    className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-2 text-xs uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" /> Close
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <InlineChat onApplyEstimate={applyEstimate} />
+                </div>
               </div>
             )}
 

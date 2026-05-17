@@ -59,6 +59,16 @@ function formatGoalDate(dateStr: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function journeyTimeframeLabel(days: number): string {
+  if (days < 7) return `${days} day${days !== 1 ? "s" : ""}`;
+  if (days < 30) {
+    const wks = Math.round(days / 7);
+    return `${wks} week${wks !== 1 ? "s" : ""}`;
+  }
+  const months = Math.round(days / 30);
+  return `${months} month${months !== 1 ? "s" : ""}`;
+}
+
 export default function ProgressPage() {
   const [period, setPeriod] = useState<Period>("week");
   const [weightInput, setWeightInput] = useState("");
@@ -99,6 +109,8 @@ export default function ProgressPage() {
   const periodMeals = meals.filter((m) => dates.includes(m.date));
   const periodTotals = sumMacros(periodMeals);
   const avgPerDay = Math.round(periodTotals.calories / n);
+  const periodDeficit = goal * n - periodTotals.calories;
+  const estimatedKgLost = periodDeficit / 7700;
 
   const canProject = !!(
     settings?.heightCm &&
@@ -270,8 +282,10 @@ export default function ProgressPage() {
           {canProject && (
             <div className="pt-3 border-t border-dashed border-[#1C1714]/20">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs uppercase opacity-60">Progress</div>
-                <div data-testid="text-goal-percent" className="text-xs">{weightProgressPct}%</div>
+                <div className="text-xs uppercase opacity-70">Journey Progress</div>
+                <div data-testid="text-goal-percent" className="text-xs font-medium">
+                  {journeyTimeframeLabel(dayNum)} in
+                </div>
               </div>
               <div className="w-full h-2 bg-[#1C1714]/10 overflow-hidden">
                 <div
@@ -279,6 +293,10 @@ export default function ProgressPage() {
                   style={{ width: `${weightProgressPct}%` }}
                   data-testid="bar-journey-progress"
                 />
+              </div>
+              <div className="flex justify-between mt-1.5 text-[10px] opacity-50">
+                <span>Start</span>
+                <span>{weightProgressPct}% of goal weight</span>
               </div>
             </div>
           )}
@@ -528,9 +546,9 @@ export default function ProgressPage() {
                         type="submit"
                         data-testid="button-log-weight"
                         disabled={addWeight.isPending || !weightInput}
-                        className="shrink-0 border border-[#1C1714] px-4 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors disabled:opacity-40"
+                        className="shrink-0 bg-[#1C1714] text-[#F2EDE7] px-5 py-2 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 transition-colors disabled:opacity-40"
                       >
-                        {addWeight.isPending ? "…" : "Log"}
+                        {addWeight.isPending ? "…" : "Add to Journey"}
                       </button>
                     </form>
                     <p className="mt-1.5 text-[10px] opacity-30">Anchors projection to real weight.</p>
@@ -635,18 +653,27 @@ export default function ProgressPage() {
 
           {/* Stats */}
           <div className="mt-5 border border-[#1C1714]">
-            <div className="grid grid-cols-2">
-              <div className="px-4 py-3 text-center border-r border-[#1C1714]/10">
-                <p className="text-[9px] uppercase tracking-widest opacity-50">Total kcal</p>
-                <p className="mt-0.5 text-sm tabular-nums" data-testid="text-period-total">
-                  {periodTotals.calories.toLocaleString()}
+            <div className="grid grid-cols-3 divide-x divide-[#1C1714]/10">
+              <div className="px-3 py-4 text-center">
+                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">Calorie Deficit</p>
+                <p className="text-base tabular-nums font-medium" data-testid="text-period-deficit">
+                  {Math.abs(periodDeficit).toLocaleString()}
                 </p>
+                <p className="text-[10px] opacity-40 mt-0.5">{periodDeficit >= 0 ? "deficit" : "surplus"}</p>
               </div>
-              <div className="px-4 py-3 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-50">Avg / day</p>
-                <p className="mt-0.5 text-sm tabular-nums" data-testid="text-period-avg">
+              <div className="px-3 py-4 text-center">
+                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">Avg / Day</p>
+                <p className="text-base tabular-nums font-medium" data-testid="text-period-avg">
                   {avgPerDay.toLocaleString()}
                 </p>
+                <p className="text-[10px] opacity-40 mt-0.5">kcal</p>
+              </div>
+              <div className="px-3 py-4 text-center">
+                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">Est. Lost</p>
+                <p className="text-base tabular-nums font-medium" data-testid="text-period-kg-lost">
+                  {estimatedKgLost >= 0 ? estimatedKgLost.toFixed(2) : `+${Math.abs(estimatedKgLost).toFixed(2)}`}
+                </p>
+                <p className="text-[10px] opacity-40 mt-0.5">kg</p>
               </div>
             </div>
           </div>

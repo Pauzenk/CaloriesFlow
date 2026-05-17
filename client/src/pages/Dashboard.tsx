@@ -1,17 +1,18 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Leaf, Activity, Trash2 } from "lucide-react";
+import { Plus, Leaf, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Meal, Settings } from "@shared/schema";
+import { MEAL_TYPES } from "@shared/schema";
 import type { Activity as ActivityType } from "@shared/schema";
 import {
-  dailyCaloriesSeries,
-  lastNDates,
   mealsForDate,
   sumMacros,
   todayStr,
+  daysSince,
 } from "@/lib/calorieflow";
 
 function fmtTime(iso: string): string {
@@ -19,14 +20,33 @@ function fmtTime(iso: string): string {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
+function offsetDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDisplayDate(dateStr: string): string {
+  const today = todayStr();
+  if (dateStr === today) return "Today";
+  if (dateStr === offsetDate(today, -1)) return "Yesterday";
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+  });
+}
+
+type EditState = { id: string; name: string; calories: string; proteins: string; carbs: string; fats: string; mealType: string } | null;
+
 export default function Dashboard() {
+  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [editState, setEditState] = useState<EditState>(null);
+
   const { data: settings, isLoading: sLoading } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const { data: meals = [], isLoading: mLoading } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
-  const today = todayStr();
   const { data: activities = [] } = useQuery<ActivityType[]>({
-    queryKey: ["/api/activities", today],
+    queryKey: ["/api/activities", selectedDate],
     queryFn: async () => {
-      const res = await fetch(`/api/activities?from=${today}&to=${today}`, { credentials: "include" });
+      const res = await fetch(`/api/activities?from=${selectedDate}&to=${selectedDate}`, { credentials: "include" });
       if (!res.ok) return [];
       return res.json();
     },
@@ -37,9 +57,19 @@ export default function Dashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/meals"] }),
   });
 
+  const updateMeal = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Meal> }) => {
+      await apiRequest("PATCH", `/api/meals/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      setEditState(null);
+    },
+  });
+
   const deleteActivity = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/activities/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/activities", today] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/activities", selectedDate] }),
   });
 
   if (sLoading || mLoading) {
@@ -54,31 +84,95 @@ export default function Dashboard() {
     );
   }
 
-  const todays = mealsForDate(meals, today).slice().sort(
+  const isToday = selectedDate === todayStr();
+  const dayMeals = mealsForDate(meals, selectedDate).slice().sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
-  const todayActivities = activities;
-  const totals = sumMacros(todays);
-  const totalActivityCalories = todayActivities.reduce((s, a) => s + a.caloriesBurned, 0);
+  const dayActivities = activities;
+  const totals = sumMacros(dayMeals);
+  const totalActivityCalories = dayActivities.reduce((s, a) => s + a.caloriesBurned, 0);
   const netCalories = totals.calories - totalActivityCalories;
   const goal = settings?.dailyCalorieGoal || 2000;
   const remaining = Math.max(0, goal - netCalories);
 
-  const weekDates = lastNDates(7);
-  const series = dailyCaloriesSeries(meals, weekDates);
-  const chartMax = Math.max(...series.map((s) => s.calories), goal, 1);
+  const dayNum = settings ? daysSince(settings.journeyStartDate, selectedDate) : null;
 
-  const showOnboarding = meals.length === 0 && todayActivities.length === 0;
+  const mealsByType = new Map<string, Meal[]>();
+  for (const t of MEAL_TYPES) mealsByType.set(t, []);
+  for (const m of dayMeals) {
+    if (!mealsByType.has(m.mealType)) mealsByType.set(m.mealType, []);
+    mealsByType.get(m.mealType)!.push(m);
+  }
+
+  const showOnboarding = meals.length === 0 && dayActivities.length === 0;
+
+  function startEdit(m: Meal) {
+    setEditState({ id: m.id, name: m.name, calories: String(m.calories), proteins: String(m.proteins), carbs: String(m.carbs), fats: String(m.fats), mealType: m.mealType });
+  }
+
+  function commitEdit() {
+    if (!editState) return;
+    updateMeal.mutate({
+      id: editState.id,
+      data: {
+        name: editState.name,
+        calories: parseFloat(editState.calories) || 0,
+        proteins: parseFloat(editState.proteins) || 0,
+        carbs: parseFloat(editState.carbs) || 0,
+        fats: parseFloat(editState.fats) || 0,
+        mealType: editState.mealType as Meal["mealType"],
+      },
+    });
+  }
+
+  const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714]";
 
   return (
     <AppShell title="Overview">
       <div className="w-full font-['Space_Mono'] text-[#1C1714]" data-testid="card-dashboard-feed">
 
+        {/* ── Day navigator ── */}
+        <div className="flex items-center justify-between mb-6 border-b border-[#1C1714]/20 pb-4">
+          <button
+            type="button"
+            data-testid="button-dashboard-prev-day"
+            onClick={() => { setSelectedDate((d) => offsetDate(d, -1)); setEditState(null); }}
+            className="flex items-center gap-1 px-2 py-1.5 border border-[#1C1714]/20 hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="h-4 w-4 opacity-60" />
+          </button>
+
+          <div className="text-center">
+            <div className="text-sm tracking-tight" data-testid="text-dashboard-date">
+              {formatDisplayDate(selectedDate)}
+            </div>
+            {dayNum !== null && (
+              <div className="text-[10px] uppercase tracking-widest opacity-40 mt-0.5">
+                Day {dayNum}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            data-testid="button-dashboard-next-day"
+            onClick={() => { setSelectedDate((d) => offsetDate(d, 1)); setEditState(null); }}
+            disabled={isToday}
+            className="flex items-center gap-1 px-2 py-1.5 border border-[#1C1714]/20 hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+            aria-label="Next day"
+          >
+            <ChevronRight className="h-4 w-4 opacity-60" />
+          </button>
+        </div>
+
         {/* ── Tally header ── */}
         <div className="pb-4 border-b-2 border-[#1C1714] mb-8">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Today's Tally</p>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
+                {isToday ? "Today's Tally" : "Day's Tally"}
+              </p>
               <div className="text-5xl tracking-tighter leading-none" data-testid="text-today-calories">
                 {netCalories}
                 <span className="text-lg opacity-50 ml-1">/ {goal}</span>
@@ -126,10 +220,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Daily Food Log ── */}
+        {/* ── Food Log ── */}
         <div className="mb-12">
           <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
-            Daily Food Log
+            {isToday ? "Daily Food Log" : `Food Log — ${formatDisplayDate(selectedDate)}`}
           </div>
 
           {showOnboarding ? (
@@ -141,7 +235,7 @@ export default function Dashboard() {
               </div>
               <p className="text-xs uppercase tracking-widest opacity-60 mb-2">No entries yet</p>
               <p className="text-sm opacity-50 mb-6">Log your first meal to start your record.</p>
-              <Link href="/log">
+              <Link href={`/log?date=${selectedDate}`}>
                 <button
                   type="button"
                   data-testid="button-onboarding-log"
@@ -153,60 +247,152 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="flex flex-col">
-                {todays.map((m) => (
-                  <div
-                    key={m.id}
-                    data-testid={`row-meal-${m.id}`}
-                    className="group flex items-center py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors"
-                  >
-                    <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0">{fmtTime(m.createdAt)}</div>
-                    <div className="flex-1 px-2 min-w-0">
-                      <div className="leading-tight truncate">{m.name}</div>
-                      <div className="text-[10px] uppercase opacity-50 tracking-widest mt-1">{m.mealType}</div>
+              {/* Meals grouped by type */}
+              {MEAL_TYPES.map((type) => {
+                const typeMeals = mealsByType.get(type) ?? [];
+                if (typeMeals.length === 0) return null;
+                return (
+                  <div key={type} className="mb-3">
+                    <div className="text-[10px] uppercase tracking-widest opacity-35 mb-1 pt-1">
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
                     </div>
-                    <div className="tabular-nums shrink-0 mr-3">+{m.calories}</div>
-                    <button
-                      type="button"
-                      data-testid={`button-delete-meal-${m.id}`}
-                      onClick={() => deleteMeal.mutate(m.id)}
-                      disabled={deleteMeal.isPending}
-                      className="shrink-0 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity p-1"
-                      aria-label="Delete meal"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-                {todayActivities.map((a) => (
-                  <div
-                    key={a.id}
-                    data-testid={`row-activity-${a.id}`}
-                    className="group flex items-center py-3 border-b border-dashed border-[#1C1714]/20 pl-3 border-l-2 border-l-[#1C1714]/30"
-                  >
-                    <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0 flex items-start">
-                      <Activity className="h-3 w-3 opacity-40 mt-0.5" />
-                    </div>
-                    <div className="flex-1 px-2 min-w-0">
-                      <div className="leading-tight truncate">{a.name}</div>
-                      <div className="text-[10px] uppercase opacity-50 tracking-widest mt-1">
-                        {a.activityType} · {a.durationMinutes}min
+                    {typeMeals.map((m) => (
+                      <div key={m.id} data-testid={`row-meal-${m.id}`}>
+                        {editState?.id === m.id ? (
+                          <div className="border border-[#1C1714]/20 p-3 mb-2 space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="col-span-2">
+                                <input
+                                  type="text"
+                                  value={editState.name}
+                                  onChange={(e) => setEditState((s) => s && ({ ...s, name: e.target.value }))}
+                                  className={IN + " h-8 text-sm w-full px-2 border"}
+                                  placeholder="Food name"
+                                  data-testid="input-edit-name"
+                                />
+                              </div>
+                              <select
+                                value={editState.mealType}
+                                onChange={(e) => setEditState((s) => s && ({ ...s, mealType: e.target.value }))}
+                                className={IN + " h-8 text-xs w-full px-2 border"}
+                                data-testid="select-edit-type"
+                              >
+                                {MEAL_TYPES.map((t) => (
+                                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                                ))}
+                              </select>
+                              <div className="grid grid-cols-4 gap-1">
+                                {(["calories", "proteins", "carbs", "fats"] as const).map((k) => (
+                                  <div key={k}>
+                                    <div className="text-[8px] uppercase opacity-40 mb-0.5">
+                                      {k === "calories" ? "kcal" : k === "proteins" ? "pro" : k === "carbs" ? "crb" : "fat"}
+                                    </div>
+                                    <input
+                                      type="number" step="0.1"
+                                      value={editState[k]}
+                                      onChange={(e) => setEditState((s) => s && ({ ...s, [k]: e.target.value }))}
+                                      className={IN + " h-7 text-xs w-full px-1 border tabular-nums"}
+                                      data-testid={`input-edit-${k}`}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={commitEdit}
+                                disabled={updateMeal.isPending}
+                                data-testid="button-confirm-edit"
+                                className="flex items-center gap-1 bg-[#1C1714] text-[#F2EDE7] px-3 py-1 text-[10px] uppercase tracking-widest hover:bg-[#1C1714]/80 disabled:opacity-40"
+                              >
+                                <Check className="h-3 w-3" /> Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditState(null)}
+                                data-testid="button-cancel-edit"
+                                className="flex items-center gap-1 border border-[#1C1714]/30 px-3 py-1 text-[10px] uppercase tracking-widest hover:border-[#1C1714]"
+                              >
+                                <X className="h-3 w-3" /> Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="group flex items-center py-2.5 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors">
+                            <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0">{fmtTime(m.createdAt)}</div>
+                            <div className="flex-1 px-2 min-w-0">
+                              <div className="leading-tight truncate">{m.name}</div>
+                            </div>
+                            <div className="tabular-nums shrink-0 mr-2">+{m.calories}</div>
+                            <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                              <button
+                                type="button"
+                                data-testid={`button-edit-meal-${m.id}`}
+                                onClick={() => startEdit(m)}
+                                className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                data-testid={`button-delete-meal-${m.id}`}
+                                onClick={() => deleteMeal.mutate(m.id)}
+                                disabled={deleteMeal.isPending}
+                                className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9B4A2E] transition-all disabled:opacity-30"
+                                aria-label="Delete meal"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-3">−{a.caloriesBurned}</div>
-                    <button
-                      type="button"
-                      data-testid={`button-delete-activity-${a.id}`}
-                      onClick={() => deleteActivity.mutate(a.id)}
-                      disabled={deleteActivity.isPending}
-                      className="shrink-0 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity p-1"
-                      aria-label="Delete activity"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })}
+
+              {/* Activities */}
+              {dayActivities.length > 0 && (
+                <div className="mb-3">
+                  <div className="text-[10px] uppercase tracking-widest opacity-35 mb-1 pt-1">Activity</div>
+                  {dayActivities.map((a) => (
+                    <div
+                      key={a.id}
+                      data-testid={`row-activity-${a.id}`}
+                      className="group flex items-center py-2.5 border-b border-dashed border-[#1C1714]/20 pl-2 border-l-2 border-l-[#1C1714]/30"
+                    >
+                      <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0 flex items-start">
+                        <Activity className="h-3 w-3 opacity-40 mt-0.5" />
+                      </div>
+                      <div className="flex-1 px-2 min-w-0">
+                        <div className="leading-tight truncate">{a.name}</div>
+                        <div className="text-[10px] uppercase opacity-50 tracking-widest mt-0.5">
+                          {a.activityType} · {a.durationMinutes}min
+                        </div>
+                      </div>
+                      <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-2">−{a.caloriesBurned}</div>
+                      <button
+                        type="button"
+                        data-testid={`button-delete-activity-${a.id}`}
+                        onClick={() => deleteActivity.mutate(a.id)}
+                        disabled={deleteActivity.isPending}
+                        className="shrink-0 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity p-1"
+                        aria-label="Delete activity"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {dayMeals.length === 0 && dayActivities.length === 0 && (
+                <div className="py-6 text-center border border-dashed border-[#1C1714]/20">
+                  <p className="text-xs opacity-40">No entries for {formatDisplayDate(selectedDate)}.</p>
+                </div>
+              )}
 
               <div className="flex justify-between items-center py-4 border-b-2 border-[#1C1714]">
                 <div className="uppercase tracking-widest text-xs">Net Calories</div>
@@ -214,7 +400,7 @@ export default function Dashboard() {
               </div>
 
               <div className="mt-4">
-                <Link href="/log">
+                <Link href={`/log?date=${selectedDate}`}>
                   <button
                     type="button"
                     data-testid="button-add-meal"

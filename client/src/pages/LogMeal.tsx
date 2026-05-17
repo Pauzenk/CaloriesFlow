@@ -450,9 +450,16 @@ export default function LogMeal() {
   const { toast } = useToast();
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
 
+  // Read date from URL query param (?date=YYYY-MM-DD), fallback to today
+  const initialDate = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const d = params.get("date");
+    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : todayStr();
+  })();
+
   const form = useForm<InsertMeal>({
     resolver: zodResolver(insertMealSchema),
-    defaultValues,
+    defaultValues: { ...defaultValues, date: initialDate },
   });
 
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);

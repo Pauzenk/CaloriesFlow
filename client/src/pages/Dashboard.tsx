@@ -209,7 +209,7 @@ export default function Dashboard() {
                   <span className="text-2xl text-[#1a1c1a]" data-testid={`text-meal-${key}-calories`}>{val}</span>
                   <span className="mb-0.5 text-base text-[#1a1c1a]">kcal</span>
                 </div>
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#eeeeea]">
+                <div className="mt-4 h-2 overflow-hidden rounded bg-[#eeeeea]">
                   <div className="h-full bg-[#475C65]" style={{ width: `${w}%` }} />
                 </div>
               </CardContent>

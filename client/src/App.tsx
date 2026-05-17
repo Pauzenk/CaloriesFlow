@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 function Protected({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#f4f3ef] text-[#476550]">Loading…</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[#f4f3ef] text-[#475C65]">Loading…</div>;
   }
   if (!user) return <Redirect to="/login" />;
   return <Component />;

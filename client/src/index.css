@@ -120,36 +120,38 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    /* Warm linen / terracotta / green mist palette */
+    --background: 30 22% 93%;
+    --foreground: 20 12% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 30 15% 90%;
+    --muted-foreground: 25 7% 42%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover-foreground: 20 12% 11%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 30 12% 82%;
+    --input: 30 12% 82%;
 
     --card: transparent;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 20 12% 11%;
 
-    --primary: 198 18% 34%;
+    /* Green Mist as primary */
+    --primary: 53 7% 45%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 30 15% 90%;
+    --secondary-foreground: 20 12% 11%;
 
-    --accent: 198 18% 93%;
-    --accent-foreground: 198 18% 24%;
+    --accent: 30 18% 88%;
+    --accent-foreground: 53 7% 35%;
 
     --destructive: 0 100% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --ring: 198 18% 34%;
+    --ring: 53 7% 45%;
 
-    --radius: 0.25rem;
+    --radius: 0rem;
   }
 
   .dark {
@@ -182,7 +184,7 @@
 
     --ring: 216 34% 17%;
 
-    --radius: 0.25rem;
+    --radius: 0rem;
   }
 }
 

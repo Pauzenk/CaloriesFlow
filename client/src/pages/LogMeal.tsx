@@ -180,14 +180,15 @@ export default function LogMeal() {
   return (
     <AppShell title="Log Daily Meal">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
-        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="border border-[#D4CFC8] bg-white shadow-none" style={{ borderRadius: 0 }}>
           <CardContent className="p-6 md:p-8">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-xl font-bold text-[#1a1c1a]" data-testid="text-form-title">
+                <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Meal Entry</p>
+                <h3 className="mt-1 text-xl font-bold text-[#1C1714]" data-testid="text-form-title">
                   {editingId ? "Edit meal" : "Add a meal"}
                 </h3>
-                <p className="mt-1 text-sm text-[#424843]">
+                <p className="mt-1 text-sm text-[#6B6560]">
                   {editingId
                     ? "Update the details and save your changes."
                     : "Ask AI to estimate nutrition, or search the food database below."}
@@ -200,7 +201,7 @@ export default function LogMeal() {
                   size="sm"
                   data-testid="button-cancel-edit"
                   onClick={resetForm}
-                  className="shrink-0 text-[#424843]"
+                  className="shrink-0 text-[#6B6560]"
                 >
                   <X className="mr-1 h-4 w-4" />
                   Cancel
@@ -210,7 +211,7 @@ export default function LogMeal() {
 
             {!editingId && (
               <div className="mt-6">
-                <p className="mb-3 text-sm font-medium text-[#1a1c1a]">AI nutrition chat</p>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#6B6560]">AI nutrition chat</p>
                 <MealChat
                   hasApiKey={aiStatus?.hasApiKey ?? true}
                   onUseEstimate={applyEstimate}
@@ -218,11 +219,11 @@ export default function LogMeal() {
               </div>
             )}
 
-            <div className="mt-6 border-t border-[#c0cdd14c] pt-6">
+            <div className="mt-6 border-t border-[#D4CFC8] pt-6">
               {isAiEstimate && (
                 <div
                   data-testid="banner-ai-estimate"
-                  className="mb-4 flex items-start gap-2 rounded border border-[#475C65]/30 bg-[#e8eff1] px-4 py-3 text-sm text-[#475C65]"
+                  className="mb-4 flex items-start gap-2 border border-[#7A7869]/30 bg-[#F0EBE3] px-4 py-3 text-sm text-[#7A7869]"
                 >
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
@@ -309,10 +310,10 @@ export default function LogMeal() {
                   {selectedFood && (
                     <div
                       data-testid="panel-serving-picker"
-                      className="grid grid-cols-1 gap-4 rounded border border-[#c0cdd14c] bg-[#f4f3ef] p-4 md:grid-cols-2"
+                      className="grid grid-cols-1 gap-4 border border-[#D4CFC8] bg-[#F5F1EB] p-4 md:grid-cols-2"
                     >
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#475C65]">
+                        <FormLabel className="text-xs uppercase tracking-wider text-[#7A7869]">
                           Serving size
                         </FormLabel>
                         <Select value={servingIdx} onValueChange={onServingChange}>
@@ -330,7 +331,7 @@ export default function LogMeal() {
                         </Select>
                       </div>
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#475C65]">
+                        <FormLabel className="text-xs uppercase tracking-wider text-[#7A7869]">
                           Amount (g)
                         </FormLabel>
                         <Input
@@ -443,7 +444,7 @@ export default function LogMeal() {
                   <Button
                     type="submit"
                     disabled={isPending}
-                    className="w-full bg-[#475C65] hover:bg-[#3d5059] md:w-auto"
+                    className="h-11 w-full bg-[#7A7869] text-sm font-bold text-white hover:bg-[#5C5B52] md:w-auto md:px-10"
                     data-testid="button-save-meal"
                   >
                     {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
@@ -454,13 +455,13 @@ export default function LogMeal() {
           </CardContent>
         </Card>
 
-        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="border border-[#D4CFC8] bg-white shadow-none" style={{ borderRadius: 0 }}>
           <CardContent className="p-6 md:p-8">
-            <h3 className="text-xl font-bold text-[#1a1c1a]">Today's meals</h3>
-            <p className="mt-1 text-sm text-[#424843]">{todays.length} entries</p>
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Today's Meals</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">{todays.length} {todays.length === 1 ? "entry" : "entries"}</h3>
             <ul className="mt-4 space-y-2">
               {todays.length === 0 && (
-                <li className="rounded border border-dashed border-[#c0cdd14c] p-6 text-center text-sm text-[#424843]">
+                <li className="border border-dashed border-[#D4CFC8] p-6 text-center text-sm text-[#6B6560]">
                   Nothing logged yet today.
                 </li>
               )}
@@ -468,12 +469,12 @@ export default function LogMeal() {
                 <li
                   key={m.id}
                   data-testid={`row-meal-${m.id}`}
-                  className="flex items-center justify-between rounded border border-[#c0cdd14c] bg-[#f4f3ef] px-4 py-3"
+                  className="flex items-center justify-between border border-[#D4CFC8] bg-[#F5F1EB] px-4 py-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wider text-[#475C65]">{m.mealType}</p>
-                    <p className="truncate text-sm font-medium text-[#1a1c1a]">{m.name}</p>
-                    <p className="text-xs text-[#424843]">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#7A7869]">{m.mealType}</p>
+                    <p className="truncate text-sm font-medium text-[#1C1714]">{m.name}</p>
+                    <p className="text-xs text-[#6B6560]">
                       {m.calories} kcal · P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
                     </p>
                   </div>
@@ -483,7 +484,7 @@ export default function LogMeal() {
                       size="icon"
                       data-testid={`button-edit-meal-${m.id}`}
                       onClick={() => startEdit(m)}
-                      className="h-9 w-9 text-[#424843] hover:text-[#475C65]"
+                      className="h-9 w-9 text-[#6B6560] hover:text-[#7A7869]"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -492,7 +493,7 @@ export default function LogMeal() {
                       size="icon"
                       data-testid={`button-delete-meal-${m.id}`}
                       onClick={() => del.mutate(m.id)}
-                      className="h-9 w-9 text-[#424843] hover:text-red-600"
+                      className="h-9 w-9 text-[#6B6560] hover:text-[#9B4A2E]"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

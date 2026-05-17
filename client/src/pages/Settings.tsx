@@ -2,7 +2,6 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -20,6 +19,13 @@ import {
   type ActivityLevel,
 } from "@shared/schema";
 import { computeBMR, computeTDEE } from "@/lib/calorieflow";
+
+const ACTIVITY_DESCRIPTIONS: Record<ActivityLevel, string> = {
+  sedentary: "Desk job, little or no exercise",
+  lightly_active: "Light exercise 1–3 days/week",
+  moderately_active: "Moderate exercise 3–5 days/week",
+  very_active: "Hard exercise 6–7 days/week",
+};
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -88,26 +94,118 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="Settings">
-      <div className="mx-auto max-w-2xl">
-        <Card className="rounded border-[#c0cdd11a] bg-white shadow-[4px_0px_12px_#0000000a]">
-          <CardContent className="p-6 md:p-8">
-            <h3 className="text-xl font-bold text-[#1a1c1a]">Your goals</h3>
-            <p className="mt-1 text-sm text-[#424843]">These power your dashboard and progress charts.</p>
-            <Form {...form}>
-              <form
-                className="mt-6 space-y-4"
-                onSubmit={form.handleSubmit((data) => save.mutate(data))}
-              >
+      <div className="mx-auto max-w-2xl space-y-0">
+
+        {/* ── Goal section ── */}
+        <section className="border border-[#D4CFC8] bg-white">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Daily Goal</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">Calorie target</h3>
+          </div>
+          <Form {...form}>
+            <form
+              className="px-6 py-5 md:px-8"
+              onSubmit={form.handleSubmit((data) => save.mutate(data))}
+              id="settings-form"
+            >
+              <FormField
+                control={form.control}
+                name="dailyCalorieGoal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                      Daily calorie goal (kcal)
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        data-testid="input-goal"
+                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </section>
+
+        {/* ── Activity level — PROMINENT separate section ── */}
+        <section className="border border-t-0 border-[#D4CFC8] bg-[#F5F1EB]">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Activity Level</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">How active are you?</h3>
+            <p className="mt-1 text-sm text-[#6B6560]">
+              This affects your calorie burn estimate (TDEE) and projected goal date.
+            </p>
+          </div>
+          <Form {...form}>
+            <form className="px-6 py-5 md:px-8" id="settings-form-activity">
+              <FormField
+                control={form.control}
+                name="activityLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {ACTIVITY_LEVELS.map((level) => {
+                        const active = field.value === level;
+                        return (
+                          <button
+                            key={level}
+                            type="button"
+                            data-testid={`radio-activity-${level}`}
+                            onClick={() => field.onChange(level)}
+                            className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
+                              active
+                                ? "border-[#7A7869] bg-[#7A7869] text-white"
+                                : "border-[#D4CFC8] bg-white text-[#1C1714] hover:border-[#7A7869]"
+                            }`}
+                          >
+                            <span className="text-sm font-bold">{ACTIVITY_LEVEL_LABELS[level]}</span>
+                            <span className={`text-xs ${active ? "text-white/80" : "text-[#6B6560]"}`}>
+                              {ACTIVITY_DESCRIPTIONS[level]}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </section>
+
+        {/* ── Body metrics ── */}
+        <section className="border border-t-0 border-[#D4CFC8] bg-white">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Body Metrics</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">Your measurements</h3>
+            <p className="mt-1 text-sm text-[#6B6560]">
+              Used to calculate TDEE and project your goal date — never shared.
+            </p>
+          </div>
+          <Form {...form}>
+            <form className="space-y-4 px-6 py-5 md:px-8">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="dailyCalorieGoal"
+                  name="startingWeightKg"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Daily calorie goal (kcal)</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Starting weight (kg)
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
-                          data-testid="input-goal"
+                          step="0.1"
+                          data-testid="input-starting-weight"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
                           {...field}
                           onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                         />
@@ -116,242 +214,211 @@ export default function SettingsPage() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="startingWeightKg"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Starting weight (kg)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            data-testid="input-starting-weight"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="currentWeightKg"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current weight (kg)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            data-testid="input-current-weight"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
                 <FormField
                   control={form.control}
-                  name="journeyStartDate"
+                  name="goalWeightKg"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Journey start date</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Goal weight (kg)
+                      </FormLabel>
                       <FormControl>
-                        <Input type="date" data-testid="input-start-date" {...field} />
+                        <Input
+                          type="number"
+                          step="0.1"
+                          data-testid="input-goal-weight"
+                          placeholder="e.g. 68.0"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <div className="border-t border-[#c0cdd14c] pt-4">
-                  <p className="text-sm font-semibold text-[#1a1c1a]">Body metrics (for weight projection)</p>
-                  <p className="mt-0.5 text-xs text-[#424843]">
-                    Used to estimate your TDEE and project your goal date — never shared.
-                  </p>
-                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormField
-                      control={form.control}
-                      name="heightCm"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Height (cm)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              data-testid="input-height"
-                              placeholder="e.g. 175"
-                              value={field.value ?? ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="ageYears"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Age (years)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              data-testid="input-age"
-                              placeholder="e.g. 30"
-                              value={field.value ?? ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sexAtBirth"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sex at birth</FormLabel>
-                          <Select
-                            value={field.value ?? ""}
-                            onValueChange={(v) => field.onChange(v === "" ? null : v)}
-                          >
-                            <FormControl>
-                              <SelectTrigger data-testid="select-sex">
-                                <SelectValue placeholder="Select…" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="goalWeightKg"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Goal weight (kg)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              data-testid="input-goal-weight"
-                              placeholder="e.g. 68.0"
-                              value={field.value ?? ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="activityLevel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Activity level</FormLabel>
-                          <Select value={field.value ?? "sedentary"} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-activity-level">
-                                <SelectValue placeholder="Select…" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {ACTIVITY_LEVELS.map((level) => (
-                                <SelectItem key={level} value={level}>
-                                  {ACTIVITY_LEVEL_LABELS[level]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {estimatedTDEE !== null && (
-                    <>
-                      <div
-                        data-testid="panel-tdee"
-                        className="mt-4 flex items-center gap-3 rounded border border-[#475C65]/20 bg-[#e8eff1] px-4 py-3"
-                      >
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-[#475C65]">
-                            Your estimated TDEE
-                          </p>
-                          <p className="mt-0.5 text-2xl font-bold text-[#475C65]">
-                            {estimatedTDEE.toLocaleString()} kcal / day
-                          </p>
-                          <p className="mt-0.5 text-xs text-[#424843]">
-                            Total Daily Energy Expenditure at your selected activity level — the calories you burn per day.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div
-                        data-testid="panel-suggested-goal"
-                        className="mt-3 flex items-center justify-between gap-4 rounded border border-[#3a7d44]/20 bg-[#eef6f0] px-4 py-3"
-                      >
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-[#3a7d44]">
-                            Suggested calorie goal
-                          </p>
-                          <p className="mt-0.5 text-2xl font-bold text-[#3a7d44]" data-testid="text-suggested-goal">
-                            {(estimatedTDEE - 500).toLocaleString()} kcal / day
-                          </p>
-                          <p className="mt-0.5 text-xs text-[#424843]">
-                            TDEE − 500 kcal — a moderate deficit for roughly 0.5 kg of weight loss per week.
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          data-testid="button-use-suggested-goal"
-                          className="shrink-0 border-[#3a7d44]/40 text-[#3a7d44] hover:bg-[#3a7d44]/10 hover:text-[#3a7d44]"
-                          onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
-                        >
-                          Use this goal
-                        </Button>
-                      </div>
-                    </>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="heightCm"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Height (cm)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          data-testid="input-height"
+                          placeholder="e.g. 175"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
+                <FormField
+                  control={form.control}
+                  name="ageYears"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Age (years)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          data-testid="input-age"
+                          placeholder="e.g. 30"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          value={field.value ?? ""}
+                          onChange={(e) =>
+                            field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sexAtBirth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                        Sex at birth
+                      </FormLabel>
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={(v) => field.onChange(v === "" ? null : v)}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            data-testid="select-sex"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus:ring-[#7A7869]"
+                          >
+                            <SelectValue placeholder="Select…" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </form>
+          </Form>
+        </section>
 
+        {/* ── Journey dates ── */}
+        <section className="border border-t-0 border-[#D4CFC8] bg-white">
+          <div className="border-b border-[#D4CFC8] px-6 py-5 md:px-8">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Journey</p>
+            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">Start date</h3>
+          </div>
+          <Form {...form}>
+            <form className="px-6 py-5 md:px-8">
+              <FormField
+                control={form.control}
+                name="journeyStartDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">
+                      Journey start date
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        data-testid="input-start-date"
+                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </section>
+
+        {/* ── TDEE + Suggestion panel ── */}
+        {estimatedTDEE !== null && (
+          <section className="border border-t-0 border-[#D4CFC8] bg-[#F5F1EB]">
+            <div className="grid grid-cols-1 divide-y divide-[#D4CFC8] md:grid-cols-2 md:divide-x md:divide-y-0">
+              <div className="px-6 py-5 md:px-8" data-testid="panel-tdee">
+                <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">
+                  Your Maintenance
+                </p>
+                <p className="mt-1 text-3xl font-bold text-[#1C1714]" data-testid="text-tdee">
+                  {estimatedTDEE.toLocaleString()}
+                  <span className="ml-1 text-base font-normal text-[#6B6560]">kcal/day</span>
+                </p>
+                <p className="mt-1.5 text-xs text-[#6B6560]">
+                  Calories you burn daily at your current activity level. Eating below this creates a deficit.
+                </p>
+              </div>
+              <div
+                className="flex items-center justify-between gap-4 px-6 py-5 md:px-8"
+                data-testid="panel-suggested-goal"
+              >
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">
+                    Suggested Goal
+                  </p>
+                  <p
+                    className="mt-1 text-3xl font-bold text-[#7A7869]"
+                    data-testid="text-suggested-goal"
+                  >
+                    {(estimatedTDEE - 500).toLocaleString()}
+                    <span className="ml-1 text-base font-normal text-[#6B6560]">kcal/day</span>
+                  </p>
+                  <p className="mt-1.5 text-xs text-[#6B6560]">
+                    TDEE − 500 kcal · targets ~0.5 kg/week loss
+                  </p>
+                </div>
                 <Button
-                  type="submit"
-                  disabled={save.isPending}
-                  className="bg-[#475C65] hover:bg-[#3d5059]"
-                  data-testid="button-save-settings"
+                  type="button"
+                  data-testid="button-use-suggested-goal"
+                  className="shrink-0 bg-[#7A7869] text-white hover:bg-[#5C5B52]"
+                  onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
                 >
-                  {save.isPending ? "Saving..." : "Save changes"}
+                  Use
                 </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── Save button ── */}
+        <div className="border border-t-0 border-[#D4CFC8] bg-white px-6 py-5 md:px-8">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => save.mutate(data))}>
+              <Button
+                type="submit"
+                disabled={save.isPending}
+                className="h-12 w-full bg-[#7A7869] text-base font-bold text-white hover:bg-[#5C5B52] md:w-auto md:px-12"
+                data-testid="button-save-settings"
+              >
+                {save.isPending ? "Saving…" : "Save changes"}
+              </Button>
+            </form>
+          </Form>
+        </div>
+
       </div>
     </AppShell>
   );

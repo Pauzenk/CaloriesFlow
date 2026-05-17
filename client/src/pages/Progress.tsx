@@ -23,7 +23,7 @@ import { AppShell } from "@/components/AppShell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Meal, Settings, Weight } from "@shared/schema";
-import { ACTIVITY_MULTIPLIERS, type ActivityLevel } from "@shared/schema";
+import { ACTIVITY_MULTIPLIERS, ACTIVITY_LEVEL_LABELS, type ActivityLevel } from "@shared/schema";
 import {
   caloriesByMealType,
   computeBMR,
@@ -137,7 +137,7 @@ export default function ProgressPage() {
     return map;
   }, [weights]);
 
-  // ─── Future projection chart data (estimated + goal lines, sampled) ──────────
+  // ─── Future projection chart data ────────────────────────────────────────────
   const projectionChartData = useMemo(() => {
     if (!canProject || projectionPoints.length === 0) return [];
     const today = todayStr();
@@ -179,7 +179,7 @@ export default function ProgressPage() {
     });
   }, [weights]);
 
-  // ─── Weight progress % toward goal ──────────────────────────────────────────
+  // ─── Weight progress % toward goal ───────────────────────────────────────────
   const weightProgressPct = useMemo(() => {
     if (!settings?.startingWeightKg || !settings?.goalWeightKg || currentEstimatedWeight === null) return 0;
     const total = Math.abs(settings.startingWeightKg - settings.goalWeightKg);
@@ -187,7 +187,7 @@ export default function ProgressPage() {
     return Math.max(0, Math.min(100, Math.round((done / total) * 100)));
   }, [settings, currentEstimatedWeight]);
 
-  // ─── Recent avg + schedule delta ─────────────────────────────────────────────
+  // ─── Recent avg calories ──────────────────────────────────────────────────────
   const recentAvgCalories = useMemo(() => {
     const last7 = lastNDates(7);
     const logged = last7.filter((d) => meals.some((m) => m.date === d));
@@ -200,6 +200,7 @@ export default function ProgressPage() {
     );
   }, [meals]);
 
+  // ─── Estimated TDEE ──────────────────────────────────────────────────────────
   const estimatedTDEE = useMemo(() => {
     if (!settings?.heightCm || !settings?.ageYears || !settings?.sexAtBirth || !settings?.startingWeightKg)
       return null;
@@ -210,71 +211,53 @@ export default function ProgressPage() {
     return Math.round(computeTDEE(bmr, multiplier));
   }, [settings]);
 
-  const scheduleDelta = useMemo(() => {
-    if (
-      !canProject ||
-      recentAvgCalories === 0 ||
-      !settings ||
-      !estimatedTDEE ||
-      !currentEstimatedWeight ||
-      !projectedGoalDate
-    )
-      return null;
+  // ─── Goal-based projected date (updates when calorie goal changes) ────────────
+  // This answers: "when will I reach my goal IF I eat exactly at my calorie goal?"
+  const goalBasedProjectedDate = useMemo(() => {
+    if (!canProject || !currentEstimatedWeight || !settings || !estimatedTDEE) return null;
     const goalWeight = settings.goalWeightKg!;
     const remainingWeight = Math.abs(currentEstimatedWeight - goalWeight);
-    if (remainingWeight <= 0) return { deltaDays: 0 };
-    const plannedDailyDeficit = estimatedTDEE - goal;
-    if (Math.abs(plannedDailyDeficit) < 10) return null;
-    const plannedDaysToGoal = Math.ceil((remainingWeight * 7700) / Math.abs(plannedDailyDeficit));
-    const todayDateObj = new Date(todayStr() + "T00:00:00");
-    const plannedGoalDateObj = new Date(todayDateObj);
-    plannedGoalDateObj.setDate(plannedGoalDateObj.getDate() + plannedDaysToGoal);
-    const actualGoalDateObj = new Date(projectedGoalDate + "T00:00:00");
-    const deltaDays = Math.round(
-      (actualGoalDateObj.getTime() - plannedGoalDateObj.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return { deltaDays };
-  }, [canProject, recentAvgCalories, settings, estimatedTDEE, currentEstimatedWeight, projectedGoalDate, goal]);
-
-  const goalMessage = useMemo(() => {
-    if (!canProject || recentAvgCalories === 0 || !scheduleDelta) return null;
-    const { deltaDays } = scheduleDelta;
-    if (Math.abs(deltaDays) <= 3) return "You're right on track — keep it up!";
-    if (deltaDays > 0) return `At this pace you'll reach your goal ${deltaDays} day${deltaDays !== 1 ? "s" : ""} later than planned.`;
-    const ahead = Math.abs(deltaDays);
-    return `Great! You're ahead of schedule by ${ahead} day${ahead !== 1 ? "s" : ""}.`;
-  }, [canProject, recentAvgCalories, scheduleDelta]);
-
-  const goalMessageIsPositive = scheduleDelta !== null && scheduleDelta.deltaDays <= 3;
+    if (remainingWeight <= 0) return todayStr();
+    const dailyDeficit = estimatedTDEE - goal;
+    if (Math.abs(dailyDeficit) < 10) return null;
+    const daysToGoal = Math.ceil((remainingWeight * 7700) / Math.abs(dailyDeficit));
+    const d = new Date(todayStr() + "T00:00:00");
+    d.setDate(d.getDate() + daysToGoal);
+    return d.toISOString().slice(0, 10);
+  }, [canProject, currentEstimatedWeight, settings, estimatedTDEE, goal]);
 
   const weightDeltas = weeklyWeightDeltas(weights, settings);
   const totalLoss = weightDeltas.reduce((a, d) => a + d.delta, 0);
+
+  const activityLabel = settings?.activityLevel
+    ? ACTIVITY_LEVEL_LABELS[settings.activityLevel as ActivityLevel]
+    : null;
 
   return (
     <AppShell title="Progress">
 
       {/* ══ ROW 1: Calorie chart + stats │ Journey/Goal card ══ */}
-      <div className="grid grid-cols-1 gap-0 border border-[#c0cdd1] xl:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-1 gap-0 border border-[#D4CFC8] xl:grid-cols-[1fr_300px]">
 
         {/* Left: calorie chart */}
-        <div className="border-b border-[#c0cdd1] bg-white xl:border-b-0 xl:border-r">
-          <div className="flex flex-col gap-3 border-b border-[#c0cdd1] p-6 md:flex-row md:items-center md:justify-between md:p-8">
+        <div className="border-b border-[#D4CFC8] bg-white xl:border-b-0 xl:border-r">
+          <div className="flex flex-col gap-3 border-b border-[#D4CFC8] p-6 md:flex-row md:items-center md:justify-between md:p-8">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#424843]">Calorie Intake</p>
-              <h3 className="mt-0.5 text-2xl font-bold text-[#1a1c1a]">Goal vs. Actual</h3>
+              <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Calorie Intake</p>
+              <h3 className="mt-0.5 text-2xl font-bold text-[#1C1714]">Goal vs. Actual</h3>
             </div>
             <ToggleGroup
               type="single"
               value={period}
               onValueChange={(v) => v && setPeriod(v as Period)}
-              className="h-10 border border-[#c0cdd1] bg-[#f4f3ef] p-0.5"
+              className="h-10 border border-[#D4CFC8] bg-[#F2EDE7] p-0.5"
             >
               {(["day", "week", "month"] as const).map((p) => (
                 <ToggleGroupItem
                   key={p}
                   value={p}
                   data-testid={`toggle-period-${p}`}
-                  className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-[#424843] data-[state=on]:bg-white data-[state=on]:text-[#475C65]"
+                  className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-[#6B6560] data-[state=on]:bg-white data-[state=on]:text-[#7A7869]"
                 >
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </ToggleGroupItem>
@@ -283,42 +266,70 @@ export default function ProgressPage() {
           </div>
 
           <div className="p-6 md:p-8">
+            {/* Legend for calorie chart */}
+            {estimatedTDEE && (
+              <div className="mb-4 flex flex-wrap items-center gap-5 text-[10px] font-bold uppercase tracking-wider text-[#6B6560]">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#7A7869]" />
+                  Goal ({goal.toLocaleString()} kcal)
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#9B4A2E]" />
+                  Maintenance ({estimatedTDEE.toLocaleString()} kcal)
+                </span>
+              </div>
+            )}
             <div className="h-52 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="none" vertical={false} stroke="#e7e5df" strokeWidth={1} />
+                <BarChart data={chartData} margin={{ top: 4, right: 60, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="none" vertical={false} stroke="#EDE8E2" strokeWidth={1} />
                   <XAxis
                     dataKey={period === "month" ? "shortLabel" : "label"}
                     tickLine={false}
-                    axisLine={{ stroke: "#c0cdd1", strokeWidth: 1 }}
-                    tick={{ fill: "#424843", fontSize: 10, fontWeight: 700 }}
+                    axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
+                    tick={{ fill: "#6B6560", fontSize: 10, fontWeight: 700 }}
                     interval={period === "month" ? 6 : 0}
                   />
                   <YAxis
                     tickLine={false}
-                    axisLine={{ stroke: "#c0cdd1", strokeWidth: 1 }}
-                    tick={{ fill: "#424843", fontSize: 10 }}
+                    axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
+                    tick={{ fill: "#6B6560", fontSize: 10 }}
                     width={36}
                   />
                   <Tooltip
-                    contentStyle={{ border: "1px solid #1a1c1a", borderRadius: 0, fontSize: 12 }}
+                    contentStyle={{ border: "1px solid #D4CFC8", borderRadius: 0, fontSize: 12, background: "#fff" }}
                     formatter={(v: number) => [`${v} kcal`]}
                   />
+                  {/* Goal reference line */}
                   <ReferenceLine
                     y={goal}
-                    stroke="#475C65"
-                    strokeDasharray="4 4"
+                    stroke="#7A7869"
+                    strokeDasharray="5 4"
                     strokeWidth={1.5}
-                    label={{ value: "Goal", position: "right", fill: "#475C65", fontSize: 10, fontWeight: 700 }}
+                    label={{ value: "Goal", position: "right", fill: "#7A7869", fontSize: 10, fontWeight: 700 }}
                   />
-                  <Bar dataKey="calories" fill="#475C65" radius={0} />
+                  {/* Maintenance / TDEE reference line */}
+                  {estimatedTDEE && (
+                    <ReferenceLine
+                      y={estimatedTDEE}
+                      stroke="#9B4A2E"
+                      strokeDasharray="5 4"
+                      strokeWidth={1.5}
+                      label={{ value: "Maint.", position: "right", fill: "#9B4A2E", fontSize: 10, fontWeight: 700 }}
+                    />
+                  )}
+                  <Bar
+                    dataKey="calories"
+                    fill="#7A7869"
+                    radius={0}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
             {/* Stats grid */}
-            <div className="mt-5 border border-[#c0cdd1]">
-              <div className="grid grid-cols-3 divide-x divide-[#c0cdd1] border-b border-[#c0cdd1] md:grid-cols-5 md:divide-x">
+            <div className="mt-5 border border-[#D4CFC8]">
+              <div className="grid grid-cols-3 divide-x divide-[#D4CFC8] border-b border-[#D4CFC8] md:grid-cols-5">
                 {[
                   { label: "Total kcal", value: periodTotals.calories.toLocaleString(), testid: "text-period-total" },
                   { label: "Avg / day", value: avgPerDay.toLocaleString(), testid: "text-period-avg" },
@@ -326,19 +337,19 @@ export default function ProgressPage() {
                   { label: "Carbs", value: `${Math.round(periodTotals.carbs)}g`, testid: "text-period-carbs" },
                   { label: "Fats", value: `${Math.round(periodTotals.fats)}g`, testid: "text-period-fats" },
                 ].map((s, i) => (
-                  <div key={s.label} className={`bg-[#f4f3ef] px-3 py-2.5 text-center ${i >= 3 ? "hidden md:block" : ""}`}>
-                    <p className="text-[9px] font-bold uppercase tracking-[1.5px] text-[#424843]">{s.label}</p>
-                    <p className="mt-0.5 text-sm font-bold text-[#475C65]" data-testid={s.testid}>
+                  <div key={s.label} className={`bg-[#F5F1EB] px-3 py-2.5 text-center ${i >= 3 ? "hidden md:block" : ""}`}>
+                    <p className="text-[9px] font-bold uppercase tracking-[1.5px] text-[#6B6560]">{s.label}</p>
+                    <p className="mt-0.5 text-sm font-bold text-[#7A7869]" data-testid={s.testid}>
                       {s.value}
                     </p>
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-4 divide-x divide-[#c0cdd1]">
+              <div className="grid grid-cols-4 divide-x divide-[#D4CFC8]">
                 {(["breakfast", "lunch", "dinner", "snack"] as const).map((type) => (
                   <div key={type} className="px-2 py-2 text-center">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#424843]">{MEAL_LABELS[type]}</p>
-                    <p className="mt-0.5 text-xs font-bold text-[#1a1c1a]" data-testid={`text-period-${type}`}>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#6B6560]">{MEAL_LABELS[type]}</p>
+                    <p className="mt-0.5 text-xs font-bold text-[#1C1714]" data-testid={`text-period-${type}`}>
                       {(periodByType[type] || 0).toLocaleString()}
                     </p>
                   </div>
@@ -349,7 +360,7 @@ export default function ProgressPage() {
         </div>
 
         {/* Right: Journey + Goal summary */}
-        <div className="flex flex-col bg-[#475C65]">
+        <div className="flex flex-col bg-[#5C4A3A]">
           {/* Progress bar header */}
           <div className="border-b border-white/20 p-6 md:p-8">
             <div className="flex items-start justify-between">
@@ -361,14 +372,14 @@ export default function ProgressPage() {
               </div>
               {canProject && settings?.goalWeightKg && (
                 <div className="text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/60">Goal Weight</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/60">Goal</p>
                   <p className="mt-1 text-sm font-bold text-white">{settings.goalWeightKg} kg</p>
                 </div>
               )}
             </div>
             {canProject && currentEstimatedWeight !== null ? (
               <>
-                <div className="mt-4 h-2 w-full bg-white/20">
+                <div className="mt-4 h-1.5 w-full bg-white/20">
                   <div
                     className="h-full bg-white transition-all"
                     style={{ width: `${weightProgressPct}%` }}
@@ -380,7 +391,7 @@ export default function ProgressPage() {
                 </p>
               </>
             ) : (
-              <p className="mt-3 text-sm text-white/80">Keep logging to track your progress.</p>
+              <p className="mt-3 text-sm text-white/70">Keep logging to track your progress.</p>
             )}
           </div>
 
@@ -394,12 +405,10 @@ export default function ProgressPage() {
                     {currentEstimatedWeight.toFixed(1)}
                   </span>
                   <span className="mb-1 text-lg text-white/70">kg</span>
-                  {settings?.goalWeightKg && (
-                    <span className="mb-1 ml-1 text-sm text-white/60">
-                      / Goal: {settings.goalWeightKg} kg
-                    </span>
-                  )}
                 </div>
+                {activityLabel && (
+                  <p className="mt-0.5 text-[10px] text-white/50">{activityLabel}</p>
+                )}
                 {/* Inline weight log */}
                 <form
                   className="mt-3 flex gap-2"
@@ -423,13 +432,13 @@ export default function ProgressPage() {
                     data-testid="button-log-weight"
                     disabled={addWeight.isPending || !weightInput}
                     size="sm"
-                    className="h-9 shrink-0 bg-white font-bold text-[#475C65] hover:bg-white/90"
+                    className="h-9 shrink-0 bg-white font-bold text-[#5C4A3A] hover:bg-white/90"
                   >
                     {addWeight.isPending ? "…" : "Log"}
                   </Button>
                 </form>
-                <p className="mt-1.5 text-[10px] text-white/50">
-                  Logging updates your estimate &amp; projected goal date.
+                <p className="mt-1.5 text-[10px] text-white/40">
+                  Logging anchors the projection to your real weight.
                 </p>
               </>
             ) : (
@@ -451,33 +460,77 @@ export default function ProgressPage() {
             )}
           </div>
 
-          {/* Projected goal date */}
+          {/* Projected goal dates — two scenarios */}
           <div className="flex-1 p-6 md:p-8">
-            {projectedGoalDate ? (
+            {(projectedGoalDate || goalBasedProjectedDate) ? (
               <>
-                <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/60">Estimated Goal</p>
-                <p className="mt-1 text-2xl font-bold text-white" data-testid="text-goal-date">
-                  {relativeTime(projectedGoalDate)}
-                </p>
-                <p className="mt-0.5 text-sm text-white/70">{formatGoalDate(projectedGoalDate)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/60">Projected Goal Date</p>
+
+                {/* Two-column comparison */}
+                <div className="mt-3 grid grid-cols-2 gap-0 border border-white/20">
+                  {/* At your current pace (based on recent actual intake) */}
+                  <div className="border-r border-white/20 p-3">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                      <TrendingDown className="h-3 w-3" />
+                      Your pace
+                    </div>
+                    {projectedGoalDate ? (
+                      <>
+                        <p className="mt-1.5 text-base font-bold leading-tight text-white" data-testid="text-goal-date">
+                          {relativeTime(projectedGoalDate)}
+                        </p>
+                        <p className="mt-0.5 text-[10px] leading-tight text-white/60">
+                          {formatGoalDate(projectedGoalDate)}
+                        </p>
+                        {recentAvgCalories > 0 && (
+                          <p className="mt-2 text-[10px] text-white/40">
+                            avg {recentAvgCalories.toLocaleString()} kcal/day
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="mt-1.5 text-xs text-white/50">Log meals to see</p>
+                    )}
+                  </div>
+
+                  {/* At your calorie goal (updates when you change goal in settings) */}
+                  <div className="p-3">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                      <TrendingDown className="h-3 w-3" />
+                      At your goal
+                    </div>
+                    {goalBasedProjectedDate ? (
+                      <>
+                        <p className="mt-1.5 text-base font-bold leading-tight text-white" data-testid="text-goal-based-date">
+                          {relativeTime(goalBasedProjectedDate)}
+                        </p>
+                        <p className="mt-0.5 text-[10px] leading-tight text-white/60">
+                          {formatGoalDate(goalBasedProjectedDate)}
+                        </p>
+                        <p className="mt-2 text-[10px] text-white/40">
+                          eating {goal.toLocaleString()} kcal/day
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-1.5 text-xs text-white/50">Set up body metrics</p>
+                    )}
+                  </div>
+                </div>
 
                 {estimatedTDEE && (
-                  <div className="mt-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/60">Your TDEE</p>
-                    <p className="mt-0.5 text-sm font-bold text-white">{estimatedTDEE.toLocaleString()} kcal/day</p>
-                  </div>
-                )}
-
-                {goalMessage && (
-                  <div className="mt-4 border border-white/20 bg-white/10 px-3 py-2.5">
-                    <div className="flex items-start gap-2">
-                      {goalMessageIsPositive ? (
-                        <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
-                      ) : (
-                        <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
-                      )}
-                      <p className="text-xs text-white/90" data-testid="text-goal-message">
-                        {goalMessage}
+                  <div className="mt-4 border-t border-white/20 pt-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/50">Maintenance</p>
+                      <p className="text-sm font-bold text-white/80">{estimatedTDEE.toLocaleString()} kcal/day</p>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/50">Your goal</p>
+                      <p className="text-sm font-bold text-white/80">{goal.toLocaleString()} kcal/day</p>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/50">Daily deficit</p>
+                      <p className="text-sm font-bold text-white">
+                        {Math.abs(estimatedTDEE - goal).toLocaleString()} kcal
                       </p>
                     </div>
                   </div>
@@ -499,28 +552,28 @@ export default function ProgressPage() {
       </div>
 
       {/* ══ ROW 2: Two weight charts ══ */}
-      <div className="mt-6 grid grid-cols-1 gap-0 border border-[#c0cdd1] md:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-0 border border-[#D4CFC8] md:grid-cols-2">
 
         {/* Chart A: Future Projection */}
-        <div className="border-b border-[#c0cdd1] bg-white md:border-b-0 md:border-r">
-          <div className="border-b border-[#c0cdd1] p-5 md:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#424843]">Weight Chart</p>
-            <h3 className="mt-0.5 text-lg font-bold text-[#1a1c1a]">Future Projection</h3>
+        <div className="border-b border-[#D4CFC8] bg-white md:border-b-0 md:border-r">
+          <div className="border-b border-[#D4CFC8] p-5 md:p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Weight Chart</p>
+            <h3 className="mt-0.5 text-lg font-bold text-[#1C1714]">Future Projection</h3>
             {canProject && projectedGoalDate && (
-              <p className="mt-0.5 text-xs text-[#424843]">
+              <p className="mt-0.5 text-xs text-[#6B6560]">
                 Projected to reach {settings?.goalWeightKg} kg — {relativeTime(projectedGoalDate)}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-4 border-b border-[#c0cdd1] px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#424843] md:px-6">
+          <div className="flex items-center gap-4 border-b border-[#D4CFC8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B6560] md:px-6">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-5 bg-[#475C65]" /> Projected
+              <span className="inline-block h-2.5 w-5 bg-[#7A7869]" /> Projected
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#8aaab3]" /> Goal
+              <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#B5A89A]" /> Goal
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 bg-[#c97d6f]" /> Actual
+              <span className="inline-block h-2.5 w-2.5 bg-[#9B4A2E]" /> Actual
             </span>
           </div>
           <div className="p-5 md:p-6">
@@ -528,24 +581,24 @@ export default function ProgressPage() {
               <div className="h-52 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={projectionChartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="none" vertical={false} stroke="#e7e5df" />
+                    <CartesianGrid strokeDasharray="none" vertical={false} stroke="#EDE8E2" />
                     <XAxis
                       dataKey="label"
                       tickLine={false}
-                      axisLine={{ stroke: "#c0cdd1", strokeWidth: 1 }}
-                      tick={{ fill: "#424843", fontSize: 9, fontWeight: 700 }}
+                      axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
+                      tick={{ fill: "#6B6560", fontSize: 9, fontWeight: 700 }}
                       interval="preserveStartEnd"
                     />
                     <YAxis
                       tickLine={false}
-                      axisLine={{ stroke: "#c0cdd1", strokeWidth: 1 }}
-                      tick={{ fill: "#424843", fontSize: 9 }}
+                      axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
+                      tick={{ fill: "#6B6560", fontSize: 9 }}
                       width={36}
                       tickFormatter={(v: number) => `${v.toFixed(0)}`}
                       domain={["dataMin - 2", "dataMax + 2"]}
                     />
                     <Tooltip
-                      contentStyle={{ border: "1px solid #1a1c1a", borderRadius: 0, fontSize: 11 }}
+                      contentStyle={{ border: "1px solid #D4CFC8", borderRadius: 0, fontSize: 11, background: "#fff" }}
                       formatter={(value: number, name: string) => [
                         `${Number(value).toFixed(1)} kg`,
                         name === "estimated" ? "Projected" : name === "actual" ? "Actual" : "Goal",
@@ -554,7 +607,7 @@ export default function ProgressPage() {
                     <Line
                       type="monotone"
                       dataKey="estimated"
-                      stroke="#475C65"
+                      stroke="#7A7869"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 3 }}
@@ -562,7 +615,7 @@ export default function ProgressPage() {
                     <Line
                       type="monotone"
                       dataKey="goal"
-                      stroke="#8aaab3"
+                      stroke="#B5A89A"
                       strokeWidth={1.5}
                       strokeDasharray="5 5"
                       dot={false}
@@ -571,28 +624,28 @@ export default function ProgressPage() {
                     <Line
                       type="monotone"
                       dataKey="actual"
-                      stroke="#c97d6f"
+                      stroke="#9B4A2E"
                       strokeWidth={0}
-                      dot={{ r: 5, fill: "#c97d6f", strokeWidth: 1.5, stroke: "#fff" }}
-                      activeDot={{ r: 6, fill: "#c97d6f" }}
+                      dot={{ r: 5, fill: "#9B4A2E", strokeWidth: 1.5, stroke: "#fff" }}
+                      activeDot={{ r: 6, fill: "#9B4A2E" }}
                       connectNulls={false}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             ) : !canProject ? (
-              <div className="flex h-40 items-center justify-center border border-dashed border-[#c0cdd1] bg-[#f4f3ef]">
+              <div className="flex h-40 items-center justify-center border border-dashed border-[#D4CFC8] bg-[#F5F1EB]">
                 <div className="text-center">
-                  <p className="text-xs font-bold text-[#1a1c1a]">Set up body metrics to see projection</p>
+                  <p className="text-xs font-bold text-[#1C1714]">Set up body metrics to see projection</p>
                   <Link href="/settings">
-                    <Button variant="outline" size="sm" className="mt-2 border-[#c0cdd1] text-[#475C65]">
+                    <Button variant="outline" size="sm" className="mt-2 border-[#D4CFC8] text-[#7A7869]">
                       <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Open Settings
                     </Button>
                   </Link>
                 </div>
               </div>
             ) : (
-              <div className="flex h-40 items-center justify-center text-xs text-[#424843]">
+              <div className="flex h-40 items-center justify-center text-xs text-[#6B6560]">
                 Not enough data to project yet.
               </div>
             )}
@@ -601,18 +654,18 @@ export default function ProgressPage() {
 
         {/* Chart B: Actual Progress */}
         <div className="bg-white">
-          <div className="border-b border-[#c0cdd1] p-5 md:p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#424843]">Weight Chart</p>
-            <h3 className="mt-0.5 text-lg font-bold text-[#1a1c1a]">Actual Progress</h3>
-            <p className="mt-0.5 text-xs text-[#424843]">
+          <div className="border-b border-[#D4CFC8] p-5 md:p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Weight Chart</p>
+            <h3 className="mt-0.5 text-lg font-bold text-[#1C1714]">Actual Progress</h3>
+            <p className="mt-0.5 text-xs text-[#6B6560]">
               {weights.length > 0
                 ? `${weights.length} weight log${weights.length !== 1 ? "s" : ""} recorded`
                 : "No weight entries yet"}
             </p>
           </div>
-          <div className="border-b border-[#c0cdd1] px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#424843] md:px-6">
+          <div className="border-b border-[#D4CFC8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B6560] md:px-6">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-5 bg-[#c97d6f]" /> Logged Weight
+              <span className="inline-block h-2.5 w-5 bg-[#9B4A2E]" /> Logged Weight
             </span>
           </div>
           <div className="p-5 md:p-6">
@@ -620,52 +673,52 @@ export default function ProgressPage() {
               <div className="h-52 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={actualWeightChartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="none" vertical={false} stroke="#e7e5df" />
+                    <CartesianGrid strokeDasharray="none" vertical={false} stroke="#EDE8E2" />
                     <XAxis
                       dataKey="label"
                       tickLine={false}
-                      axisLine={{ stroke: "#c0cdd1", strokeWidth: 1 }}
-                      tick={{ fill: "#424843", fontSize: 9, fontWeight: 700 }}
+                      axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
+                      tick={{ fill: "#6B6560", fontSize: 9, fontWeight: 700 }}
                       interval="preserveStartEnd"
                     />
                     <YAxis
                       tickLine={false}
-                      axisLine={{ stroke: "#c0cdd1", strokeWidth: 1 }}
-                      tick={{ fill: "#424843", fontSize: 9 }}
+                      axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
+                      tick={{ fill: "#6B6560", fontSize: 9 }}
                       width={36}
                       tickFormatter={(v: number) => `${v.toFixed(0)}`}
                       domain={["dataMin - 1", "dataMax + 1"]}
                     />
                     <Tooltip
-                      contentStyle={{ border: "1px solid #1a1c1a", borderRadius: 0, fontSize: 11 }}
+                      contentStyle={{ border: "1px solid #D4CFC8", borderRadius: 0, fontSize: 11, background: "#fff" }}
                       formatter={(v: number) => [`${v.toFixed(1)} kg`, "Weight"]}
                     />
                     {settings?.goalWeightKg && (
                       <ReferenceLine
                         y={settings.goalWeightKg}
-                        stroke="#8aaab3"
+                        stroke="#B5A89A"
                         strokeDasharray="4 4"
                         strokeWidth={1.5}
-                        label={{ value: "Goal", position: "right", fill: "#475C65", fontSize: 9, fontWeight: 700 }}
+                        label={{ value: "Goal", position: "right", fill: "#7A7869", fontSize: 9, fontWeight: 700 }}
                       />
                     )}
                     <Line
                       type="monotone"
                       dataKey="weight"
-                      stroke="#c97d6f"
+                      stroke="#9B4A2E"
                       strokeWidth={2}
-                      dot={{ r: 4, fill: "#c97d6f", strokeWidth: 1.5, stroke: "#fff" }}
-                      activeDot={{ r: 5, fill: "#c97d6f" }}
+                      dot={{ r: 4, fill: "#9B4A2E", strokeWidth: 1.5, stroke: "#fff" }}
+                      activeDot={{ r: 5, fill: "#9B4A2E" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex h-52 flex-col items-center justify-center border border-dashed border-[#c0cdd1] bg-[#f4f3ef]">
-                <p className="text-xs font-bold text-[#1a1c1a]">
+              <div className="flex h-52 flex-col items-center justify-center border border-dashed border-[#D4CFC8] bg-[#F5F1EB]">
+                <p className="text-xs font-bold text-[#1C1714]">
                   {actualWeightChartData.length === 1 ? "Log one more weight to see a trend" : "No weight logs yet"}
                 </p>
-                <p className="mt-1 text-[10px] text-[#424843]">Use the field above to log your weight</p>
+                <p className="mt-1 text-[10px] text-[#6B6560]">Use the field above to log your weight</p>
               </div>
             )}
           </div>
@@ -673,34 +726,34 @@ export default function ProgressPage() {
       </div>
 
       {/* ══ ROW 3: Weekly breakdown ══ */}
-      <div className="mt-6 border border-[#c0cdd1] bg-white">
-        <div className="border-b border-[#c0cdd1] p-6 md:p-8">
-          <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#424843]">Weight History</p>
+      <div className="mt-6 border border-[#D4CFC8] bg-white">
+        <div className="border-b border-[#D4CFC8] p-6 md:p-8">
+          <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Weight History</p>
           <div className="mt-1 flex items-end gap-2">
-            <span className="text-4xl font-bold text-[#475C65]">
+            <span className={`text-4xl font-bold ${totalLoss <= 0 ? "text-[#7A7869]" : "text-[#9B4A2E]"}`}>
               {totalLoss > 0 ? "+" : ""}
               {totalLoss.toFixed(1)}
             </span>
-            <span className="mb-1 text-lg text-[#424843]">kg total</span>
+            <span className="mb-1 text-lg text-[#6B6560]">kg total</span>
           </div>
         </div>
         <div className="p-6 md:p-8">
           {weightDeltas.length === 0 ? (
-            <p className="text-sm text-[#424843]">Log your weight above to start tracking weekly changes.</p>
+            <p className="text-sm text-[#6B6560]">Log your weight above to start tracking weekly changes.</p>
           ) : (
             weightDeltas.map((item, i) => (
               <div key={item.week}>
                 <div className="flex items-center justify-between py-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#424843]">{item.week}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">{item.week}</span>
                   <span
-                    className={`text-sm font-bold ${item.delta <= 0 ? "text-[#475C65]" : "text-[#c97d6f]"}`}
+                    className={`text-sm font-bold ${item.delta <= 0 ? "text-[#7A7869]" : "text-[#9B4A2E]"}`}
                     data-testid={`text-week-${i}`}
                   >
                     {item.delta > 0 ? "+" : ""}
                     {item.delta.toFixed(1)} kg
                   </span>
                 </div>
-                {i < weightDeltas.length - 1 && <Separator className="bg-[#c0cdd133]" />}
+                {i < weightDeltas.length - 1 && <Separator className="bg-[#D4CFC833]" />}
               </div>
             ))
           )}

@@ -100,8 +100,7 @@ export default function ProgressPage() {
 
   const periodMeals = meals.filter((m) => dates.includes(m.date));
   const periodTotals = sumMacros(periodMeals);
-  const daysWithData = dates.filter((d) => periodMeals.some((m) => m.date === d)).length;
-  const avgPerDay = daysWithData > 0 ? Math.round(periodTotals.calories / daysWithData) : 0;
+  const avgPerDay = Math.round(periodTotals.calories / n);
   const periodByType = caloriesByMealType(periodMeals);
 
   // ─── Weight projection ───────────────────────────────────────────────────────
@@ -175,12 +174,9 @@ export default function ProgressPage() {
   const estimatedTDEE = useMemo(() => {
     if (!settings?.heightCm || !settings?.ageYears || !settings?.sexAtBirth || !settings?.startingWeightKg)
       return null;
-    const bmr = computeBMR(
-      settings.startingWeightKg,
-      settings.heightCm,
-      settings.ageYears,
-      settings.sexAtBirth as "male" | "female",
-    );
+    const sex = settings.sexAtBirth;
+    if (sex !== "male" && sex !== "female") return null;
+    const bmr = computeBMR(settings.startingWeightKg, settings.heightCm, settings.ageYears, sex);
     return Math.round(computeTDEE(bmr));
   }, [settings]);
 

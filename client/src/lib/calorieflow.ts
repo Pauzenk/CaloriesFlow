@@ -120,7 +120,8 @@ export function weightProjectionSeries(
     return { points: [], projectedGoalDate: null };
   }
 
-  const bmr = computeBMR(startingWeightKg, heightCm, ageYears, sexAtBirth as "male" | "female");
+  if (sexAtBirth !== "male" && sexAtBirth !== "female") return { points: [], projectedGoalDate: null };
+  const bmr = computeBMR(startingWeightKg, heightCm, ageYears, sexAtBirth);
   const tdee = computeTDEE(bmr);
 
   // Build per-day calorie map from actual meals
@@ -129,13 +130,16 @@ export function weightProjectionSeries(
     calByDate.set(meal.date, (calByDate.get(meal.date) || 0) + meal.calories);
   }
 
-  // Average calorie intake over last 7 logged days (for future projection)
+  // Average calorie intake over the most recent 7 logged dates globally
   const today = todayStr();
-  const last7 = lastNDates(7);
-  const last7Logged = last7.filter((d) => calByDate.has(d));
+  const recent7LoggedDates = Array.from(calByDate.keys())
+    .filter((d) => d <= today)
+    .sort()
+    .reverse()
+    .slice(0, 7);
   const avgActual =
-    last7Logged.length > 0
-      ? last7Logged.reduce((sum, d) => sum + (calByDate.get(d) ?? 0), 0) / last7Logged.length
+    recent7LoggedDates.length > 0
+      ? recent7LoggedDates.reduce((sum, d) => sum + (calByDate.get(d) ?? 0), 0) / recent7LoggedDates.length
       : dailyCalorieGoal;
   const projectedDailyDeficit = tdee - avgActual;
 

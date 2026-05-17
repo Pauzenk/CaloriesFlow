@@ -223,7 +223,7 @@ export default function LogMeal() {
               {isAiEstimate && (
                 <div
                   data-testid="banner-ai-estimate"
-                  className="mb-4 flex items-start gap-2 border border-[#7A7869]/30 bg-[#F0EBE3] px-4 py-3 text-sm text-[#7A7869]"
+                  className="mb-4 flex items-start gap-2 border border-[#AD3419]/30 bg-[#F0EBE3] px-4 py-3 text-sm text-[#AD3419]"
                 >
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
@@ -313,7 +313,7 @@ export default function LogMeal() {
                       className="grid grid-cols-1 gap-4 border border-[#D4CFC8] bg-[#F5F1EB] p-4 md:grid-cols-2"
                     >
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#7A7869]">
+                        <FormLabel className="text-xs uppercase tracking-wider text-[#AD3419]">
                           Serving size
                         </FormLabel>
                         <Select value={servingIdx} onValueChange={onServingChange}>
@@ -331,7 +331,7 @@ export default function LogMeal() {
                         </Select>
                       </div>
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#7A7869]">
+                        <FormLabel className="text-xs uppercase tracking-wider text-[#AD3419]">
                           Amount (g)
                         </FormLabel>
                         <Input
@@ -444,7 +444,7 @@ export default function LogMeal() {
                   <Button
                     type="submit"
                     disabled={isPending}
-                    className="h-11 w-full bg-[#7A7869] text-sm font-bold text-white hover:bg-[#5C5B52] md:w-auto md:px-10"
+                    className="h-11 w-full bg-[#AD3419] text-sm font-bold text-white hover:bg-[#8A2913] md:w-auto md:px-10"
                     data-testid="button-save-meal"
                   >
                     {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
@@ -472,7 +472,7 @@ export default function LogMeal() {
                   className="flex items-center justify-between border border-[#D4CFC8] bg-[#F5F1EB] px-4 py-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#7A7869]">{m.mealType}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#AD3419]">{m.mealType}</p>
                     <p className="truncate text-sm font-medium text-[#1C1714]">{m.name}</p>
                     <p className="text-xs text-[#6B6560]">
                       {m.calories} kcal · P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
@@ -484,7 +484,7 @@ export default function LogMeal() {
                       size="icon"
                       data-testid={`button-edit-meal-${m.id}`}
                       onClick={() => startEdit(m)}
-                      className="h-9 w-9 text-[#6B6560] hover:text-[#7A7869]"
+                      className="h-9 w-9 text-[#6B6560] hover:text-[#AD3419]"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -493,7 +493,7 @@ export default function LogMeal() {
                       size="icon"
                       data-testid={`button-delete-meal-${m.id}`}
                       onClick={() => del.mutate(m.id)}
-                      className="h-9 w-9 text-[#6B6560] hover:text-[#9B4A2E]"
+                      className="h-9 w-9 text-[#6B6560] hover:text-[#AD3419]"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

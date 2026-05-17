@@ -257,7 +257,7 @@ export default function ProgressPage() {
                   key={p}
                   value={p}
                   data-testid={`toggle-period-${p}`}
-                  className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-[#6B6560] data-[state=on]:bg-white data-[state=on]:text-[#7A7869]"
+                  className="h-9 px-4 text-xs font-bold uppercase tracking-wider text-[#6B6560] data-[state=on]:bg-white data-[state=on]:text-[#AD3419]"
                 >
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </ToggleGroupItem>
@@ -270,11 +270,11 @@ export default function ProgressPage() {
             {estimatedTDEE && (
               <div className="mb-4 flex flex-wrap items-center gap-5 text-[10px] font-bold uppercase tracking-wider text-[#6B6560]">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#7A7869]" />
+                  <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#AD3419]" />
                   Goal ({goal.toLocaleString()} kcal)
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#9B4A2E]" />
+                  <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#AD3419]/50" />
                   Maintenance ({estimatedTDEE.toLocaleString()} kcal)
                 </span>
               </div>
@@ -303,24 +303,24 @@ export default function ProgressPage() {
                   {/* Goal reference line */}
                   <ReferenceLine
                     y={goal}
-                    stroke="#7A7869"
+                    stroke="#AD3419"
                     strokeDasharray="5 4"
                     strokeWidth={1.5}
-                    label={{ value: "Goal", position: "right", fill: "#7A7869", fontSize: 10, fontWeight: 700 }}
+                    label={{ value: "Goal", position: "right", fill: "#AD3419", fontSize: 10, fontWeight: 700 }}
                   />
                   {/* Maintenance / TDEE reference line */}
                   {estimatedTDEE && (
                     <ReferenceLine
                       y={estimatedTDEE}
-                      stroke="#9B4A2E"
+                      stroke="#AD3419"
                       strokeDasharray="5 4"
                       strokeWidth={1.5}
-                      label={{ value: "Maint.", position: "right", fill: "#9B4A2E", fontSize: 10, fontWeight: 700 }}
+                      label={{ value: "Maint.", position: "right", fill: "#AD3419", fontSize: 10, fontWeight: 700 }}
                     />
                   )}
                   <Bar
                     dataKey="calories"
-                    fill="#7A7869"
+                    fill="#AD3419"
                     radius={0}
                   />
                 </BarChart>
@@ -339,7 +339,7 @@ export default function ProgressPage() {
                 ].map((s, i) => (
                   <div key={s.label} className={`bg-[#F5F1EB] px-3 py-2.5 text-center ${i >= 3 ? "hidden md:block" : ""}`}>
                     <p className="text-[9px] font-bold uppercase tracking-[1.5px] text-[#6B6560]">{s.label}</p>
-                    <p className="mt-0.5 text-sm font-bold text-[#7A7869]" data-testid={s.testid}>
+                    <p className="mt-0.5 text-sm font-bold text-[#AD3419]" data-testid={s.testid}>
                       {s.value}
                     </p>
                   </div>
@@ -567,13 +567,13 @@ export default function ProgressPage() {
           </div>
           <div className="flex items-center gap-4 border-b border-[#D4CFC8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B6560] md:px-6">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-5 bg-[#7A7869]" /> Projected
+              <span className="inline-block h-2.5 w-5 bg-[#AD3419]" /> Projected
             </span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#B5A89A]" /> Goal
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 bg-[#9B4A2E]" /> Actual
+              <span className="inline-block h-2.5 w-2.5 bg-[#AD3419]/60" /> Actual
             </span>
           </div>
           <div className="p-5 md:p-6">
@@ -607,7 +607,7 @@ export default function ProgressPage() {
                     <Line
                       type="monotone"
                       dataKey="estimated"
-                      stroke="#7A7869"
+                      stroke="#AD3419"
                       strokeWidth={2}
                       dot={false}
                       activeDot={{ r: 3 }}
@@ -624,10 +624,10 @@ export default function ProgressPage() {
                     <Line
                       type="monotone"
                       dataKey="actual"
-                      stroke="#9B4A2E"
+                      stroke="#AD3419"
                       strokeWidth={0}
-                      dot={{ r: 5, fill: "#9B4A2E", strokeWidth: 1.5, stroke: "#fff" }}
-                      activeDot={{ r: 6, fill: "#9B4A2E" }}
+                      dot={{ r: 5, fill: "#AD3419", strokeWidth: 1.5, stroke: "#fff" }}
+                      activeDot={{ r: 6, fill: "#AD3419" }}
                       connectNulls={false}
                     />
                   </ComposedChart>
@@ -638,7 +638,7 @@ export default function ProgressPage() {
                 <div className="text-center">
                   <p className="text-xs font-bold text-[#1C1714]">Set up body metrics to see projection</p>
                   <Link href="/settings">
-                    <Button variant="outline" size="sm" className="mt-2 border-[#D4CFC8] text-[#7A7869]">
+                    <Button variant="outline" size="sm" className="mt-2 border-[#D4CFC8] text-[#AD3419]">
                       <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Open Settings
                     </Button>
                   </Link>
@@ -665,7 +665,7 @@ export default function ProgressPage() {
           </div>
           <div className="border-b border-[#D4CFC8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B6560] md:px-6">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-5 bg-[#9B4A2E]" /> Logged Weight
+              <span className="inline-block h-2.5 w-5 bg-[#AD3419]" /> Logged Weight
             </span>
           </div>
           <div className="p-5 md:p-6">
@@ -699,16 +699,16 @@ export default function ProgressPage() {
                         stroke="#B5A89A"
                         strokeDasharray="4 4"
                         strokeWidth={1.5}
-                        label={{ value: "Goal", position: "right", fill: "#7A7869", fontSize: 9, fontWeight: 700 }}
+                        label={{ value: "Goal", position: "right", fill: "#AD3419", fontSize: 9, fontWeight: 700 }}
                       />
                     )}
                     <Line
                       type="monotone"
                       dataKey="weight"
-                      stroke="#9B4A2E"
+                      stroke="#AD3419"
                       strokeWidth={2}
-                      dot={{ r: 4, fill: "#9B4A2E", strokeWidth: 1.5, stroke: "#fff" }}
-                      activeDot={{ r: 5, fill: "#9B4A2E" }}
+                      dot={{ r: 4, fill: "#AD3419", strokeWidth: 1.5, stroke: "#fff" }}
+                      activeDot={{ r: 5, fill: "#AD3419" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -730,7 +730,7 @@ export default function ProgressPage() {
         <div className="border-b border-[#D4CFC8] p-6 md:p-8">
           <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Weight History</p>
           <div className="mt-1 flex items-end gap-2">
-            <span className={`text-4xl font-bold ${totalLoss <= 0 ? "text-[#7A7869]" : "text-[#9B4A2E]"}`}>
+            <span className={`text-4xl font-bold text-[#AD3419]`}>
               {totalLoss > 0 ? "+" : ""}
               {totalLoss.toFixed(1)}
             </span>
@@ -746,7 +746,7 @@ export default function ProgressPage() {
                 <div className="flex items-center justify-between py-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-[#6B6560]">{item.week}</span>
                   <span
-                    className={`text-sm font-bold ${item.delta <= 0 ? "text-[#7A7869]" : "text-[#9B4A2E]"}`}
+                    className="text-sm font-bold text-[#AD3419]"
                     data-testid={`text-week-${i}`}
                   >
                     {item.delta > 0 ? "+" : ""}

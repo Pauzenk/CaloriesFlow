@@ -31,7 +31,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <aside className="hidden w-64 shrink-0 flex-col border-r border-[#D4CFC8] bg-[#ECE8E2] md:flex">
           <div className="flex h-full flex-col px-4 py-6">
             <header className="ml-2 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#7A7869] text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#AD3419] text-white">
                 <Leaf className="h-4 w-4" />
               </div>
               <div className="flex flex-col">
@@ -52,7 +52,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                           data-testid={`link-nav-${item.label.toLowerCase()}`}
                           className={`flex h-10 w-full items-center gap-3 px-3 text-left transition-colors ${
                             active
-                              ? "border-l-2 border-[#7A7869] bg-[#DDD8D0] text-[#1C1714]"
+                              ? "border-l-2 border-[#AD3419] bg-[#DDD8D0] text-[#1C1714]"
                               : "border-l-2 border-transparent text-[#6B6560] hover:bg-[#E3DED7] hover:text-[#1C1714]"
                           }`}
                         >
@@ -69,7 +69,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               <Button
                 data-testid="button-log-meal"
                 onClick={() => navigate("/log")}
-                className="h-12 w-full gap-2 bg-[#7A7869] text-sm font-bold text-white hover:bg-[#5C5B52]"
+                className="h-12 w-full gap-2 bg-[#AD3419] text-sm font-bold text-white hover:bg-[#8A2913]"
               >
                 <Plus className="h-4 w-4" /> Log Meal
               </Button>
@@ -77,7 +77,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <div className="mt-auto">
               <div className="flex items-center gap-3 border border-[#D4CFC8] px-3 py-2.5">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-[#7A7869] text-xs text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-[#AD3419] text-xs text-white">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <p className="truncate text-sm font-medium text-[#1C1714]" data-testid="text-user-name">
@@ -103,7 +103,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
           <header className="flex items-center justify-between border-b border-[#D4CFC8] bg-[#F2EDE7] px-4 py-4 md:px-10 md:py-5">
             <div className="flex items-center gap-2 md:hidden">
-              <div className="flex h-8 w-8 items-center justify-center bg-[#7A7869] text-white">
+              <div className="flex h-8 w-8 items-center justify-center bg-[#AD3419] text-white">
                 <Leaf className="h-4 w-4" />
               </div>
               <span className="text-base font-bold text-[#1C1714]">CalorieFlow</span>
@@ -127,7 +127,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                 type="button"
                 data-testid={`link-mobile-nav-${item.label.toLowerCase()}`}
                 className={`flex flex-col items-center gap-0.5 px-4 py-1.5 ${
-                  active ? "text-[#7A7869]" : "text-[#6B6560]"
+                  active ? "text-[#AD3419]" : "text-[#6B6560]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -141,7 +141,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             type="button"
             data-testid="link-mobile-nav-log"
             className={`flex flex-col items-center gap-0.5 px-4 py-1.5 ${
-              location === "/log" ? "text-[#7A7869]" : "text-[#6B6560]"
+              location === "/log" ? "text-[#AD3419]" : "text-[#6B6560]"
             }`}
           >
             <Plus className="h-5 w-5" />

@@ -96,7 +96,7 @@ export default function AuthPage() {
         <div className="border border-[#D4CFC8] bg-white p-6 md:p-10">
           {/* Mobile logo */}
           <div className="mb-6 flex items-center gap-3 md:hidden">
-            <div className="flex h-9 w-9 items-center justify-center bg-[#7A7869] text-white">
+            <div className="flex h-9 w-9 items-center justify-center bg-[#AD3419] text-white">
               <Leaf className="h-4 w-4" />
             </div>
             <span className="text-xl font-bold text-[#1C1714]">CalorieFlow</span>
@@ -139,7 +139,7 @@ export default function AuthPage() {
                             type="email"
                             autoComplete="email"
                             data-testid="input-login-email"
-                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#AD3419]"
                             {...field}
                           />
                         </FormControl>
@@ -160,7 +160,7 @@ export default function AuthPage() {
                             type="password"
                             autoComplete="current-password"
                             data-testid="input-login-password"
-                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#AD3419]"
                             {...field}
                           />
                         </FormControl>
@@ -171,7 +171,7 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     disabled={login.isPending}
-                    className="h-11 w-full bg-[#7A7869] text-sm font-bold text-white hover:bg-[#5C5B52]"
+                    className="h-11 w-full bg-[#AD3419] text-sm font-bold text-white hover:bg-[#8A2913]"
                     data-testid="button-submit-login"
                   >
                     {login.isPending ? "Logging in…" : "Log in"}
@@ -195,7 +195,7 @@ export default function AuthPage() {
                           <Input
                             autoComplete="name"
                             data-testid="input-register-name"
-                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#AD3419]"
                             {...field}
                           />
                         </FormControl>
@@ -216,7 +216,7 @@ export default function AuthPage() {
                             type="email"
                             autoComplete="email"
                             data-testid="input-register-email"
-                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#AD3419]"
                             {...field}
                           />
                         </FormControl>
@@ -237,7 +237,7 @@ export default function AuthPage() {
                             type="password"
                             autoComplete="new-password"
                             data-testid="input-register-password"
-                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#AD3419]"
                             {...field}
                           />
                         </FormControl>
@@ -248,7 +248,7 @@ export default function AuthPage() {
                   <Button
                     type="submit"
                     disabled={register.isPending}
-                    className="h-11 w-full bg-[#7A7869] text-sm font-bold text-white hover:bg-[#5C5B52]"
+                    className="h-11 w-full bg-[#AD3419] text-sm font-bold text-white hover:bg-[#8A2913]"
                     data-testid="button-submit-register"
                   >
                     {register.isPending ? "Creating account…" : "Create account"}

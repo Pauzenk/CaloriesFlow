@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,8 @@ function formatGoalDate(dateStr: string): string {
 export default function ProgressPage() {
   const [period, setPeriod] = useState<Period>("week");
   const [weightInput, setWeightInput] = useState("");
+  const [selectedWeekKey, setSelectedWeekKey] = useState<number | null>(null);
+  const projectionContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
@@ -181,9 +183,13 @@ export default function ProgressPage() {
       }
     });
 
-    return Array.from(weekMap.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([weekIdx, { projected, actuals }]) => ({
+    const sorted = Array.from(weekMap.entries()).sort(([a], [b]) => a - b);
+    return sorted.map(([weekIdx, { projected, actuals }], i) => {
+      const prevProjected = i > 0 ? sorted[i - 1][1].projected : null;
+      const deficitKcal =
+        prevProjected !== null ? Math.round((prevProjected - projected) * 7700) : null;
+      return {
+        weekIdx,
         week: weekIdx === 0 ? "Now" : `Wk ${weekIdx}`,
         projected: +projected.toFixed(1),
         goal: settings?.goalWeightKg ?? undefined,
@@ -191,7 +197,9 @@ export default function ProgressPage() {
           actuals.length > 0
             ? +(actuals.reduce((s, v) => s + v, 0) / actuals.length).toFixed(1)
             : undefined,
-      }));
+        deficitKcal,
+      };
+    });
   }, [projectionPoints, actualWeightMap, settings, canProject]);
 
   const activityLabel = settings?.activityLevel
@@ -199,6 +207,17 @@ export default function ProgressPage() {
     : null;
 
   const intakeChartMax = Math.max(1950, ...chartData.map((d) => d.calories ?? 0));
+
+  useEffect(() => {
+    if (selectedWeekKey === null) return;
+    const handler = (e: PointerEvent) => {
+      if (projectionContainerRef.current && !projectionContainerRef.current.contains(e.target as Node)) {
+        setSelectedWeekKey(null);
+      }
+    };
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
+  }, [selectedWeekKey]);
 
   return (
     <AppShell title="Progress">
@@ -277,7 +296,7 @@ export default function ProgressPage() {
           <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_280px]">
 
             {/* Left: projection chart */}
-            <div>
+            <div ref={projectionContainerRef}>
               {canProject && projectionChartData.length > 0 ? (
                 <>
                   <div className="flex flex-wrap gap-5 mb-3 text-[10px] uppercase tracking-widest opacity-50">
@@ -296,10 +315,29 @@ export default function ProgressPage() {
                       </span>
                     )}
                   </div>
-                  <div className="h-52 w-full">
+                  <div className="h-52 w-full cursor-pointer">
                     <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={projectionChartData} margin={{ top: 4, right: 24, left: 0, bottom: 4 }}>
-                        <CartesianGrid strokeDasharray="none" vertical={false} stroke="#1C1714" strokeOpacity={0.06} />
+                      <ComposedChart
+                        data={projectionChartData}
+                        margin={{ top: 4, right: 24, left: 0, bottom: 4 }}
+                        onClick={(chartState) => {
+                          if (!chartState || chartState.activeTooltipIndex === undefined || chartState.activeTooltipIndex === null) {
+                            setSelectedWeekKey(null);
+                            return;
+                          }
+                          const arrIdx = chartState.activeTooltipIndex as number;
+                          const point = projectionChartData[arrIdx];
+                          if (!point) { setSelectedWeekKey(null); return; }
+                          const key = point.weekIdx;
+                          setSelectedWeekKey((prev) => (prev === key ? null : key));
+                        }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="none"
+                          vertical={false}
+                          stroke="#1C1714"
+                          strokeOpacity={0.06}
+                        />
                         <XAxis
                           dataKey="week"
                           tickLine={false}
@@ -321,14 +359,122 @@ export default function ProgressPage() {
                             return [`${v?.toFixed(1)} kg`, labels[name] ?? name];
                           }}
                         />
-                        <Line type="monotone" dataKey="projected" stroke="#9e4515" strokeDasharray="5 4" strokeWidth={1.5} dot={false} connectNulls />
-                        <Line type="monotone" dataKey="goal" stroke="#1C1714" strokeDasharray="4 4" strokeOpacity={0.35} strokeWidth={1.5} dot={false} connectNulls />
+                        <Line
+                          type="monotone"
+                          dataKey="projected"
+                          stroke="#9e4515"
+                          strokeDasharray="5 4"
+                          strokeWidth={1.5}
+                          dot={(props: { cx?: number; cy?: number; index?: number }) => {
+                            const isSelected =
+                              props.index !== undefined &&
+                              projectionChartData[props.index]?.weekIdx === selectedWeekKey;
+                            return (
+                              <circle
+                                key={`proj-dot-${props.index}`}
+                                cx={props.cx}
+                                cy={props.cy}
+                                r={isSelected ? 5 : 2.5}
+                                fill="#9e4515"
+                                stroke={isSelected ? "#F2EDE7" : "none"}
+                                strokeWidth={isSelected ? 2 : 0}
+                              />
+                            );
+                          }}
+                          connectNulls
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="goal"
+                          stroke="#1C1714"
+                          strokeDasharray="4 4"
+                          strokeOpacity={0.35}
+                          strokeWidth={1.5}
+                          dot={false}
+                          connectNulls
+                        />
                         {weights.length > 0 && (
-                          <Line type="monotone" dataKey="actual" stroke="#1C1714" strokeWidth={2} dot={{ fill: "#1C1714", r: 3, strokeWidth: 0 }} connectNulls />
+                          <Line
+                            type="monotone"
+                            dataKey="actual"
+                            stroke="#1C1714"
+                            strokeWidth={2}
+                            dot={(props: { cx?: number; cy?: number; index?: number }) => {
+                              const isSelected =
+                                props.index !== undefined &&
+                                projectionChartData[props.index]?.weekIdx === selectedWeekKey;
+                              return (
+                                <circle
+                                  key={`actual-dot-${props.index}`}
+                                  cx={props.cx}
+                                  cy={props.cy}
+                                  r={isSelected ? 5 : 3}
+                                  fill="#1C1714"
+                                  stroke={isSelected ? "#F2EDE7" : "none"}
+                                  strokeWidth={isSelected ? 2 : 0}
+                                />
+                              );
+                            }}
+                            connectNulls
+                          />
                         )}
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
+
+                  {/* Detail panel — shown when a week is selected */}
+                  {selectedWeekKey !== null && (() => {
+                    const point = projectionChartData.find((p) => p.weekIdx === selectedWeekKey);
+                    if (!point) return null;
+                    return (
+                      <div
+                        data-testid="panel-week-detail"
+                        className="mt-3 border border-[#1C1714] p-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 text-[#1C1714]"
+                      >
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Week</p>
+                          <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">
+                            {point.week}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Projected</p>
+                          <p className="text-base tabular-nums tracking-tight" data-testid="detail-projected">
+                            {point.projected.toFixed(1)} kg
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Actual Avg</p>
+                          <p className="text-base tabular-nums tracking-tight opacity-60" data-testid="detail-actual">
+                            {point.actual !== undefined ? `${point.actual.toFixed(1)} kg` : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Est. Deficit</p>
+                          <p
+                            className={`text-base tabular-nums tracking-tight ${
+                              point.deficitKcal !== null && point.deficitKcal > 0
+                                ? "opacity-100"
+                                : "opacity-60"
+                            }`}
+                            data-testid="detail-deficit"
+                          >
+                            {point.deficitKcal !== null
+                              ? `${point.deficitKcal > 0 ? "−" : "+"}${Math.abs(point.deficitKcal).toLocaleString()} kcal`
+                              : "—"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid="button-close-week-detail"
+                          onClick={() => setSelectedWeekKey(null)}
+                          className="col-span-2 sm:col-span-4 text-[9px] uppercase tracking-widest opacity-30 hover:opacity-60 transition-opacity text-left mt-1"
+                        >
+                          Tap to dismiss
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </>
               ) : (
                 <div className="flex items-center justify-center h-40 border border-dashed border-[#1C1714]/20 text-xs opacity-40">

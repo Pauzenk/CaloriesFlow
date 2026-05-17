@@ -1,4 +1,5 @@
 import type {
+  Activity,
   CalorieSeriesPoint,
   DashboardSummary,
   DaySummary,
@@ -93,11 +94,16 @@ export function buildDashboardSummary(
   meals: Meal[],
   weights: Weight[],
   settings: Settings,
+  acts: Activity[] = [],
 ): DashboardSummary {
   const today = summarizeDay(meals, todayStr());
   const weekSeries = calorieSeries(meals, lastNDates(7), settings.dailyCalorieGoal);
   const weeklyW = weeklyWeights(weights, settings);
   const totalWeightChange = +weeklyW.reduce((a, w) => a + w.delta, 0).toFixed(1);
+  const todayDate = todayStr();
+  const caloriesBurnedToday = acts
+    .filter((a) => a.date === todayDate)
+    .reduce((sum, a) => sum + a.caloriesBurned, 0);
   return {
     today,
     goal: settings.dailyCalorieGoal,
@@ -105,5 +111,6 @@ export function buildDashboardSummary(
     weekSeries,
     weeklyWeights: weeklyW,
     totalWeightChange,
+    caloriesBurnedToday,
   };
 }

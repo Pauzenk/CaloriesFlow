@@ -3,6 +3,7 @@ import {
   settings,
   meals,
   weights,
+  activities,
   type User,
   type InsertUser,
   type Settings,
@@ -11,6 +12,8 @@ import {
   type InsertMeal,
   type Weight,
   type InsertWeight,
+  type Activity,
+  type InsertActivity,
 } from "@shared/schema";
 import { db } from "./db";
 import { and, eq, gte, lte, desc, asc } from "drizzle-orm";
@@ -39,6 +42,11 @@ export interface IStorage {
 
   listWeights(userId: string): Promise<Weight[]>;
   createWeight(userId: string, data: InsertWeight): Promise<Weight>;
+
+  listActivities(userId: string, fromDate?: string, toDate?: string): Promise<Activity[]>;
+  createActivity(userId: string, data: InsertActivity): Promise<Activity>;
+  updateActivity(userId: string, id: string, data: InsertActivity): Promise<Activity | undefined>;
+  deleteActivity(userId: string, id: string): Promise<boolean>;
 }
 
 const DEFAULT_SETTINGS = {
@@ -154,9 +162,37 @@ export class DbStorage implements IStorage {
 
   async createWeight(userId: string, data: InsertWeight) {
     const [created] = await db.insert(weights).values({ ...data, userId }).returning();
-    // also update current weight in settings
     await db.update(settings).set({ currentWeightKg: data.weightKg }).where(eq(settings.userId, userId));
     return created;
+  }
+
+  async listActivities(userId: string, fromDate?: string, toDate?: string) {
+    const conds = [eq(activities.userId, userId)];
+    if (fromDate) conds.push(gte(activities.date, fromDate));
+    if (toDate) conds.push(lte(activities.date, toDate));
+    return db.select().from(activities).where(and(...conds)).orderBy(desc(activities.date));
+  }
+
+  async createActivity(userId: string, data: InsertActivity) {
+    const [created] = await db.insert(activities).values({ ...data, userId }).returning();
+    return created;
+  }
+
+  async updateActivity(userId: string, id: string, data: InsertActivity) {
+    const [updated] = await db
+      .update(activities)
+      .set(data)
+      .where(and(eq(activities.id, id), eq(activities.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteActivity(userId: string, id: string) {
+    const result = await db
+      .delete(activities)
+      .where(and(eq(activities.id, id), eq(activities.userId, userId)))
+      .returning();
+    return result.length > 0;
   }
 }
 

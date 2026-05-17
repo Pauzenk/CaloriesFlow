@@ -9,6 +9,7 @@ import { setupAuth, requireAuth } from "./auth";
 import {
   insertMealSchema,
   insertWeightSchema,
+  insertActivitySchema,
   upsertSettingsSchema,
 } from "@shared/schema";
 import { buildDashboardSummary, calorieSeries, lastNDates } from "./stats";
@@ -147,15 +148,63 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ── Activities ──────────────────────────────────────────────────────────────
+  app.get("/api/activities", requireAuth, async (req, res, next) => {
+    try {
+      const from = typeof req.query.from === "string" ? req.query.from : undefined;
+      const to = typeof req.query.to === "string" ? req.query.to : undefined;
+      const list = await storage.listActivities(req.user!.id, from, to);
+      res.json(list);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/activities", requireAuth, async (req, res, next) => {
+    const parsed = insertActivitySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+    try {
+      const act = await storage.createActivity(req.user!.id, parsed.data);
+      res.status(201).json(act);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.patch("/api/activities/:id", requireAuth, async (req, res, next) => {
+    const parsed = insertActivitySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
+    try {
+      const id = String(req.params.id);
+      const act = await storage.updateActivity(req.user!.id, id, parsed.data);
+      if (!act) return res.status(404).json({ message: "Not found" });
+      res.json(act);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.delete("/api/activities/:id", requireAuth, async (req, res, next) => {
+    try {
+      const id = String(req.params.id);
+      const ok = await storage.deleteActivity(req.user!.id, id);
+      if (!ok) return res.status(404).json({ message: "Not found" });
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get("/api/stats/dashboard", requireAuth, async (req, res, next) => {
     try {
       const userId = req.user!.id;
-      const [settings, meals, weights] = await Promise.all([
+      const [settings, meals, weights, acts] = await Promise.all([
         storage.getSettings(userId),
         storage.listMeals(userId),
         storage.listWeights(userId),
+        storage.listActivities(userId),
       ]);
-      res.json(buildDashboardSummary(meals, weights, settings));
+      res.json(buildDashboardSummary(meals, weights, settings, acts));
     } catch (err) {
       next(err);
     }
@@ -269,38 +318,54 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const systemMessage: ChatCompletionMessageParam = {
           role: "system",
-          content: `You are a precise nutrition assistant inside a calorie-tracking app. Your most critical responsibility is producing ACCURATE calorie and macro estimates based on the specific food described — never a generic placeholder.
+          content: `You are a nutrition and fitness assistant inside a calorie-tracking app. You handle two types of input:
 
-MANDATORY estimation process:
+TYPE A — FOOD/MEAL: The user describes something they ate or a food photo.
+TYPE B — PHYSICAL ACTIVITY: The user describes exercise, sport, or physical activity (e.g. "45 min cardio", "went for a run", "strength training").
+TYPE C — BOTH: The user mentions both food and activity in the same message.
+
+━━━ FOOD ESTIMATION RULES ━━━
 1. Identify every ingredient and its realistic portion size in grams.
-2. Apply standard nutrition values (USDA / CalorieKing): protein = 4 kcal/g, carbs = 4 kcal/g, fat = 9 kcal/g.
-3. Sum the contributions to get total calories.
-4. Sanity-check: a light salad ≠ a burger. Adjust if the total feels wrong for the meal described.
-
-CALIBRATION REFERENCES (use these to anchor your estimates):
+2. Apply standard nutrition values (USDA): protein = 4 kcal/g, carbs = 4 kcal/g, fat = 9 kcal/g.
+3. Sum contributions; sanity-check the total.
+CALIBRATION REFERENCES:
 - Medium apple (182 g): 95 kcal | P 0.5 g | C 25 g | F 0.3 g
 - Grilled chicken breast (150 g): 248 kcal | P 46 g | C 0 g | F 5 g
 - Oatmeal, dry (80 g) cooked with water: 300 kcal | P 11 g | C 54 g | F 5 g
 - Classic cheeseburger with bun (330 g): 620 kcal | P 34 g | C 42 g | F 33 g
 - Green salad + vinaigrette (250 g): 180 kcal | P 4 g | C 12 g | F 13 g
-- Banana–milk–peanut-butter smoothie: 350 kcal | P 13 g | C 52 g | F 12 g
-- Slice of cheese pizza (125 g): 285 kcal | P 12 g | C 36 g | F 10 g
 - Avocado toast (1 slice sourdough + ½ avocado): 290 kcal | P 7 g | C 30 g | F 16 g
 
-RULES:
-- NEVER default to 300 kcal without ingredient-level reasoning. Every meal gets its own calculation.
-- For partial servings ("I ate half"), divide the full estimate by the stated fraction.
-- For restaurant meals, use standard restaurant portion sizes (typically 20–40 % larger than home portions).
-- If you cannot see a photo clearly, ask one specific clarifying question and omit the JSON block.
-- Calories: integer. Proteins / carbs / fats: rounded to 1 decimal place.
+━━━ ACTIVITY ESTIMATION RULES ━━━
+Use standard MET values to estimate calories burned. Assume 75 kg bodyweight if unknown.
+Formula: calories = MET × 75 kg × (durationMinutes / 60)
+Common MET values: walking (3.5), light cycling (6), running/jogging (8), HIIT/cardio (10), strength training (5), swimming (7), yoga (2.5).
+- activityType must be one of: "cardio", "strength", "other"
+- For mixed sessions (e.g. "cardio + strength"), split the time evenly and sum calories. Use "cardio" if unsure.
 
-RESPONSE FORMAT (always in this order):
-1. One or two sentences of reasoning — name each key ingredient and its estimated weight or portion.
-2. If you have enough info, end with exactly this JSON block (no text after it):
+━━━ RESPONSE RULES ━━━
+- Write 1–2 sentences of reasoning first.
+- NEVER output 300 kcal as a default without reasoning.
+- If you need clarification, ask one focused question and omit JSON entirely.
+- Numbers: calories = integer, proteins/carbs/fats = 1 decimal place, caloriesBurned = integer.
+
+━━━ RESPONSE FORMAT ━━━
+End your reply with exactly ONE JSON block (no text after it). Include only the keys that apply:
+
+For food only:
 \`\`\`json
-{"estimate":{"name":"<concise meal name>","calories":<integer>,"proteins":<number>,"carbs":<number>,"fats":<number>}}
+{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>}}
 \`\`\`
-3. If you need clarification, ask one focused question and omit the JSON block entirely.`,
+
+For activity only:
+\`\`\`json
+{"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other"}}
+\`\`\`
+
+For both food and activity:
+\`\`\`json
+{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>},"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other"}}
+\`\`\``,
         };
 
         const historyMessages: ChatCompletionMessageParam[] = history.map((m) => {
@@ -336,29 +401,39 @@ RESPONSE FORMAT (always in this order):
 
         const rawReply = completion.choices[0]?.message?.content?.trim() ?? "";
 
+        const activityEstimateSchema = z.object({
+          name: z.string().min(1).max(120),
+          durationMinutes: z.number().int().min(0).max(1440),
+          caloriesBurned: z.number().int().min(0).max(10000),
+          activityType: z.enum(["cardio", "strength", "other"]).default("other"),
+        });
+
         const jsonBlockMatch = rawReply.match(/```json\s*(\{[\s\S]*?\})\s*```\s*$/);
         let estimate: z.infer<typeof photoAnalysisSchema> | undefined;
+        let activityEstimate: z.infer<typeof activityEstimateSchema> | undefined;
         let reply = rawReply;
 
         if (jsonBlockMatch) {
           try {
             const parsed: unknown = JSON.parse(jsonBlockMatch[1]);
-            if (
-              typeof parsed === "object" &&
-              parsed !== null &&
-              "estimate" in parsed &&
-              typeof (parsed as { estimate: unknown }).estimate === "object"
-            ) {
-              const v = photoAnalysisSchema.safeParse((parsed as { estimate: unknown }).estimate);
-              if (v.success) estimate = v.data;
+            if (typeof parsed === "object" && parsed !== null) {
+              const p = parsed as Record<string, unknown>;
+              if ("estimate" in p && typeof p.estimate === "object" && p.estimate !== null) {
+                const v = photoAnalysisSchema.safeParse(p.estimate);
+                if (v.success) estimate = v.data;
+              }
+              if ("activityEstimate" in p && typeof p.activityEstimate === "object" && p.activityEstimate !== null) {
+                const v = activityEstimateSchema.safeParse(p.activityEstimate);
+                if (v.success) activityEstimate = v.data;
+              }
             }
           } catch {
-            // leave estimate undefined
+            // leave estimates undefined
           }
           reply = rawReply.slice(0, rawReply.lastIndexOf("```json")).trim();
         }
 
-        res.json({ reply: reply || "Here is the estimate.", estimate });
+        res.json({ reply: reply || "Here is the estimate.", estimate, activityEstimate });
       } catch (err: unknown) {
         next(new Error(err instanceof Error ? err.message : "AI chat failed"));
       }

@@ -128,6 +128,32 @@ export const insertWeightSchema = createInsertSchema(weights)
 export type Weight = typeof weights.$inferSelect;
 export type InsertWeight = z.infer<typeof insertWeightSchema>;
 
+export const ACTIVITY_TYPES = ["cardio", "strength", "other"] as const;
+export type ActivityType = (typeof ACTIVITY_TYPES)[number];
+
+export const activities = pgTable("activities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  name: text("name").notNull(),
+  durationMinutes: integer("duration_minutes").notNull().default(0),
+  caloriesBurned: integer("calories_burned").notNull().default(0),
+  activityType: text("activity_type").notNull().default("other"),
+});
+
+export const insertActivitySchema = createInsertSchema(activities)
+  .omit({ id: true, userId: true })
+  .extend({
+    date: z.string().min(1),
+    name: z.string().min(1).max(120),
+    durationMinutes: z.coerce.number().int().min(0).max(1440),
+    caloriesBurned: z.coerce.number().int().min(0).max(10000),
+    activityType: z.enum(ACTIVITY_TYPES).default("other"),
+  });
+
+export type Activity = typeof activities.$inferSelect;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+
 export type AuthUser = { id: string; email: string; name: string };
 
 export type DaySummary = {
@@ -160,4 +186,5 @@ export type DashboardSummary = {
   weekSeries: CalorieSeriesPoint[];
   weeklyWeights: WeeklyWeightPoint[];
   totalWeightChange: number;
+  caloriesBurnedToday: number;
 };

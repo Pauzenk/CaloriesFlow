@@ -3,8 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Trash2, X, Sparkles } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +15,8 @@ import { mealsForDate, todayStr } from "@/lib/calorieflow";
 import { MealChat, type NutritionEstimate } from "@/components/MealChat";
 import { MealNameAutocomplete } from "@/components/MealNameAutocomplete";
 
+const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40";
+
 const defaultValues: InsertMeal = {
   date: todayStr(),
   mealType: "breakfast",
@@ -27,12 +27,15 @@ const defaultValues: InsertMeal = {
   fats: 0,
 };
 
+function fmtTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
 export default function LogMeal() {
   const { toast } = useToast();
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
-  const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({
-    queryKey: ["/api/ai/status"],
-  });
+  const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({ queryKey: ["/api/ai/status"] });
 
   const form = useForm<InsertMeal>({
     resolver: zodResolver(insertMealSchema),
@@ -92,8 +95,7 @@ export default function LogMeal() {
     setServingIdx(value);
     if (!selectedFood) return;
     if (value === "custom") return;
-    const idx = Number(value);
-    setGrams(selectedFood.servings[idx].grams);
+    setGrams(selectedFood.servings[Number(value)].grams);
   }
 
   function applyEstimate(estimate: NutritionEstimate) {
@@ -108,11 +110,7 @@ export default function LogMeal() {
   }
 
   const onError = (err: unknown) =>
-    toast({
-      title: "Failed",
-      description: err instanceof Error ? err.message : "Something went wrong",
-      variant: "destructive",
-    });
+    toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
 
   const resetForm = () => {
     setEditingId(null);
@@ -122,28 +120,15 @@ export default function LogMeal() {
   };
 
   const create = useMutation({
-    mutationFn: async (data: InsertMeal) => {
-      const res = await apiRequest("POST", "/api/meals", data);
-      return (await res.json()) as Meal;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
-      resetForm();
-      toast({ title: "Meal added" });
-    },
+    mutationFn: async (data: InsertMeal) => (await apiRequest("POST", "/api/meals", data)).json() as Promise<Meal>,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/meals"] }); resetForm(); toast({ title: "Meal added" }); },
     onError,
   });
 
   const update = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: InsertMeal }) => {
-      const res = await apiRequest("PATCH", `/api/meals/${id}`, data);
-      return (await res.json()) as Meal;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
-      resetForm();
-      toast({ title: "Meal updated" });
-    },
+    mutationFn: async ({ id, data }: { id: string; data: InsertMeal }) =>
+      (await apiRequest("PATCH", `/api/meals/${id}`, data)).json() as Promise<Meal>,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/meals"] }); resetForm(); toast({ title: "Meal updated" }); },
     onError,
   });
 
@@ -164,9 +149,7 @@ export default function LogMeal() {
   }
 
   const del = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/meals/${id}`);
-    },
+    mutationFn: async (id: string) => { await apiRequest("DELETE", `/api/meals/${id}`); },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
       if (editingId === id) resetForm();
@@ -175,43 +158,45 @@ export default function LogMeal() {
   });
 
   const isPending = create.isPending || update.isPending;
-  const todays = mealsForDate(meals, todayStr());
+  const todays = mealsForDate(meals, todayStr()).slice().sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  );
+  const todayTotal = todays.reduce((s, m) => s + m.calories, 0);
 
   return (
-    <AppShell title="Log Daily Meal">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
-        <Card className="border border-[#D4CFC8] bg-white shadow-none" style={{ borderRadius: 0 }}>
-          <CardContent className="p-6 md:p-8">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Meal Entry</p>
-                <h3 className="mt-1 text-xl font-bold text-[#1C1714]" data-testid="text-form-title">
+    <AppShell title="Log Meal">
+      <div className="w-full font-['Space_Mono'] text-[#1C1714]">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_300px]">
+
+          {/* ── Left: Entry form ── */}
+          <div>
+            <div className="sticky top-0 bg-[#F2EDE7] z-10 border-b-2 border-[#1C1714] pb-4 mb-8">
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
+                {editingId ? "Editing entry" : "New entry"}
+              </p>
+              <div className="flex items-end justify-between">
+                <div className="text-3xl tracking-tighter leading-none" data-testid="text-form-title">
                   {editingId ? "Edit meal" : "Add a meal"}
-                </h3>
-                <p className="mt-1 text-sm text-[#6B6560]">
-                  {editingId
-                    ? "Update the details and save your changes."
-                    : "Ask AI to estimate nutrition, or search the food database below."}
-                </p>
+                </div>
+                {editingId && (
+                  <button
+                    type="button"
+                    data-testid="button-cancel-edit"
+                    onClick={resetForm}
+                    className="flex items-center gap-1 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3" /> Cancel
+                  </button>
+                )}
               </div>
-              {editingId && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  data-testid="button-cancel-edit"
-                  onClick={resetForm}
-                  className="shrink-0 text-[#6B6560]"
-                >
-                  <X className="mr-1 h-4 w-4" />
-                  Cancel
-                </Button>
-              )}
             </div>
 
+            {/* AI chat block */}
             {!editingId && (
-              <div className="mt-6">
-                <p className="mb-3 text-xs font-bold uppercase tracking-wider text-[#6B6560]">AI nutrition chat</p>
+              <div className="border border-[#1C1714] p-4 mb-8">
+                <div className="text-xs uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-dashed border-[#1C1714]/20">
+                  AI Nutrition Chat
+                </div>
                 <MealChat
                   hasApiKey={aiStatus?.hasApiKey ?? true}
                   onUseEstimate={applyEstimate}
@@ -219,85 +204,82 @@ export default function LogMeal() {
               </div>
             )}
 
-            <div className="mt-6 border-t border-[#D4CFC8] pt-6">
-              {isAiEstimate && (
-                <div
-                  data-testid="banner-ai-estimate"
-                  className="mb-4 flex items-start gap-2 border border-[#3c3a40]/30 bg-[#F0EBE3] px-4 py-3 text-sm text-[#3c3a40]"
-                >
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>
-                    <strong>AI estimate applied</strong> — values were pre-filled from the chat. Review and adjust before saving.
-                  </span>
-                </div>
-              )}
-              <Form {...form}>
-                <form
-                  className="space-y-4"
-                  onSubmit={form.handleSubmit((data) =>
-                    editingId ? update.mutate({ id: editingId, data }) : create.mutate(data)
-                  )}
-                >
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="mealType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Meal</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-meal-type">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {MEAL_TYPES.map((t) => (
-                                <SelectItem key={t} value={t}>
-                                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" data-testid="input-meal-date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+            {/* AI estimate banner */}
+            {isAiEstimate && (
+              <div
+                data-testid="banner-ai-estimate"
+                className="mb-6 flex items-start gap-2 border border-[#1C1714]/20 bg-[#1C1714]/5 px-4 py-3 text-xs"
+              >
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-60" />
+                <span className="opacity-70">
+                  <strong>AI estimate applied</strong> — review and adjust before saving.
+                </span>
+              </div>
+            )}
 
+            <Form {...form}>
+              <form
+                className="space-y-0"
+                onSubmit={form.handleSubmit((data) =>
+                  editingId ? update.mutate({ id: editingId, data }) : create.mutate(data)
+                )}
+              >
+                {/* Meal type + date */}
+                <div className="grid grid-cols-2 gap-4 border-b border-[#1C1714]/10 pb-5 mb-5">
+                  <FormField
+                    control={form.control}
+                    name="mealType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Meal type</FormLabel>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-meal-type" className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus:ring-0 text-sm h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {MEAL_TYPES.map((t) => (
+                              <SelectItem key={t} value={t} className="font-['Space_Mono']">
+                                {t.charAt(0).toUpperCase() + t.slice(1)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" data-testid="input-meal-date" className={IN} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Food name */}
+                <div className="border-b border-[#1C1714]/10 pb-5 mb-5">
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Food</FormLabel>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Food</FormLabel>
                         <FormControl>
                           <MealNameAutocomplete
                             value={field.value}
-                            onChange={(v) => {
-                              field.onChange(v);
-                              setIsAiEstimate(false);
-                            }}
+                            onChange={(v) => { field.onChange(v); setIsAiEstimate(false); }}
                             onPickHistory={onPickHistory}
-                            onPickFood={(food) => {
-                              pickFood(food);
-                            }}
-                            onClearFood={() => {
-                              if (selectedFood) clearFood(true);
-                            }}
+                            onPickFood={(food) => pickFood(food)}
+                            onClearFood={() => { if (selectedFood) clearFood(true); }}
                             disabled={isPending}
                             placeholder="Search foods or past meals…"
                           />
@@ -306,203 +288,143 @@ export default function LogMeal() {
                       </FormItem>
                     )}
                   />
+                </div>
 
-                  {selectedFood && (
-                    <div
-                      data-testid="panel-serving-picker"
-                      className="grid grid-cols-1 gap-4 border border-[#D4CFC8] bg-[#F5F1EB] p-4 md:grid-cols-2"
-                    >
-                      <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#3c3a40]">
-                          Serving size
-                        </FormLabel>
-                        <Select value={servingIdx} onValueChange={onServingChange}>
-                          <SelectTrigger className="mt-1 bg-white" data-testid="select-serving-size">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedFood.servings.map((s, i) => (
-                              <SelectItem key={i} value={String(i)}>
-                                {s.label}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value="custom">Custom (grams)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#3c3a40]">
-                          Amount (g)
-                        </FormLabel>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={5000}
-                          step={1}
-                          value={grams}
-                          onChange={(e) => {
-                            const v = e.target.valueAsNumber || 0;
-                            setGrams(v);
-                            setServingIdx("custom");
-                          }}
-                          className="mt-1 bg-white"
-                          data-testid="input-serving-grams"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    <FormField
-                      control={form.control}
-                      name="calories"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Calories</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              data-testid="input-meal-calories"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="proteins"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Protein (g)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              data-testid="input-meal-proteins"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="carbs"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Carbs (g)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              data-testid="input-meal-carbs"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="fats"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fats (g)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              data-testid="input-meal-fats"
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.valueAsNumber || 0);
-                                setIsAiEstimate(false);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={isPending}
-                    className="h-11 w-full bg-[#3c3a40] text-sm font-bold text-white hover:bg-[#2d2b30] md:w-auto md:px-10"
-                    data-testid="button-save-meal"
+                {/* Serving picker */}
+                {selectedFood && (
+                  <div
+                    data-testid="panel-serving-picker"
+                    className="border border-[#1C1714]/20 p-3 mb-5 grid grid-cols-2 gap-4"
                   >
-                    {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
-                  </Button>
-                </form>
-              </Form>
-            </div>
-          </CardContent>
-        </Card>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">Serving</div>
+                      <Select value={servingIdx} onValueChange={onServingChange}>
+                        <SelectTrigger className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-sm h-9 focus:ring-0" data-testid="select-serving-size">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedFood.servings.map((s, i) => (
+                            <SelectItem key={i} value={String(i)} className="font-['Space_Mono']">{s.label}</SelectItem>
+                          ))}
+                          <SelectItem value="custom" className="font-['Space_Mono']">Custom (g)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">Grams</div>
+                      <Input
+                        type="number" min={0} max={5000} step={1} value={grams}
+                        onChange={(e) => { setGrams(e.target.valueAsNumber || 0); setServingIdx("custom"); }}
+                        className={IN} data-testid="input-serving-grams"
+                      />
+                    </div>
+                  </div>
+                )}
 
-        <Card className="border border-[#D4CFC8] bg-white shadow-none" style={{ borderRadius: 0 }}>
-          <CardContent className="p-6 md:p-8">
-            <p className="text-[10px] font-bold uppercase tracking-[2px] text-[#6B6560]">Today's Meals</p>
-            <h3 className="mt-1 text-xl font-bold text-[#1C1714]">{todays.length} {todays.length === 1 ? "entry" : "entries"}</h3>
-            <ul className="mt-4 space-y-2">
-              {todays.length === 0 && (
-                <li className="border border-dashed border-[#D4CFC8] p-6 text-center text-sm text-[#6B6560]">
-                  Nothing logged yet today.
-                </li>
-              )}
-              {todays.map((m) => (
-                <li
-                  key={m.id}
-                  data-testid={`row-meal-${m.id}`}
-                  className="flex items-center justify-between border border-[#D4CFC8] bg-[#F5F1EB] px-4 py-3"
+                {/* Macros */}
+                <div className="border-b border-[#1C1714]/10 pb-5 mb-6">
+                  <div className="text-[10px] uppercase tracking-widest opacity-60 mb-3">Nutrition</div>
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {([
+                      { name: "calories" as const, label: "Kcal", testid: "input-meal-calories", step: "1" },
+                      { name: "proteins" as const, label: "PRO g", testid: "input-meal-proteins", step: "0.1" },
+                      { name: "carbs" as const, label: "CRB g", testid: "input-meal-carbs", step: "0.1" },
+                      { name: "fats" as const, label: "FAT g", testid: "input-meal-fats", step: "0.1" },
+                    ]).map(({ name, label, testid, step }) => (
+                      <FormField
+                        key={name}
+                        control={form.control}
+                        name={name}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{label}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number" step={step} data-testid={testid}
+                                className={IN + " tabular-nums"}
+                                {...field}
+                                onChange={(e) => { field.onChange(e.target.valueAsNumber || 0); setIsAiEstimate(false); }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  data-testid="button-save-meal"
+                  className="w-full border-2 border-[#1C1714] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors disabled:opacity-40 md:w-auto md:px-14"
                 >
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#3c3a40]">{m.mealType}</p>
-                    <p className="truncate text-sm font-medium text-[#1C1714]">{m.name}</p>
-                    <p className="text-xs text-[#6B6560]">
-                      {m.calories} kcal · P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
-                    </p>
+                  {isPending ? "Saving…" : editingId ? "Update entry" : "Commit to record"}
+                </button>
+              </form>
+            </Form>
+          </div>
+
+          {/* ── Right: Today's ledger ── */}
+          <div>
+            <div className="lg:sticky lg:top-4">
+              <div className="border-b-2 border-[#1C1714] pb-4 mb-6">
+                <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Today's Ledger</p>
+                <div className="text-3xl tracking-tighter leading-none tabular-nums">
+                  {todays.length}
+                  <span className="text-lg opacity-50 ml-1">{todays.length === 1 ? "entry" : "entries"}</span>
+                </div>
+              </div>
+
+              {todays.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-xs uppercase tracking-widest opacity-40">No entries today</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col">
+                    {todays.map((m) => (
+                      <div
+                        key={m.id}
+                        data-testid={`row-meal-${m.id}`}
+                        className="group flex items-center py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors"
+                      >
+                        <div className="w-12 text-xs opacity-40 shrink-0">{fmtTime(m.createdAt)}</div>
+                        <div className="flex-1 min-w-0 px-2">
+                          <div className="leading-tight truncate text-sm">{m.name}</div>
+                          <div className="text-[10px] uppercase opacity-40 tracking-widest mt-0.5">{m.mealType}</div>
+                        </div>
+                        <div className="tabular-nums text-sm shrink-0 mr-1">+{m.calories}</div>
+                        <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <button
+                            data-testid={`button-edit-meal-${m.id}`}
+                            onClick={() => startEdit(m)}
+                            className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            data-testid={`button-delete-meal-${m.id}`}
+                            onClick={() => del.mutate(m.id)}
+                            className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9e4515] transition-all"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      data-testid={`button-edit-meal-${m.id}`}
-                      onClick={() => startEdit(m)}
-                      className="h-9 w-9 text-[#6B6560] hover:text-[#3c3a40]"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      data-testid={`button-delete-meal-${m.id}`}
-                      onClick={() => del.mutate(m.id)}
-                      className="h-9 w-9 text-[#6B6560] hover:text-[#9B4A2E]"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+
+                  <div className="flex justify-between items-center py-3 border-b-2 border-[#1C1714]">
+                    <div className="text-xs uppercase tracking-widest">Subtotal</div>
+                    <div className="tabular-nums">{todayTotal}</div>
                   </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </AppShell>
   );

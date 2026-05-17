@@ -88,7 +88,7 @@ export default function Dashboard() {
   return (
     <AppShell title="Overview">
       <div
-        className="mx-auto w-full max-w-md font-['Space_Mono'] text-[#1C1714]"
+        className="w-full font-['Space_Mono'] text-[#1C1714]"
         data-testid="card-dashboard-feed"
       >
         {/* ── Sticky tally header ── */}

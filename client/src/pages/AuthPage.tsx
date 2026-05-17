@@ -98,7 +98,7 @@ export default function AuthPage() {
         <div className="border border-[#1A1B2E] bg-[#F0EEF8]">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 border-b border-[#1A1B2E]/20 px-6 py-4 md:hidden">
-            <div className="flex h-8 w-8 items-center justify-center bg-[#6B5FC0] text-[#F0EEF8]">
+            <div className="flex h-8 w-8 items-center justify-center bg-[#5f5b80] text-[#F0EEF8]">
               <Leaf className="h-4 w-4" />
             </div>
             <span className="text-sm uppercase tracking-widest opacity-70">CalorieFlow</span>
@@ -138,7 +138,7 @@ export default function AuthPage() {
                             type="email"
                             autoComplete="email"
                             data-testid="input-login-email"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                             {...field}
                           />
                         </FormControl>
@@ -157,7 +157,7 @@ export default function AuthPage() {
                             type="password"
                             autoComplete="current-password"
                             data-testid="input-login-password"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                             {...field}
                           />
                         </FormControl>
@@ -169,7 +169,7 @@ export default function AuthPage() {
                     type="submit"
                     disabled={login.isPending}
                     data-testid="button-submit-login"
-                    className="w-full border-2 border-[#6B5FC0] bg-[#6B5FC0] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#5548A0] hover:border-[#5548A0] transition-colors disabled:opacity-50"
+                    className="w-full border-2 border-[#5f5b80] bg-[#5f5b80] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#4a476a] hover:border-[#4a476a] transition-colors disabled:opacity-50"
                   >
                     {login.isPending ? "Logging in…" : "Log in"}
                   </button>
@@ -188,7 +188,7 @@ export default function AuthPage() {
                           <Input
                             autoComplete="name"
                             data-testid="input-register-name"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                             {...field}
                           />
                         </FormControl>
@@ -207,7 +207,7 @@ export default function AuthPage() {
                             type="email"
                             autoComplete="email"
                             data-testid="input-register-email"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                             {...field}
                           />
                         </FormControl>
@@ -226,7 +226,7 @@ export default function AuthPage() {
                             type="password"
                             autoComplete="new-password"
                             data-testid="input-register-password"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                             {...field}
                           />
                         </FormControl>
@@ -238,7 +238,7 @@ export default function AuthPage() {
                     type="submit"
                     disabled={register.isPending}
                     data-testid="button-submit-register"
-                    className="w-full border-2 border-[#6B5FC0] bg-[#6B5FC0] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#5548A0] hover:border-[#5548A0] transition-colors disabled:opacity-50"
+                    className="w-full border-2 border-[#5f5b80] bg-[#5f5b80] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#4a476a] hover:border-[#4a476a] transition-colors disabled:opacity-50"
                   >
                     {register.isPending ? "Creating account…" : "Create account"}
                   </button>

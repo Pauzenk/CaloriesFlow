@@ -104,7 +104,7 @@ export default function Dashboard() {
             <div className="text-right">
               <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Remaining</p>
               <div
-                className={`text-3xl tracking-tighter leading-none ${totals.calories > goal ? "text-[#6B5FC0]" : ""}`}
+                className={`text-3xl tracking-tighter leading-none ${totals.calories > goal ? "text-[#5f5b80]" : ""}`}
                 data-testid="text-remaining-calories"
               >
                 {totals.calories > goal ? `+${totals.calories - goal}` : remaining}
@@ -220,7 +220,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     data-testid="button-add-meal"
-                    className="w-full border border-[#6B5FC0]/40 py-2.5 text-xs uppercase tracking-widest text-[#6B5FC0] hover:border-[#6B5FC0] hover:bg-[#6B5FC0]/5 transition-all"
+                    className="w-full border border-[#5f5b80]/40 py-2.5 text-xs uppercase tracking-widest text-[#5f5b80] hover:border-[#5f5b80] hover:bg-[#5f5b80]/5 transition-all"
                   >
                     <Plus className="inline h-3 w-3 mr-1" /> Add entry
                   </button>
@@ -246,7 +246,7 @@ export default function Dashboard() {
                     className="w-full max-w-[28px] transition-all relative group"
                     style={{
                       height: `${heightPct}%`,
-                      backgroundColor: overGoal ? "#6B5FC0" : "#1A1B2E",
+                      backgroundColor: overGoal ? "#5f5b80" : "#1A1B2E",
                       opacity: d.calories === 0 ? 0.15 : isToday ? 1 : 0.55,
                     }}
                     data-testid={`bar-week-${d.label}`}

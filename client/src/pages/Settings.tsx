@@ -115,7 +115,7 @@ export default function SettingsPage() {
                         <Input
                           type="number"
                           data-testid="input-goal"
-                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0] tabular-nums"
+                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
                           {...field}
                           onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                         />
@@ -149,8 +149,8 @@ export default function SettingsPage() {
                               onClick={() => field.onChange(level)}
                               className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
                                 active
-                                  ? "border-[#6B5FC0] bg-[#6B5FC0] text-white"
-                                  : "border-[#1A1B2E]/20 text-[#1A1B2E] hover:border-[#6B5FC0]"
+                                  ? "border-[#5f5b80] bg-[#5f5b80] text-white"
+                                  : "border-[#1A1B2E]/20 text-[#1A1B2E] hover:border-[#5f5b80]"
                               }`}
                             >
                               <span className="text-xs uppercase tracking-widest font-bold">
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                             type="number"
                             step="0.1"
                             data-testid="input-starting-weight"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0] tabular-nums"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
                             {...field}
                             onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                           />
@@ -213,7 +213,7 @@ export default function SettingsPage() {
                             step="0.1"
                             data-testid="input-goal-weight"
                             placeholder="e.g. 68.0"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0] tabular-nums"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
                             value={field.value ?? ""}
                             onChange={(e) =>
                               field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
@@ -239,7 +239,7 @@ export default function SettingsPage() {
                             type="number"
                             data-testid="input-height"
                             placeholder="e.g. 175"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0] tabular-nums"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
                             value={field.value ?? ""}
                             onChange={(e) =>
                               field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
@@ -263,7 +263,7 @@ export default function SettingsPage() {
                             type="number"
                             data-testid="input-age"
                             placeholder="e.g. 30"
-                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0] tabular-nums"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
                             value={field.value ?? ""}
                             onChange={(e) =>
                               field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
@@ -289,7 +289,7 @@ export default function SettingsPage() {
                           <FormControl>
                             <SelectTrigger
                               data-testid="select-sex"
-                              className="border-[#1A1B2E]/30 bg-transparent focus:ring-[#6B5FC0]"
+                              className="border-[#1A1B2E]/30 bg-transparent focus:ring-[#5f5b80]"
                             >
                               <SelectValue placeholder="Select…" />
                             </SelectTrigger>
@@ -325,7 +325,7 @@ export default function SettingsPage() {
                         <Input
                           type="date"
                           data-testid="input-start-date"
-                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                           {...field}
                         />
                       </FormControl>
@@ -359,7 +359,7 @@ export default function SettingsPage() {
                   >
                     <div>
                       <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">Suggested Goal</p>
-                      <p className="text-3xl text-[#6B5FC0] tabular-nums" data-testid="text-suggested-goal">
+                      <p className="text-3xl text-[#5f5b80] tabular-nums" data-testid="text-suggested-goal">
                         {(estimatedTDEE - 500).toLocaleString()}
                         <span className="ml-1 text-base opacity-60">kcal/day</span>
                       </p>
@@ -369,7 +369,7 @@ export default function SettingsPage() {
                       type="button"
                       data-testid="button-use-suggested-goal"
                       onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
-                      className="shrink-0 border border-[#6B5FC0] px-4 py-2 text-xs uppercase tracking-widest text-[#6B5FC0] hover:bg-[#6B5FC0] hover:text-white transition-colors"
+                      className="shrink-0 border border-[#5f5b80] px-4 py-2 text-xs uppercase tracking-widest text-[#5f5b80] hover:bg-[#5f5b80] hover:text-white transition-colors"
                     >
                       Use
                     </button>
@@ -384,7 +384,7 @@ export default function SettingsPage() {
                 type="submit"
                 disabled={save.isPending}
                 data-testid="button-save-settings"
-                className="w-full border-2 border-[#6B5FC0] bg-[#6B5FC0] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#5548A0] hover:border-[#5548A0] transition-colors disabled:opacity-50 md:w-auto md:px-12"
+                className="w-full border-2 border-[#5f5b80] bg-[#5f5b80] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#4a476a] hover:border-[#4a476a] transition-colors disabled:opacity-50 md:w-auto md:px-12"
               >
                 {save.isPending ? "Saving…" : "Save changes"}
               </button>

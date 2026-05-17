@@ -225,7 +225,7 @@ export default function LogMeal() {
               {isAiEstimate && (
                 <div
                   data-testid="banner-ai-estimate"
-                  className="mb-4 flex items-start gap-2 border border-[#6B5FC0]/30 bg-[#6B5FC0]/5 px-4 py-3 text-sm text-[#6B5FC0]"
+                  className="mb-4 flex items-start gap-2 border border-[#5f5b80]/30 bg-[#5f5b80]/5 px-4 py-3 text-sm text-[#5f5b80]"
                 >
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
@@ -250,7 +250,7 @@ export default function LogMeal() {
                           <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Meal type</FormLabel>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <FormControl>
-                              <SelectTrigger data-testid="select-meal-type" className="border-[#1A1B2E]/30 bg-transparent focus:ring-[#6B5FC0]">
+                              <SelectTrigger data-testid="select-meal-type" className="border-[#1A1B2E]/30 bg-transparent focus:ring-[#5f5b80]">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
@@ -276,7 +276,7 @@ export default function LogMeal() {
                             <Input
                               type="date"
                               data-testid="input-meal-date"
-                              className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                              className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                               {...field}
                             />
                           </FormControl>
@@ -343,7 +343,7 @@ export default function LogMeal() {
                             setGrams(v);
                             setServingIdx("custom");
                           }}
-                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
+                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80]"
                           data-testid="input-serving-grams"
                         />
                       </div>
@@ -371,7 +371,7 @@ export default function LogMeal() {
                                   type="number"
                                   step={fname === "calories" ? "1" : "0.1"}
                                   data-testid={`input-meal-${fname}`}
-                                  className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0] tabular-nums"
+                                  className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#5f5b80] tabular-nums"
                                   {...field}
                                   onChange={(e) => {
                                     field.onChange(e.target.valueAsNumber || 0);
@@ -391,7 +391,7 @@ export default function LogMeal() {
                     type="submit"
                     disabled={isPending}
                     data-testid="button-save-meal"
-                    className="w-full border-2 border-[#6B5FC0] bg-[#6B5FC0] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#5548A0] hover:border-[#5548A0] transition-colors disabled:opacity-50 md:w-auto md:px-12"
+                    className="w-full border-2 border-[#5f5b80] bg-[#5f5b80] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#4a476a] hover:border-[#4a476a] transition-colors disabled:opacity-50 md:w-auto md:px-12"
                   >
                     {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
                   </button>
@@ -429,7 +429,7 @@ export default function LogMeal() {
                     className="flex items-center py-3 border-b border-[#1A1B2E]/10 hover:border-[#1A1B2E]/30 transition-colors group"
                   >
                     <div className="flex-1 min-w-0 pr-2">
-                      <div className="text-[10px] uppercase tracking-widest text-[#6B5FC0] mb-0.5">{m.mealType}</div>
+                      <div className="text-[10px] uppercase tracking-widest text-[#5f5b80] mb-0.5">{m.mealType}</div>
                       <div className="text-sm truncate leading-tight">{m.name}</div>
                       <div className="text-[10px] opacity-40 mt-0.5 tabular-nums">
                         P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
@@ -440,14 +440,14 @@ export default function LogMeal() {
                       <button
                         data-testid={`button-edit-meal-${m.id}`}
                         onClick={() => startEdit(m)}
-                        className="h-7 w-7 flex items-center justify-center text-[#6B6880] hover:text-[#6B5FC0] transition-colors"
+                        className="h-7 w-7 flex items-center justify-center text-[#6B6880] hover:text-[#5f5b80] transition-colors"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         data-testid={`button-delete-meal-${m.id}`}
                         onClick={() => del.mutate(m.id)}
-                        className="h-7 w-7 flex items-center justify-center text-[#6B6880] hover:text-[#6B5FC0] transition-colors"
+                        className="h-7 w-7 flex items-center justify-center text-[#6B6880] hover:text-[#5f5b80] transition-colors"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

@@ -50,7 +50,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                         <button
                           type="button"
                           data-testid={`link-nav-${item.label.toLowerCase()}`}
-                          className="flex h-10 w-full items-center gap-3 px-3 text-left transition-colors border-l-2 border-[#6B5FC0] text-[#1A1B2E] bg-[#f0eef7]"
+                          className="flex h-10 w-full items-center gap-3 px-3 text-left transition-colors border-l-2 border-[#5f5b80] text-[#1A1B2E] bg-[#f0eef7]"
                         >
                           <Icon className="h-4 w-4 shrink-0" />
                           <span className="text-sm font-medium">{item.label}</span>
@@ -65,7 +65,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               <Button
                 data-testid="button-log-meal"
                 onClick={() => navigate("/log")}
-                className="h-12 w-full gap-2 bg-[#636396] text-sm font-bold text-white hover:bg-[#5548A0]"
+                className="h-12 w-full gap-2 bg-[#5f5b80] text-sm font-bold text-white hover:bg-[#4a476a]"
               >
                 <Plus className="h-4 w-4" /> Log Meal
               </Button>
@@ -73,7 +73,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <div className="mt-auto">
               <div className="flex items-center gap-3 border border-[#C8C4E0] px-3 py-2.5">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-[#6B5FC0] text-xs text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-[#5f5b80] text-xs text-white">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <p className="truncate text-sm font-medium text-[#1A1B2E]" data-testid="text-user-name">
@@ -99,7 +99,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
           <header className="flex items-center justify-between border-b border-[#C8C4E0] bg-[#F0EEF8] px-4 py-4 md:px-10 md:py-5">
             <div className="flex items-center gap-2 md:hidden">
-              <div className="flex h-8 w-8 items-center justify-center bg-[#6B5FC0] text-white">
+              <div className="flex h-8 w-8 items-center justify-center bg-[#5f5b80] text-white">
                 <Leaf className="h-4 w-4" />
               </div>
               <span className="text-base font-bold text-[#1A1B2E]">CalorieFlow</span>
@@ -122,7 +122,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                 type="button"
                 data-testid={`link-mobile-nav-${item.label.toLowerCase()}`}
                 className={`flex flex-col items-center gap-0.5 px-4 py-1.5 ${
-                  active ? "text-[#6B5FC0]" : "text-[#6B6880]"
+                  active ? "text-[#5f5b80]" : "text-[#6B6880]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -136,7 +136,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             type="button"
             data-testid="link-mobile-nav-log"
             className={`flex flex-col items-center gap-0.5 px-4 py-1.5 ${
-              location === "/log" ? "text-[#6B5FC0]" : "text-[#6B6880]"
+              location === "/log" ? "text-[#5f5b80]" : "text-[#6B6880]"
             }`}
           >
             <Plus className="h-5 w-5" />

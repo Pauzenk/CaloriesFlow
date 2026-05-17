@@ -238,11 +238,11 @@ export default function ProgressPage() {
               {estimatedTDEE && (
                 <div className="mb-4 flex flex-wrap items-center gap-5 text-[10px] uppercase tracking-widest opacity-50">
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#6B5FC0]" />
+                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#5f5b80]" />
                     Goal ({goal.toLocaleString()} kcal)
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#6B5FC0]/40" />
+                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#5f5b80]/40" />
                     Maint. ({estimatedTDEE.toLocaleString()} kcal)
                   </span>
                 </div>
@@ -268,11 +268,11 @@ export default function ProgressPage() {
                       contentStyle={{ border: "1px solid #1A1B2E", borderRadius: 0, fontSize: 11, background: "#F0EEF8", fontFamily: "Space Mono" }}
                       formatter={(v: number) => [`${v} kcal`]}
                     />
-                    <ReferenceLine y={goal} stroke="#6B5FC0" strokeDasharray="5 4" strokeWidth={1.5}
-                      label={{ value: "Goal", position: "right", fill: "#6B5FC0", fontSize: 9, fontWeight: 700 }} />
+                    <ReferenceLine y={goal} stroke="#5f5b80" strokeDasharray="5 4" strokeWidth={1.5}
+                      label={{ value: "Goal", position: "right", fill: "#5f5b80", fontSize: 9, fontWeight: 700 }} />
                     {estimatedTDEE && (
-                      <ReferenceLine y={estimatedTDEE} stroke="#6B5FC0" strokeDasharray="5 4" strokeWidth={1} opacity={0.4}
-                        label={{ value: "Maint.", position: "right", fill: "#6B5FC0", fontSize: 9, fontWeight: 700 }} />
+                      <ReferenceLine y={estimatedTDEE} stroke="#5f5b80" strokeDasharray="5 4" strokeWidth={1} opacity={0.4}
+                        label={{ value: "Maint.", position: "right", fill: "#5f5b80", fontSize: 9, fontWeight: 700 }} />
                     )}
                     <Bar dataKey="calories" fill="#1A1B2E" radius={0} />
                   </BarChart>
@@ -291,7 +291,7 @@ export default function ProgressPage() {
                   ].map((s, i) => (
                     <div key={s.label} className={`px-3 py-2 text-center ${i >= 3 ? "hidden md:block" : ""}`}>
                       <p className="text-[9px] uppercase tracking-widest opacity-40">{s.label}</p>
-                      <p className="mt-0.5 text-sm tabular-nums text-[#6B5FC0]" data-testid={s.testid}>{s.value}</p>
+                      <p className="mt-0.5 text-sm tabular-nums text-[#5f5b80]" data-testid={s.testid}>{s.value}</p>
                     </div>
                   ))}
                 </div>
@@ -480,13 +480,13 @@ export default function ProgressPage() {
             </div>
             <div className="flex items-center gap-4 border-b border-[#1A1B2E]/10 px-6 py-2 text-[10px] uppercase tracking-widest opacity-40">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-4 bg-[#6B5FC0]" /> Projected
+                <span className="inline-block h-2 w-4 bg-[#5f5b80]" /> Projected
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#A89AC8]" /> Goal
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 bg-[#6B5FC0]/60" /> Actual
+                <span className="inline-block h-2 w-2 bg-[#5f5b80]/60" /> Actual
               </span>
             </div>
             <div className="px-6 py-5">
@@ -503,11 +503,11 @@ export default function ProgressPage() {
                       <Tooltip contentStyle={{ border: "1px solid #1A1B2E", borderRadius: 0, fontSize: 11, background: "#F0EEF8", fontFamily: "Space Mono" }}
                         formatter={(value: number, name: string) => [`${Number(value).toFixed(1)} kg`,
                           name === "estimated" ? "Projected" : name === "actual" ? "Actual" : "Goal"]} />
-                      <Line type="monotone" dataKey="estimated" stroke="#6B5FC0" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="estimated" stroke="#5f5b80" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
                       <Line type="monotone" dataKey="goal" stroke="#A89AC8" strokeWidth={1.5} strokeDasharray="5 5" dot={false} activeDot={false} />
-                      <Line type="monotone" dataKey="actual" stroke="#6B5FC0" strokeWidth={0}
-                        dot={{ r: 5, fill: "#6B5FC0", strokeWidth: 1.5, stroke: "#F0EEF8" }}
-                        activeDot={{ r: 6, fill: "#6B5FC0" }} connectNulls={false} />
+                      <Line type="monotone" dataKey="actual" stroke="#5f5b80" strokeWidth={0}
+                        dot={{ r: 5, fill: "#5f5b80", strokeWidth: 1.5, stroke: "#F0EEF8" }}
+                        activeDot={{ r: 6, fill: "#5f5b80" }} connectNulls={false} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -542,7 +542,7 @@ export default function ProgressPage() {
             </div>
             <div className="border-b border-[#1A1B2E]/10 px-6 py-2 text-[10px] uppercase tracking-widest opacity-40">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-4 bg-[#6B5FC0]" /> Logged Weight
+                <span className="inline-block h-2 w-4 bg-[#5f5b80]" /> Logged Weight
               </span>
             </div>
             <div className="px-6 py-5">
@@ -560,11 +560,11 @@ export default function ProgressPage() {
                         formatter={(v: number) => [`${v.toFixed(1)} kg`, "Weight"]} />
                       {settings?.goalWeightKg && (
                         <ReferenceLine y={settings.goalWeightKg} stroke="#A89AC8" strokeDasharray="4 4" strokeWidth={1.5}
-                          label={{ value: "Goal", position: "right", fill: "#6B5FC0", fontSize: 9, fontWeight: 700 }} />
+                          label={{ value: "Goal", position: "right", fill: "#5f5b80", fontSize: 9, fontWeight: 700 }} />
                       )}
-                      <Line type="monotone" dataKey="weight" stroke="#6B5FC0" strokeWidth={2}
-                        dot={{ r: 4, fill: "#6B5FC0", strokeWidth: 1.5, stroke: "#F0EEF8" }}
-                        activeDot={{ r: 5, fill: "#6B5FC0" }} />
+                      <Line type="monotone" dataKey="weight" stroke="#5f5b80" strokeWidth={2}
+                        dot={{ r: 4, fill: "#5f5b80", strokeWidth: 1.5, stroke: "#F0EEF8" }}
+                        activeDot={{ r: 5, fill: "#5f5b80" }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -585,7 +585,7 @@ export default function ProgressPage() {
           <div className="border-b-2 border-[#1A1B2E] px-6 py-4">
             <div className="flex items-end justify-between">
               <p className="text-xs uppercase tracking-widest opacity-60">Weight History</p>
-              <span className="text-3xl tabular-nums text-[#6B5FC0]">
+              <span className="text-3xl tabular-nums text-[#5f5b80]">
                 {totalLoss > 0 ? "+" : ""}{totalLoss.toFixed(1)}
                 <span className="text-base opacity-40 ml-1">kg</span>
               </span>
@@ -603,7 +603,7 @@ export default function ProgressPage() {
                   className="flex items-center justify-between py-3 border-b border-[#1A1B2E]/10 last:border-b-0"
                 >
                   <span className="text-[10px] uppercase tracking-widest opacity-50">{item.week}</span>
-                  <span className="text-sm tabular-nums text-[#6B5FC0]" data-testid={`text-week-${i}`}>
+                  <span className="text-sm tabular-nums text-[#5f5b80]" data-testid={`text-week-${i}`}>
                     {item.delta > 0 ? "+" : ""}{item.delta.toFixed(1)} kg
                   </span>
                 </div>

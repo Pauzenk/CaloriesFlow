@@ -12,39 +12,6 @@ function fmtTime(iso: string): string {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-function CalorieRingSvg({ consumed, goal }: { consumed: number; goal: number }) {
-  const R = 44;
-  const CX = 52;
-  const STROKE = 7;
-  const circumference = 2 * Math.PI * R;
-  const pct = Math.min(1, consumed / goal);
-  const overGoal = consumed > goal;
-  const dashOffset = circumference * (1 - pct);
-
-  return (
-    <div className="relative shrink-0" style={{ width: 104, height: 104 }}>
-      <svg width={104} height={104} viewBox="0 0 104 104">
-        <circle cx={CX} cy={CX} r={R} fill="none" stroke="#1C1714" strokeOpacity={0.1} strokeWidth={STROKE} />
-        <circle
-          cx={CX} cy={CX} r={R} fill="none"
-          stroke={overGoal ? "#9B4A2E" : "#1C1714"}
-          strokeWidth={STROKE}
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          strokeLinecap="square"
-          transform={`rotate(-90 ${CX} ${CX})`}
-          style={{ transition: "stroke-dashoffset 0.4s ease" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-lg leading-none tabular-nums tracking-tighter" data-testid="text-today-calories">
-          {consumed}
-        </span>
-        <span className="text-[8px] uppercase tracking-widest opacity-40 mt-0.5">kcal</span>
-      </div>
-    </div>
-  );
-}
 
 export default function Dashboard() {
   const { data: settings, isLoading: sLoading } = useQuery<Settings>({ queryKey: ["/api/settings"] });
@@ -90,10 +57,10 @@ export default function Dashboard() {
     <AppShell title="Overview">
       <div className="w-full font-['Space_Mono'] text-[#1C1714]" data-testid="card-dashboard-feed">
 
-        {/* ── 3-column progress header ── */}
+        {/* ── 2-column progress header ── */}
         <div className="border-b-2 border-[#1C1714] pb-4 mb-8">
           <p className="text-[10px] uppercase tracking-widest opacity-60 mb-4">Today's Progress</p>
-          <div className="grid grid-cols-3 items-center gap-3">
+          <div className="grid grid-cols-2 items-center gap-3">
 
             {/* Col 1 — Macros */}
             <div className="flex flex-col gap-2.5">
@@ -138,10 +105,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Col 3 — Ring */}
-            <div className="flex justify-end">
-              <CalorieRingSvg consumed={netCalories} goal={goal} />
-            </div>
           </div>
         </div>
 

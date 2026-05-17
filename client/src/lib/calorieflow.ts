@@ -112,6 +112,7 @@ export type WeightProjectionPoint = {
 export function weightProjectionSeries(
   settings: Settings,
   meals: Meal[],
+  weights: Weight[] = [],
 ): { points: WeightProjectionPoint[]; projectedGoalDate: string | null } {
   const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate, dailyCalorieGoal } =
     settings;
@@ -129,6 +130,10 @@ export function weightProjectionSeries(
   for (const meal of meals) {
     calByDate.set(meal.date, (calByDate.get(meal.date) || 0) + meal.calories);
   }
+
+  // Build actual weight map — used to anchor the projection at each logged date
+  const actualWeightMap = new Map<string, number>();
+  for (const w of weights) actualWeightMap.set(w.date, w.weightKg);
 
   // Average calorie intake over the most recent 7 logged dates globally
   const today = todayStr();
@@ -157,6 +162,8 @@ export function weightProjectionSeries(
     const dateStr = d.toISOString().slice(0, 10);
 
     if (i === 0) {
+      // Anchor day-0 to actual weight if logged on journey start
+      currentWeight = actualWeightMap.get(dateStr) ?? startingWeightKg;
       points.push({ date: dateStr, estimatedWeightKg: currentWeight });
       continue;
     }
@@ -172,6 +179,11 @@ export function weightProjectionSeries(
     }
 
     currentWeight = currentWeight - dailyDeficit / 7700;
+
+    // Anchor to actual logged weight for this date — overrides calorie-derived estimate
+    const loggedWeight = actualWeightMap.get(dateStr);
+    if (loggedWeight !== undefined) currentWeight = loggedWeight;
+
     points.push({ date: dateStr, estimatedWeightKg: +currentWeight.toFixed(2) });
 
     if (!projectedGoalDate) {

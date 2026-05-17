@@ -633,9 +633,9 @@ export default function LogMeal() {
       </header>
 
       {/* ── 2-column body ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden flex-row-reverse">
 
-        {/* Left: form + compact entries */}
+        {/* Right (visually): form + compact entries */}
         <div className="flex-1 overflow-y-auto px-5 py-6 md:px-8 md:py-8 pb-24 md:pb-8">
 
           {/* AI estimate banner */}

@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Leaf, Activity } from "lucide-react";
+import { Plus, Leaf, Activity, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Meal, Settings } from "@shared/schema";
 import type { Activity as ActivityType } from "@shared/schema";
 import {
@@ -29,6 +30,16 @@ export default function Dashboard() {
       if (!res.ok) return [];
       return res.json();
     },
+  });
+
+  const deleteMeal = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/meals/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/meals"] }),
+  });
+
+  const deleteActivity = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/activities/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/activities", today] }),
   });
 
   if (sLoading || mLoading) {
@@ -147,21 +158,31 @@ export default function Dashboard() {
                   <div
                     key={m.id}
                     data-testid={`row-meal-${m.id}`}
-                    className="flex py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors"
+                    className="group flex items-center py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors"
                   >
                     <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0">{fmtTime(m.createdAt)}</div>
                     <div className="flex-1 px-2 min-w-0">
                       <div className="leading-tight truncate">{m.name}</div>
                       <div className="text-[10px] uppercase opacity-50 tracking-widest mt-1">{m.mealType}</div>
                     </div>
-                    <div className="text-right shrink-0 tabular-nums">+{m.calories}</div>
+                    <div className="tabular-nums shrink-0 mr-3">+{m.calories}</div>
+                    <button
+                      type="button"
+                      data-testid={`button-delete-meal-${m.id}`}
+                      onClick={() => deleteMeal.mutate(m.id)}
+                      disabled={deleteMeal.isPending}
+                      className="shrink-0 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity p-1"
+                      aria-label="Delete meal"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))}
                 {todayActivities.map((a) => (
                   <div
                     key={a.id}
                     data-testid={`row-activity-${a.id}`}
-                    className="flex py-3 border-b border-dashed border-[#1C1714]/20 pl-3 border-l-2 border-l-[#1C1714]/30"
+                    className="group flex items-center py-3 border-b border-dashed border-[#1C1714]/20 pl-3 border-l-2 border-l-[#1C1714]/30"
                   >
                     <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0 flex items-start">
                       <Activity className="h-3 w-3 opacity-40 mt-0.5" />
@@ -172,7 +193,17 @@ export default function Dashboard() {
                         {a.activityType} · {a.durationMinutes}min
                       </div>
                     </div>
-                    <div className="text-right shrink-0 tabular-nums text-[#9B4A2E]">−{a.caloriesBurned}</div>
+                    <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-3">−{a.caloriesBurned}</div>
+                    <button
+                      type="button"
+                      data-testid={`button-delete-activity-${a.id}`}
+                      onClick={() => deleteActivity.mutate(a.id)}
+                      disabled={deleteActivity.isPending}
+                      className="shrink-0 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity p-1"
+                      aria-label="Delete activity"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>

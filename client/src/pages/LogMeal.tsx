@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, Trash2, X, Search, Sparkles } from "lucide-react";
+import { Pencil, Trash2, X, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { insertMealSchema, MEAL_TYPES, type InsertMeal, type Meal } from "@share
 import { type Food, macrosForServing } from "@shared/foods";
 import { mealsForDate, todayStr } from "@/lib/calorieflow";
 import { MealChat, type NutritionEstimate } from "@/components/MealChat";
+import { MealNameAutocomplete } from "@/components/MealNameAutocomplete";
 
 const defaultValues: InsertMeal = {
   date: todayStr(),
@@ -38,34 +39,11 @@ export default function LogMeal() {
     defaultValues,
   });
 
-  const [foodQuery, setFoodQuery] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [servingIdx, setServingIdx] = useState<string>("0");
   const [grams, setGrams] = useState<number>(100);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAiEstimate, setIsAiEstimate] = useState(false);
-
-  const { data: foodResults = [] } = useQuery<Food[]>({
-    queryKey: ["/api/foods", { q: foodQuery }],
-    queryFn: async () => {
-      const res = await fetch(`/api/foods?q=${encodeURIComponent(foodQuery)}`, { credentials: "include" });
-      if (!res.ok) throw new Error(`${res.status}`);
-      return res.json();
-    },
-    enabled: showSuggestions,
-  });
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
 
   const computedMacros = useMemo(() => {
     if (!selectedFood) return null;
@@ -82,8 +60,6 @@ export default function LogMeal() {
 
   function pickFood(food: Food) {
     setSelectedFood(food);
-    setShowSuggestions(false);
-    setFoodQuery(food.name);
     form.setValue("name", food.name);
     setServingIdx("0");
     setGrams(food.servings[0].grams);
@@ -102,6 +78,16 @@ export default function LogMeal() {
     }
   }
 
+  function onPickHistory(item: { name: string; calories: number; proteins: number; carbs: number; fats: number }) {
+    form.setValue("name", item.name);
+    form.setValue("calories", item.calories);
+    form.setValue("proteins", item.proteins);
+    form.setValue("carbs", item.carbs);
+    form.setValue("fats", item.fats);
+    clearFood();
+    setIsAiEstimate(false);
+  }
+
   function onServingChange(value: string) {
     setServingIdx(value);
     if (!selectedFood) return;
@@ -116,7 +102,6 @@ export default function LogMeal() {
     form.setValue("proteins", estimate.proteins);
     form.setValue("carbs", estimate.carbs);
     form.setValue("fats", estimate.fats);
-    setFoodQuery(estimate.name);
     clearFood();
     setIsAiEstimate(true);
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
@@ -132,7 +117,6 @@ export default function LogMeal() {
   const resetForm = () => {
     setEditingId(null);
     form.reset(defaultValues);
-    setFoodQuery("");
     clearFood();
     setIsAiEstimate(false);
   };
@@ -175,7 +159,6 @@ export default function LogMeal() {
       carbs: meal.carbs,
       fats: meal.fats,
     });
-    setFoodQuery(meal.name);
     clearFood();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -294,67 +277,34 @@ export default function LogMeal() {
                     />
                   </div>
 
-                  <div ref={suggestionsRef} className="relative">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Food</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#424843]" />
-                              <Input
-                                placeholder="Search foods (e.g. chicken, oats, banana)..."
-                                autoComplete="off"
-                                data-testid="input-meal-name"
-                                {...field}
-                                value={field.value}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  setFoodQuery(e.target.value);
-                                  setShowSuggestions(true);
-                                  setIsAiEstimate(false);
-                                  if (selectedFood && e.target.value !== selectedFood.name) {
-                                    clearFood(true);
-                                  }
-                                }}
-                                onFocus={() => setShowSuggestions(true)}
-                                className="pl-9"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {showSuggestions && foodResults.length > 0 && (
-                      <div
-                        data-testid="list-food-suggestions"
-                        className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded border border-[#c0cdd14c] bg-white shadow-lg"
-                      >
-                        {foodResults.map((f) => (
-                          <button
-                            type="button"
-                            key={f.id}
-                            data-testid={`suggestion-food-${f.id}`}
-                            onClick={() => pickFood(f)}
-                            className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-[#f4f3ef]"
-                          >
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-[#1a1c1a]">{f.name}</p>
-                              <p className="text-xs text-[#424843]">
-                                {f.category} · {f.per100g.calories} kcal / 100 g
-                              </p>
-                            </div>
-                            <span className="shrink-0 text-xs text-[#475C65]">
-                              P {f.per100g.proteins}g · C {f.per100g.carbs}g · F {f.per100g.fats}g
-                            </span>
-                          </button>
-                        ))}
-                      </div>
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Food</FormLabel>
+                        <FormControl>
+                          <MealNameAutocomplete
+                            value={field.value}
+                            onChange={(v) => {
+                              field.onChange(v);
+                              setIsAiEstimate(false);
+                            }}
+                            onPickHistory={onPickHistory}
+                            onPickFood={(food) => {
+                              pickFood(food);
+                            }}
+                            onClearFood={() => {
+                              if (selectedFood) clearFood(true);
+                            }}
+                            disabled={isPending}
+                            placeholder="Search foods or past meals…"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
+                  />
 
                   {selectedFood && (
                     <div

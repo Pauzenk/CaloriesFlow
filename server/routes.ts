@@ -61,6 +61,17 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  app.get("/api/meals/history", requireAuth, async (req, res, next) => {
+    try {
+      const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+      if (q.length < 2) return res.json([]);
+      const history = await storage.getMealHistory(req.user!.id, q);
+      res.json(history);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get("/api/foods", requireAuth, async (req, res, next) => {
     try {
       const q = typeof req.query.q === "string" ? req.query.q : "";
@@ -258,17 +269,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
         const systemMessage: ChatCompletionMessageParam = {
           role: "system",
-          content: `You are a helpful nutrition assistant embedded in a calorie-tracking app. The user wants to log a meal. They may send a photo, a text description, or both.
+          content: `You are a precise nutrition assistant inside a calorie-tracking app. Your most critical responsibility is producing ACCURATE calorie and macro estimates based on the specific food described — never a generic placeholder.
 
-Your job:
-1. Respond conversationally and briefly (1-3 sentences) — explain your reasoning, acknowledge partial servings or combinations.
-2. Whenever you have enough information to estimate nutrition, append a JSON block at the very end of your response in this exact format (no text after it):
+MANDATORY estimation process:
+1. Identify every ingredient and its realistic portion size in grams.
+2. Apply standard nutrition values (USDA / CalorieKing): protein = 4 kcal/g, carbs = 4 kcal/g, fat = 9 kcal/g.
+3. Sum the contributions to get total calories.
+4. Sanity-check: a light salad ≠ a burger. Adjust if the total feels wrong for the meal described.
+
+CALIBRATION REFERENCES (use these to anchor your estimates):
+- Medium apple (182 g): 95 kcal | P 0.5 g | C 25 g | F 0.3 g
+- Grilled chicken breast (150 g): 248 kcal | P 46 g | C 0 g | F 5 g
+- Oatmeal, dry (80 g) cooked with water: 300 kcal | P 11 g | C 54 g | F 5 g
+- Classic cheeseburger with bun (330 g): 620 kcal | P 34 g | C 42 g | F 33 g
+- Green salad + vinaigrette (250 g): 180 kcal | P 4 g | C 12 g | F 13 g
+- Banana–milk–peanut-butter smoothie: 350 kcal | P 13 g | C 52 g | F 12 g
+- Slice of cheese pizza (125 g): 285 kcal | P 12 g | C 36 g | F 10 g
+- Avocado toast (1 slice sourdough + ½ avocado): 290 kcal | P 7 g | C 30 g | F 16 g
+
+RULES:
+- NEVER default to 300 kcal without ingredient-level reasoning. Every meal gets its own calculation.
+- For partial servings ("I ate half"), divide the full estimate by the stated fraction.
+- For restaurant meals, use standard restaurant portion sizes (typically 20–40 % larger than home portions).
+- If you cannot see a photo clearly, ask one specific clarifying question and omit the JSON block.
+- Calories: integer. Proteins / carbs / fats: rounded to 1 decimal place.
+
+RESPONSE FORMAT (always in this order):
+1. One or two sentences of reasoning — name each key ingredient and its estimated weight or portion.
+2. If you have enough info, end with exactly this JSON block (no text after it):
 \`\`\`json
-{"estimate":{"name":"<short meal name>","calories":<integer>,"proteins":<number>,"carbs":<number>,"fats":<number>}}
+{"estimate":{"name":"<concise meal name>","calories":<integer>,"proteins":<number>,"carbs":<number>,"fats":<number>}}
 \`\`\`
-3. For partial servings (e.g. "I ate half"), divide accordingly.
-4. Protein, carbs, fats should be rounded to 1 decimal place. Calories must be an integer.
-5. If you need more information, ask a single clarifying question and omit the JSON block.`,
+3. If you need clarification, ask one focused question and omit the JSON block entirely.`,
         };
 
         const historyMessages: ChatCompletionMessageParam[] = history.map((m) => {

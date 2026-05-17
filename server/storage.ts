@@ -15,6 +15,14 @@ import {
 import { db } from "./db";
 import { and, eq, gte, lte, desc, asc } from "drizzle-orm";
 
+export type MealHistoryItem = {
+  name: string;
+  calories: number;
+  proteins: number;
+  carbs: number;
+  fats: number;
+};
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -27,6 +35,7 @@ export interface IStorage {
   createMeal(userId: string, data: InsertMeal): Promise<Meal>;
   updateMeal(userId: string, id: string, data: InsertMeal): Promise<Meal | undefined>;
   deleteMeal(userId: string, id: string): Promise<boolean>;
+  getMealHistory(userId: string, q: string): Promise<MealHistoryItem[]>;
 
   listWeights(userId: string): Promise<Weight[]>;
   createWeight(userId: string, data: InsertWeight): Promise<Weight>;
@@ -109,6 +118,34 @@ export class DbStorage implements IStorage {
       .where(and(eq(meals.id, id), eq(meals.userId, userId)))
       .returning();
     return result.length > 0;
+  }
+
+  async getMealHistory(userId: string, q: string): Promise<MealHistoryItem[]> {
+    const allMeals = await db
+      .select()
+      .from(meals)
+      .where(eq(meals.userId, userId))
+      .orderBy(desc(meals.date), desc(meals.createdAt));
+
+    const seen = new Set<string>();
+    const results: MealHistoryItem[] = [];
+    const query = q.toLowerCase();
+
+    for (const meal of allMeals) {
+      const nameLower = meal.name.toLowerCase();
+      if (!nameLower.includes(query)) continue;
+      if (seen.has(nameLower)) continue;
+      seen.add(nameLower);
+      results.push({
+        name: meal.name,
+        calories: meal.calories,
+        proteins: meal.proteins,
+        carbs: meal.carbs,
+        fats: meal.fats,
+      });
+      if (results.length >= 8) break;
+    }
+    return results;
   }
 
   async listWeights(userId: string) {

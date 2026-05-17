@@ -218,9 +218,9 @@ export default function Dashboard() {
                   <button
                     type="button"
                     data-testid="button-add-meal"
-                    className="w-full border border-[#9e4515]/40 py-2.5 text-xs uppercase tracking-widest text-[#9e4515] hover:border-[#9e4515] hover:bg-[#9e4515]/5 transition-all"
+                    className="w-full bg-[#1C1714] text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Plus className="inline h-3 w-3 mr-1" /> Add entry
+                    <Plus className="h-3.5 w-3.5" /> Add entry
                   </button>
                 </Link>
               </div>

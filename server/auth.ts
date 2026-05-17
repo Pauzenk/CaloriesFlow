@@ -134,7 +134,7 @@ export function setupAuth(app: Express) {
 
     app.get(
       "/api/auth/google/callback",
-      passport.authenticate("google", { failureRedirect: "/auth?error=google_failed" }),
+      passport.authenticate("google", { failureRedirect: "/login?error=google_failed" }),
       (_req, res) => {
         res.redirect("/");
       },

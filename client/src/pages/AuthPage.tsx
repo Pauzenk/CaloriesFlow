@@ -59,7 +59,7 @@ export default function AuthPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("error") === "google_failed") {
       toast({ title: "Google sign-in failed", description: "Please try again or use email/password.", variant: "destructive" });
-      window.history.replaceState({}, "", "/auth");
+      window.history.replaceState({}, "", "/login");
     }
   }, [toast]);
 

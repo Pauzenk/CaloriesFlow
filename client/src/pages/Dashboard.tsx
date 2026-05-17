@@ -220,7 +220,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     data-testid="button-add-meal"
-                    className="w-full border border-[#1C1714]/30 py-2.5 text-xs uppercase tracking-widest opacity-60 hover:opacity-100 hover:border-[#1C1714] transition-all"
+                    className="w-full border border-[#9e4515]/40 py-2.5 text-xs uppercase tracking-widest text-[#9e4515] hover:border-[#9e4515] hover:bg-[#9e4515]/5 transition-all"
                   >
                     <Plus className="inline h-3 w-3 mr-1" /> Add entry
                   </button>

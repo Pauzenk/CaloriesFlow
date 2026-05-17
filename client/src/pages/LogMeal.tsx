@@ -127,6 +127,9 @@ function InlineChat({ onApplyEstimate }: { onApplyEstimate: (e: NutritionEstimat
         ...prev,
         { id: nextId(), role: "assistant", text: data.reply, estimate: data.estimate, activityEstimate: data.activityEstimate },
       ]);
+      if (data.activityEstimate) {
+        logActivity.mutate(data.activityEstimate);
+      }
     },
     onError: (err: unknown) => {
       toast({ title: "Chat failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });

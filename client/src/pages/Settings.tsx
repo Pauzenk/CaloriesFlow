@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,9 +28,18 @@ const ACTIVITY_DESCRIPTIONS: Record<ActivityLevel, string> = {
   very_active: "Hard exercise 6–7 days/week",
 };
 
+const DURATION_MONTHS = [1, 2, 3, 4, 5] as const;
+
+function calcGoalDateFromMonths(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
 export default function SettingsPage() {
   const { toast } = useToast();
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
 
   const form = useForm<UpsertSettings>({
     resolver: zodResolver(upsertSettingsSchema),
@@ -44,6 +53,7 @@ export default function SettingsPage() {
       sexAtBirth: null,
       goalWeightKg: null,
       activityLevel: "sedentary",
+      goalDurationMonths: null,
     },
   });
 
@@ -59,7 +69,11 @@ export default function SettingsPage() {
         sexAtBirth: (settings.sexAtBirth as "male" | "female" | null) ?? null,
         goalWeightKg: settings.goalWeightKg ?? null,
         activityLevel: (settings.activityLevel as ActivityLevel) ?? "sedentary",
+        goalDurationMonths: settings.goalDurationMonths ?? null,
       });
+      if (settings.goalDurationMonths) {
+        setSelectedDuration(settings.goalDurationMonths);
+      }
     }
   }, [settings]);
 
@@ -67,6 +81,7 @@ export default function SettingsPage() {
   const watchedAge = form.watch("ageYears");
   const watchedSex = form.watch("sexAtBirth");
   const watchedStartWeight = form.watch("startingWeightKg");
+  const watchedGoalWeight = form.watch("goalWeightKg");
   const watchedActivityLevel = form.watch("activityLevel");
 
   const estimatedTDEE = useMemo(() => {
@@ -75,6 +90,24 @@ export default function SettingsPage() {
     const multiplier = ACTIVITY_MULTIPLIERS[(watchedActivityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
     return Math.round(computeTDEE(bmr, multiplier));
   }, [watchedHeight, watchedAge, watchedSex, watchedStartWeight, watchedActivityLevel]);
+
+  function calcGoalForDuration(months: number): number | null {
+    if (!estimatedTDEE || !watchedGoalWeight || !watchedStartWeight) return null;
+    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+    if (remaining <= 0) return estimatedTDEE;
+    const totalDays = months * 30.44;
+    const dailyDeficit = (remaining * 7700) / totalDays;
+    return Math.max(1200, Math.round(estimatedTDEE - dailyDeficit));
+  }
+
+  function handleDurationSelect(months: number) {
+    setSelectedDuration(months);
+    const newGoal = calcGoalForDuration(months);
+    if (newGoal !== null) {
+      form.setValue("dailyCalorieGoal", newGoal);
+    }
+    form.setValue("goalDurationMonths", months);
+  }
 
   const save = useMutation({
     mutationFn: async (data: UpsertSettings) => {
@@ -93,19 +126,76 @@ export default function SettingsPage() {
       }),
   });
 
+  const canComputeTarget = !!(estimatedTDEE && watchedGoalWeight && watchedStartWeight);
+
   return (
     <AppShell title="Settings">
       <div className="w-full font-['Space_Mono'] text-[#1C1714]">
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => save.mutate(data))}>
 
-            {/* ── Grid layout: two columns on wide screens ── */}
             <div className="grid grid-cols-1 gap-10 xl:grid-cols-[1fr_1fr] xl:gap-16">
 
               {/* ── Left column ── */}
               <div className="space-y-10">
 
-                {/* Daily goal */}
+                {/* Daily Target (goal duration picker) */}
+                <div>
+                  <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
+                    Daily Target
+                  </div>
+                  <p className="text-[10px] opacity-50 mb-4 mt-2">
+                    Pick how long you want to reach your goal — the calorie target updates automatically.
+                  </p>
+                  {canComputeTarget ? (
+                    <div>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {DURATION_MONTHS.map((m) => {
+                          const suggested = calcGoalForDuration(m);
+                          const isSelected = selectedDuration === m;
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              data-testid={`button-duration-${m}`}
+                              onClick={() => handleDurationSelect(m)}
+                              className={`flex flex-col items-start px-4 py-2.5 text-xs border transition-colors ${
+                                isSelected
+                                  ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
+                                  : "border-[#1C1714]/30 hover:border-[#1C1714] hover:bg-[#1C1714]/5"
+                              }`}
+                            >
+                              <span className="uppercase tracking-widest">{m} mo</span>
+                              {suggested !== null && (
+                                <span className={`text-[9px] tabular-nums mt-0.5 ${isSelected ? "opacity-70" : "opacity-50"}`}>
+                                  {suggested.toLocaleString()} kcal
+                                </span>
+                              )}
+                              <span className={`text-[9px] mt-0.5 ${isSelected ? "opacity-50" : "opacity-35"}`}>
+                                by {calcGoalDateFromMonths(m)}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedDuration !== null && (
+                        <div className="text-[10px] opacity-50 mb-1">
+                          Daily goal updated to{" "}
+                          <span className="opacity-100 font-bold">
+                            {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} kcal
+                          </span>{" "}
+                          · save to apply.
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] opacity-40">
+                      Add body metrics and goal weight to enable automatic target calculation.
+                    </p>
+                  )}
+                </div>
+
+                {/* Daily goal (manual override) */}
                 <div>
                   <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
                     Daily Goal
@@ -332,43 +422,32 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* TDEE + suggested goal */}
-                {estimatedTDEE !== null && (
-                  <div className="border border-[#1C1714] p-5">
-                    <div className="text-xs uppercase tracking-widest opacity-60 mb-4 pb-2 border-b border-dashed border-[#1C1714]/20">
-                      Calculated Estimates
-                    </div>
-                    <div className="grid grid-cols-2 gap-6 mb-4">
-                      <div data-testid="panel-tdee">
-                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1">Maintenance</div>
-                        <div className="text-3xl tabular-nums" data-testid="text-tdee">
-                          {estimatedTDEE.toLocaleString()}
-                        </div>
-                        <div className="text-[10px] opacity-40 mt-0.5">kcal / day</div>
+                  {/* Maintenance + suggested display (read-only, no "Use This") */}
+                  {estimatedTDEE !== null && (
+                    <div className="mt-5 border border-[#1C1714] p-4">
+                      <div className="text-xs uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-dashed border-[#1C1714]/20">
+                        Calculated Estimates
                       </div>
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1">Suggested goal</div>
-                        <div className="text-3xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">
-                          {(estimatedTDEE - 500).toLocaleString()}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div data-testid="panel-tdee">
+                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">Maintenance</div>
+                          <div className="text-2xl tabular-nums" data-testid="text-tdee">
+                            {estimatedTDEE.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] opacity-40 mt-0.5">kcal / day</div>
                         </div>
-                        <div className="text-[10px] opacity-40 mt-0.5">kcal / day</div>
+                        <div data-testid="panel-suggested-goal">
+                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">500 kcal deficit</div>
+                          <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">
+                            {(estimatedTDEE - 500).toLocaleString()}
+                          </div>
+                          <div className="text-[10px] opacity-40 mt-0.5">kcal / day</div>
+                        </div>
                       </div>
                     </div>
-                    <div className="pt-3 border-t border-dashed border-[#1C1714]/20 flex items-center justify-between">
-                      <div className="text-[10px] opacity-40">TDEE − 500 kcal · ~0.5 kg/week loss</div>
-                      <button
-                        type="button"
-                        data-testid="button-use-suggested-goal"
-                        onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
-                        className="text-xs uppercase tracking-widest border border-[#1C1714]/40 px-4 py-1.5 hover:border-[#1C1714] hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors"
-                      >
-                        Use this
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
               </div>
             </div>

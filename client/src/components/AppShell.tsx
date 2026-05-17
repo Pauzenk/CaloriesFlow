@@ -28,7 +28,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     <main className="min-h-screen bg-[#F2EDE7]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
         {/* Desktop sidebar */}
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-[#D4CFC8] bg-[#ecebed] md:flex">
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-[#1C1714]/10 bg-[#F2EDE7] md:flex">
           <div className="flex h-full flex-col px-4 py-6">
             <header className="ml-2 flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#3c3a40] text-white">
@@ -52,8 +52,8 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                           data-testid={`link-nav-${item.label.toLowerCase()}`}
                           className={`flex h-10 w-full items-center gap-3 px-3 text-left transition-colors ${
                             active
-                              ? "border-l-2 border-[#3c3a40] bg-[#dddce0] text-[#1C1714]"
-                              : "border-l-2 border-transparent text-[#6B6560] hover:bg-[#e3e2e8] hover:text-[#1C1714]"
+                              ? "border-l-2 border-[#1C1714] bg-[#1C1714]/8 text-[#1C1714]"
+                              : "border-l-2 border-transparent text-[#1C1714]/50 hover:bg-[#1C1714]/5 hover:text-[#1C1714]"
                           }`}
                         >
                           <Icon className="h-4 w-4 shrink-0" />
@@ -117,7 +117,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#D4CFC8] bg-[#ecebed] py-1.5 md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#1C1714]/10 bg-[#F2EDE7] py-1.5 md:hidden">
         {navItems.map((item) => {
           const active = location === item.path;
           const Icon = item.icon;

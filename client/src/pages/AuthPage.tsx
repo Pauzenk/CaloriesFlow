@@ -60,13 +60,13 @@ export default function AuthPage() {
   });
 
   return (
-    <main className="font-['Space_Mono'] min-h-screen bg-[#F2EDE7] px-4 py-8 text-[#1C1714]">
+    <main className="font-['Space_Mono'] min-h-screen bg-[#F0EEF8] px-4 py-8 text-[#1A1B2E]">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-0 md:grid-cols-2">
 
         {/* Left brand panel */}
-        <div className="hidden flex-col bg-[#1C1714] p-10 text-[#F2EDE7] md:flex h-full">
+        <div className="hidden flex-col bg-[#1A1B2E] p-10 text-[#F0EEF8] md:flex h-full">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center border border-[#F2EDE7]/20">
+            <div className="flex h-9 w-9 items-center justify-center border border-[#F0EEF8]/20">
               <Leaf className="h-4 w-4" />
             </div>
             <span className="text-sm uppercase tracking-widest opacity-70">CalorieFlow</span>
@@ -95,17 +95,17 @@ export default function AuthPage() {
         </div>
 
         {/* Right auth panel */}
-        <div className="border border-[#1C1714] bg-[#F2EDE7]">
+        <div className="border border-[#1A1B2E] bg-[#F0EEF8]">
           {/* Mobile logo */}
-          <div className="flex items-center gap-3 border-b border-[#1C1714]/20 px-6 py-4 md:hidden">
-            <div className="flex h-8 w-8 items-center justify-center bg-[#AD3419] text-[#F2EDE7]">
+          <div className="flex items-center gap-3 border-b border-[#1A1B2E]/20 px-6 py-4 md:hidden">
+            <div className="flex h-8 w-8 items-center justify-center bg-[#6B5FC0] text-[#F0EEF8]">
               <Leaf className="h-4 w-4" />
             </div>
             <span className="text-sm uppercase tracking-widest opacity-70">CalorieFlow</span>
           </div>
 
           {/* Tab switcher */}
-          <div className="flex border-b-2 border-[#1C1714]">
+          <div className="flex border-b-2 border-[#1A1B2E]">
             {(["login", "register"] as const).map((t) => (
               <button
                 key={t}
@@ -114,7 +114,7 @@ export default function AuthPage() {
                 onClick={() => setTab(t)}
                 className={`flex-1 py-4 text-xs uppercase tracking-widest transition-colors ${
                   tab === t
-                    ? "bg-[#1C1714] text-[#F2EDE7]"
+                    ? "bg-[#1A1B2E] text-[#F0EEF8]"
                     : "opacity-40 hover:opacity-70"
                 }`}
               >
@@ -138,7 +138,7 @@ export default function AuthPage() {
                             type="email"
                             autoComplete="email"
                             data-testid="input-login-email"
-                            className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
                             {...field}
                           />
                         </FormControl>
@@ -157,7 +157,7 @@ export default function AuthPage() {
                             type="password"
                             autoComplete="current-password"
                             data-testid="input-login-password"
-                            className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
                             {...field}
                           />
                         </FormControl>
@@ -169,7 +169,7 @@ export default function AuthPage() {
                     type="submit"
                     disabled={login.isPending}
                     data-testid="button-submit-login"
-                    className="w-full border-2 border-[#AD3419] bg-[#AD3419] py-3 text-xs uppercase tracking-widest text-[#F2EDE7] hover:bg-[#8A2913] hover:border-[#8A2913] transition-colors disabled:opacity-50"
+                    className="w-full border-2 border-[#6B5FC0] bg-[#6B5FC0] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#5548A0] hover:border-[#5548A0] transition-colors disabled:opacity-50"
                   >
                     {login.isPending ? "Logging in…" : "Log in"}
                   </button>
@@ -188,7 +188,7 @@ export default function AuthPage() {
                           <Input
                             autoComplete="name"
                             data-testid="input-register-name"
-                            className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
                             {...field}
                           />
                         </FormControl>
@@ -207,7 +207,7 @@ export default function AuthPage() {
                             type="email"
                             autoComplete="email"
                             data-testid="input-register-email"
-                            className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
                             {...field}
                           />
                         </FormControl>
@@ -226,7 +226,7 @@ export default function AuthPage() {
                             type="password"
                             autoComplete="new-password"
                             data-testid="input-register-password"
-                            className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                            className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
                             {...field}
                           />
                         </FormControl>
@@ -238,7 +238,7 @@ export default function AuthPage() {
                     type="submit"
                     disabled={register.isPending}
                     data-testid="button-submit-register"
-                    className="w-full border-2 border-[#AD3419] bg-[#AD3419] py-3 text-xs uppercase tracking-widest text-[#F2EDE7] hover:bg-[#8A2913] hover:border-[#8A2913] transition-colors disabled:opacity-50"
+                    className="w-full border-2 border-[#6B5FC0] bg-[#6B5FC0] py-3 text-xs uppercase tracking-widest text-[#F0EEF8] hover:bg-[#5548A0] hover:border-[#5548A0] transition-colors disabled:opacity-50"
                   >
                     {register.isPending ? "Creating account…" : "Create account"}
                   </button>

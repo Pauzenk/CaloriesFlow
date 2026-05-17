@@ -205,28 +205,28 @@ export default function ProgressPage() {
 
   return (
     <AppShell title="Progress">
-      <div className="font-['Space_Mono'] text-[#1C1714] space-y-0">
+      <div className="font-['Space_Mono'] text-[#1A1B2E] space-y-0">
 
         {/* ══ ROW 1: Calorie chart + Journey panel ══ */}
-        <div className="grid grid-cols-1 gap-0 border border-[#1C1714] xl:grid-cols-[1fr_300px]">
+        <div className="grid grid-cols-1 gap-0 border border-[#1A1B2E] xl:grid-cols-[1fr_300px]">
 
           {/* Left: calorie chart */}
-          <div className="border-b border-[#1C1714] xl:border-b-0 xl:border-r xl:border-[#1C1714]">
+          <div className="border-b border-[#1A1B2E] xl:border-b-0 xl:border-r xl:border-[#1A1B2E]">
             {/* header */}
-            <div className="flex flex-col gap-3 border-b border-[#1C1714]/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 border-b border-[#1A1B2E]/20 px-6 py-4 md:flex-row md:items-center md:justify-between">
               <p className="text-xs uppercase tracking-widest opacity-60">Calorie Intake</p>
               <ToggleGroup
                 type="single"
                 value={period}
                 onValueChange={(v) => v && setPeriod(v as Period)}
-                className="h-8 border border-[#1C1714]/30 p-0.5"
+                className="h-8 border border-[#1A1B2E]/30 p-0.5"
               >
                 {(["day", "week", "month"] as const).map((p) => (
                   <ToggleGroupItem
                     key={p}
                     value={p}
                     data-testid={`toggle-period-${p}`}
-                    className="h-7 px-3 text-[10px] uppercase tracking-widest opacity-50 data-[state=on]:opacity-100 data-[state=on]:bg-[#1C1714] data-[state=on]:text-[#F2EDE7]"
+                    className="h-7 px-3 text-[10px] uppercase tracking-widest opacity-50 data-[state=on]:opacity-100 data-[state=on]:bg-[#1A1B2E] data-[state=on]:text-[#F0EEF8]"
                   >
                     {p}
                   </ToggleGroupItem>
@@ -238,11 +238,11 @@ export default function ProgressPage() {
               {estimatedTDEE && (
                 <div className="mb-4 flex flex-wrap items-center gap-5 text-[10px] uppercase tracking-widest opacity-50">
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#AD3419]" />
+                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#6B5FC0]" />
                     Goal ({goal.toLocaleString()} kcal)
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#AD3419]/40" />
+                    <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-[#6B5FC0]/40" />
                     Maint. ({estimatedTDEE.toLocaleString()} kcal)
                   </span>
                 </div>
@@ -250,38 +250,38 @@ export default function ProgressPage() {
               <div className="h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 4, right: 60, left: 0, bottom: 4 }}>
-                    <CartesianGrid strokeDasharray="none" vertical={false} stroke="#E8E3DC" strokeWidth={1} />
+                    <CartesianGrid strokeDasharray="none" vertical={false} stroke="#E4E0F2" strokeWidth={1} />
                     <XAxis
                       dataKey={period === "month" ? "shortLabel" : "label"}
                       tickLine={false}
-                      axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
-                      tick={{ fill: "#6B6560", fontSize: 9, fontFamily: "Space Mono", fontWeight: 700 }}
+                      axisLine={{ stroke: "#C8C4E0", strokeWidth: 1 }}
+                      tick={{ fill: "#6B6880", fontSize: 9, fontFamily: "Space Mono", fontWeight: 700 }}
                       interval={period === "month" ? 6 : 0}
                     />
                     <YAxis
                       tickLine={false}
-                      axisLine={{ stroke: "#D4CFC8", strokeWidth: 1 }}
-                      tick={{ fill: "#6B6560", fontSize: 9, fontFamily: "Space Mono" }}
+                      axisLine={{ stroke: "#C8C4E0", strokeWidth: 1 }}
+                      tick={{ fill: "#6B6880", fontSize: 9, fontFamily: "Space Mono" }}
                       width={36}
                     />
                     <Tooltip
-                      contentStyle={{ border: "1px solid #1C1714", borderRadius: 0, fontSize: 11, background: "#F2EDE7", fontFamily: "Space Mono" }}
+                      contentStyle={{ border: "1px solid #1A1B2E", borderRadius: 0, fontSize: 11, background: "#F0EEF8", fontFamily: "Space Mono" }}
                       formatter={(v: number) => [`${v} kcal`]}
                     />
-                    <ReferenceLine y={goal} stroke="#AD3419" strokeDasharray="5 4" strokeWidth={1.5}
-                      label={{ value: "Goal", position: "right", fill: "#AD3419", fontSize: 9, fontWeight: 700 }} />
+                    <ReferenceLine y={goal} stroke="#6B5FC0" strokeDasharray="5 4" strokeWidth={1.5}
+                      label={{ value: "Goal", position: "right", fill: "#6B5FC0", fontSize: 9, fontWeight: 700 }} />
                     {estimatedTDEE && (
-                      <ReferenceLine y={estimatedTDEE} stroke="#AD3419" strokeDasharray="5 4" strokeWidth={1} opacity={0.4}
-                        label={{ value: "Maint.", position: "right", fill: "#AD3419", fontSize: 9, fontWeight: 700 }} />
+                      <ReferenceLine y={estimatedTDEE} stroke="#6B5FC0" strokeDasharray="5 4" strokeWidth={1} opacity={0.4}
+                        label={{ value: "Maint.", position: "right", fill: "#6B5FC0", fontSize: 9, fontWeight: 700 }} />
                     )}
-                    <Bar dataKey="calories" fill="#1C1714" radius={0} />
+                    <Bar dataKey="calories" fill="#1A1B2E" radius={0} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
 
               {/* Stats strip */}
-              <div className="mt-4 border border-[#1C1714]/20">
-                <div className="grid grid-cols-3 divide-x divide-[#1C1714]/10 border-b border-[#1C1714]/10 md:grid-cols-5">
+              <div className="mt-4 border border-[#1A1B2E]/20">
+                <div className="grid grid-cols-3 divide-x divide-[#1A1B2E]/10 border-b border-[#1A1B2E]/10 md:grid-cols-5">
                   {[
                     { label: "Total", value: periodTotals.calories.toLocaleString(), testid: "text-period-total" },
                     { label: "Avg/day", value: avgPerDay.toLocaleString(), testid: "text-period-avg" },
@@ -291,11 +291,11 @@ export default function ProgressPage() {
                   ].map((s, i) => (
                     <div key={s.label} className={`px-3 py-2 text-center ${i >= 3 ? "hidden md:block" : ""}`}>
                       <p className="text-[9px] uppercase tracking-widest opacity-40">{s.label}</p>
-                      <p className="mt-0.5 text-sm tabular-nums text-[#AD3419]" data-testid={s.testid}>{s.value}</p>
+                      <p className="mt-0.5 text-sm tabular-nums text-[#6B5FC0]" data-testid={s.testid}>{s.value}</p>
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-4 divide-x divide-[#1C1714]/10">
+                <div className="grid grid-cols-4 divide-x divide-[#1A1B2E]/10">
                   {(["breakfast", "lunch", "dinner", "snack"] as const).map((type) => (
                     <div key={type} className="px-2 py-2 text-center">
                       <p className="text-[9px] uppercase tracking-widest opacity-40">{MEAL_LABELS[type]}</p>
@@ -310,7 +310,7 @@ export default function ProgressPage() {
           </div>
 
           {/* Right: Journey panel — keeps dark espresso tone */}
-          <div className="flex flex-col bg-[#1C1714] text-[#F2EDE7]">
+          <div className="flex flex-col bg-[#1A1B2E] text-[#F0EEF8]">
             <div className="border-b border-white/10 px-6 py-5">
               <div className="flex items-start justify-between">
                 <div>
@@ -466,11 +466,11 @@ export default function ProgressPage() {
         </div>
 
         {/* ══ ROW 2: Weight charts ══ */}
-        <div className="mt-6 grid grid-cols-1 gap-0 border border-[#1C1714] md:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-0 border border-[#1A1B2E] md:grid-cols-2">
 
           {/* Projection chart */}
-          <div className="border-b border-[#1C1714] md:border-b-0 md:border-r md:border-[#1C1714]">
-            <div className="border-b border-[#1C1714]/20 px-6 py-4">
+          <div className="border-b border-[#1A1B2E] md:border-b-0 md:border-r md:border-[#1A1B2E]">
+            <div className="border-b border-[#1A1B2E]/20 px-6 py-4">
               <p className="text-xs uppercase tracking-widest opacity-60">Future Projection</p>
               {canProject && projectedGoalDate && (
                 <p className="mt-1 text-[10px] opacity-40">
@@ -478,15 +478,15 @@ export default function ProgressPage() {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-4 border-b border-[#1C1714]/10 px-6 py-2 text-[10px] uppercase tracking-widest opacity-40">
+            <div className="flex items-center gap-4 border-b border-[#1A1B2E]/10 px-6 py-2 text-[10px] uppercase tracking-widest opacity-40">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-4 bg-[#AD3419]" /> Projected
+                <span className="inline-block h-2 w-4 bg-[#6B5FC0]" /> Projected
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#B5A89A]" /> Goal
+                <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#A89AC8]" /> Goal
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 bg-[#AD3419]/60" /> Actual
+                <span className="inline-block h-2 w-2 bg-[#6B5FC0]/60" /> Actual
               </span>
             </div>
             <div className="px-6 py-5">
@@ -494,29 +494,29 @@ export default function ProgressPage() {
                 <div className="h-48 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={projectionChartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="none" vertical={false} stroke="#E8E3DC" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#D4CFC8" }}
-                        tick={{ fill: "#6B6560", fontSize: 9, fontFamily: "Space Mono" }} interval="preserveStartEnd" />
-                      <YAxis tickLine={false} axisLine={{ stroke: "#D4CFC8" }}
-                        tick={{ fill: "#6B6560", fontSize: 9, fontFamily: "Space Mono" }} width={36}
+                      <CartesianGrid strokeDasharray="none" vertical={false} stroke="#E4E0F2" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#C8C4E0" }}
+                        tick={{ fill: "#6B6880", fontSize: 9, fontFamily: "Space Mono" }} interval="preserveStartEnd" />
+                      <YAxis tickLine={false} axisLine={{ stroke: "#C8C4E0" }}
+                        tick={{ fill: "#6B6880", fontSize: 9, fontFamily: "Space Mono" }} width={36}
                         tickFormatter={(v: number) => `${v.toFixed(0)}`} domain={["dataMin - 2", "dataMax + 2"]} />
-                      <Tooltip contentStyle={{ border: "1px solid #1C1714", borderRadius: 0, fontSize: 11, background: "#F2EDE7", fontFamily: "Space Mono" }}
+                      <Tooltip contentStyle={{ border: "1px solid #1A1B2E", borderRadius: 0, fontSize: 11, background: "#F0EEF8", fontFamily: "Space Mono" }}
                         formatter={(value: number, name: string) => [`${Number(value).toFixed(1)} kg`,
                           name === "estimated" ? "Projected" : name === "actual" ? "Actual" : "Goal"]} />
-                      <Line type="monotone" dataKey="estimated" stroke="#AD3419" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
-                      <Line type="monotone" dataKey="goal" stroke="#B5A89A" strokeWidth={1.5} strokeDasharray="5 5" dot={false} activeDot={false} />
-                      <Line type="monotone" dataKey="actual" stroke="#AD3419" strokeWidth={0}
-                        dot={{ r: 5, fill: "#AD3419", strokeWidth: 1.5, stroke: "#F2EDE7" }}
-                        activeDot={{ r: 6, fill: "#AD3419" }} connectNulls={false} />
+                      <Line type="monotone" dataKey="estimated" stroke="#6B5FC0" strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="goal" stroke="#A89AC8" strokeWidth={1.5} strokeDasharray="5 5" dot={false} activeDot={false} />
+                      <Line type="monotone" dataKey="actual" stroke="#6B5FC0" strokeWidth={0}
+                        dot={{ r: 5, fill: "#6B5FC0", strokeWidth: 1.5, stroke: "#F0EEF8" }}
+                        activeDot={{ r: 6, fill: "#6B5FC0" }} connectNulls={false} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               ) : !canProject ? (
-                <div className="flex h-40 items-center justify-center border border-dashed border-[#1C1714]/20">
+                <div className="flex h-40 items-center justify-center border border-dashed border-[#1A1B2E]/20">
                   <div className="text-center">
                     <p className="text-xs opacity-50">Set up body metrics to see projection</p>
                     <Link href="/settings">
-                      <button className="mt-3 flex items-center gap-1.5 border border-[#1C1714]/30 px-4 py-2 text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity mx-auto">
+                      <button className="mt-3 flex items-center gap-1.5 border border-[#1A1B2E]/30 px-4 py-2 text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity mx-auto">
                         <Settings2 className="h-3.5 w-3.5" /> Open Settings
                       </button>
                     </Link>
@@ -532,7 +532,7 @@ export default function ProgressPage() {
 
           {/* Actual weight chart */}
           <div>
-            <div className="border-b border-[#1C1714]/20 px-6 py-4">
+            <div className="border-b border-[#1A1B2E]/20 px-6 py-4">
               <p className="text-xs uppercase tracking-widest opacity-60">Actual Progress</p>
               <p className="mt-1 text-[10px] opacity-40">
                 {weights.length > 0
@@ -540,9 +540,9 @@ export default function ProgressPage() {
                   : "No weight entries yet"}
               </p>
             </div>
-            <div className="border-b border-[#1C1714]/10 px-6 py-2 text-[10px] uppercase tracking-widest opacity-40">
+            <div className="border-b border-[#1A1B2E]/10 px-6 py-2 text-[10px] uppercase tracking-widest opacity-40">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2 w-4 bg-[#AD3419]" /> Logged Weight
+                <span className="inline-block h-2 w-4 bg-[#6B5FC0]" /> Logged Weight
               </span>
             </div>
             <div className="px-6 py-5">
@@ -550,26 +550,26 @@ export default function ProgressPage() {
                 <div className="h-48 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={actualWeightChartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="none" vertical={false} stroke="#E8E3DC" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#D4CFC8" }}
-                        tick={{ fill: "#6B6560", fontSize: 9, fontFamily: "Space Mono" }} interval="preserveStartEnd" />
-                      <YAxis tickLine={false} axisLine={{ stroke: "#D4CFC8" }}
-                        tick={{ fill: "#6B6560", fontSize: 9, fontFamily: "Space Mono" }} width={36}
+                      <CartesianGrid strokeDasharray="none" vertical={false} stroke="#E4E0F2" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#C8C4E0" }}
+                        tick={{ fill: "#6B6880", fontSize: 9, fontFamily: "Space Mono" }} interval="preserveStartEnd" />
+                      <YAxis tickLine={false} axisLine={{ stroke: "#C8C4E0" }}
+                        tick={{ fill: "#6B6880", fontSize: 9, fontFamily: "Space Mono" }} width={36}
                         tickFormatter={(v: number) => `${v.toFixed(0)}`} domain={["dataMin - 1", "dataMax + 1"]} />
-                      <Tooltip contentStyle={{ border: "1px solid #1C1714", borderRadius: 0, fontSize: 11, background: "#F2EDE7", fontFamily: "Space Mono" }}
+                      <Tooltip contentStyle={{ border: "1px solid #1A1B2E", borderRadius: 0, fontSize: 11, background: "#F0EEF8", fontFamily: "Space Mono" }}
                         formatter={(v: number) => [`${v.toFixed(1)} kg`, "Weight"]} />
                       {settings?.goalWeightKg && (
-                        <ReferenceLine y={settings.goalWeightKg} stroke="#B5A89A" strokeDasharray="4 4" strokeWidth={1.5}
-                          label={{ value: "Goal", position: "right", fill: "#AD3419", fontSize: 9, fontWeight: 700 }} />
+                        <ReferenceLine y={settings.goalWeightKg} stroke="#A89AC8" strokeDasharray="4 4" strokeWidth={1.5}
+                          label={{ value: "Goal", position: "right", fill: "#6B5FC0", fontSize: 9, fontWeight: 700 }} />
                       )}
-                      <Line type="monotone" dataKey="weight" stroke="#AD3419" strokeWidth={2}
-                        dot={{ r: 4, fill: "#AD3419", strokeWidth: 1.5, stroke: "#F2EDE7" }}
-                        activeDot={{ r: 5, fill: "#AD3419" }} />
+                      <Line type="monotone" dataKey="weight" stroke="#6B5FC0" strokeWidth={2}
+                        dot={{ r: 4, fill: "#6B5FC0", strokeWidth: 1.5, stroke: "#F0EEF8" }}
+                        activeDot={{ r: 5, fill: "#6B5FC0" }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="flex h-48 flex-col items-center justify-center border border-dashed border-[#1C1714]/20">
+                <div className="flex h-48 flex-col items-center justify-center border border-dashed border-[#1A1B2E]/20">
                   <p className="text-xs opacity-50">
                     {actualWeightChartData.length === 1 ? "Log one more weight to see a trend" : "No weight logs yet"}
                   </p>
@@ -581,11 +581,11 @@ export default function ProgressPage() {
         </div>
 
         {/* ══ ROW 3: Weight history ledger ══ */}
-        <div className="mt-6 border border-[#1C1714]">
-          <div className="border-b-2 border-[#1C1714] px-6 py-4">
+        <div className="mt-6 border border-[#1A1B2E]">
+          <div className="border-b-2 border-[#1A1B2E] px-6 py-4">
             <div className="flex items-end justify-between">
               <p className="text-xs uppercase tracking-widest opacity-60">Weight History</p>
-              <span className="text-3xl tabular-nums text-[#AD3419]">
+              <span className="text-3xl tabular-nums text-[#6B5FC0]">
                 {totalLoss > 0 ? "+" : ""}{totalLoss.toFixed(1)}
                 <span className="text-base opacity-40 ml-1">kg</span>
               </span>
@@ -600,10 +600,10 @@ export default function ProgressPage() {
               weightDeltas.map((item, i) => (
                 <div
                   key={item.week}
-                  className="flex items-center justify-between py-3 border-b border-[#1C1714]/10 last:border-b-0"
+                  className="flex items-center justify-between py-3 border-b border-[#1A1B2E]/10 last:border-b-0"
                 >
                   <span className="text-[10px] uppercase tracking-widest opacity-50">{item.week}</span>
-                  <span className="text-sm tabular-nums text-[#AD3419]" data-testid={`text-week-${i}`}>
+                  <span className="text-sm tabular-nums text-[#6B5FC0]" data-testid={`text-week-${i}`}>
                     {item.delta > 0 ? "+" : ""}{item.delta.toFixed(1)} kg
                   </span>
                 </div>

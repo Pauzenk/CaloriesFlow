@@ -176,12 +176,12 @@ export default function LogMeal() {
 
   return (
     <AppShell title="Log Daily Meal">
-      <div className="font-['Space_Mono'] text-[#1C1714] grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,400px)]">
+      <div className="font-['Space_Mono'] text-[#1A1B2E] grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,400px)]">
 
         {/* ── Entry form ── */}
-        <div className="border border-[#1C1714]">
+        <div className="border border-[#1A1B2E]">
           {/* Header */}
-          <div className="flex items-start justify-between border-b-2 border-[#1C1714] px-6 py-5">
+          <div className="flex items-start justify-between border-b-2 border-[#1A1B2E] px-6 py-5">
             <div>
               <p className="text-[10px] uppercase tracking-widest opacity-60">
                 {editingId ? "Editing Entry" : "New Entry"}
@@ -206,7 +206,7 @@ export default function LogMeal() {
             {/* AI chat */}
             {!editingId && (
               <div>
-                <div className="text-xs uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-[#1C1714]/20">
+                <div className="text-xs uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-[#1A1B2E]/20">
                   AI Nutrition Chat
                 </div>
                 <MealChat
@@ -218,14 +218,14 @@ export default function LogMeal() {
 
             {/* Form */}
             <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-4 pb-2 border-b border-[#1C1714]/20">
+              <div className="text-xs uppercase tracking-widest opacity-60 mb-4 pb-2 border-b border-[#1A1B2E]/20">
                 Meal Details
               </div>
 
               {isAiEstimate && (
                 <div
                   data-testid="banner-ai-estimate"
-                  className="mb-4 flex items-start gap-2 border border-[#AD3419]/30 bg-[#AD3419]/5 px-4 py-3 text-sm text-[#AD3419]"
+                  className="mb-4 flex items-start gap-2 border border-[#6B5FC0]/30 bg-[#6B5FC0]/5 px-4 py-3 text-sm text-[#6B5FC0]"
                 >
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
@@ -250,7 +250,7 @@ export default function LogMeal() {
                           <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Meal type</FormLabel>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <FormControl>
-                              <SelectTrigger data-testid="select-meal-type" className="border-[#1C1714]/30 bg-transparent focus:ring-[#AD3419]">
+                              <SelectTrigger data-testid="select-meal-type" className="border-[#1A1B2E]/30 bg-transparent focus:ring-[#6B5FC0]">
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
@@ -276,7 +276,7 @@ export default function LogMeal() {
                             <Input
                               type="date"
                               data-testid="input-meal-date"
-                              className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                              className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
                               {...field}
                             />
                           </FormControl>
@@ -314,12 +314,12 @@ export default function LogMeal() {
                   {selectedFood && (
                     <div
                       data-testid="panel-serving-picker"
-                      className="grid grid-cols-1 gap-4 border border-dashed border-[#1C1714]/30 p-4 md:grid-cols-2"
+                      className="grid grid-cols-1 gap-4 border border-dashed border-[#1A1B2E]/30 p-4 md:grid-cols-2"
                     >
                       <div>
                         <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">Serving size</p>
                         <Select value={servingIdx} onValueChange={onServingChange}>
-                          <SelectTrigger className="border-[#1C1714]/30 bg-transparent" data-testid="select-serving-size">
+                          <SelectTrigger className="border-[#1A1B2E]/30 bg-transparent" data-testid="select-serving-size">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -343,7 +343,7 @@ export default function LogMeal() {
                             setGrams(v);
                             setServingIdx("custom");
                           }}
-                          className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419]"
+                          className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0]"
                           data-testid="input-serving-grams"
                         />
                       </div>
@@ -352,7 +352,7 @@ export default function LogMeal() {
 
                   {/* Macro fields */}
                   <div>
-                    <div className="text-[10px] uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-[#1C1714]/10">
+                    <div className="text-[10px] uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-[#1A1B2E]/10">
                       Nutrition
                     </div>
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -371,7 +371,7 @@ export default function LogMeal() {
                                   type="number"
                                   step={fname === "calories" ? "1" : "0.1"}
                                   data-testid={`input-meal-${fname}`}
-                                  className="border-[#1C1714]/30 bg-transparent focus-visible:ring-[#AD3419] tabular-nums"
+                                  className="border-[#1A1B2E]/30 bg-transparent focus-visible:ring-[#6B5FC0] tabular-nums"
                                   {...field}
                                   onChange={(e) => {
                                     field.onChange(e.target.valueAsNumber || 0);
@@ -391,7 +391,7 @@ export default function LogMeal() {
                     type="submit"
                     disabled={isPending}
                     data-testid="button-save-meal"
-                    className="w-full border-2 border-[#AD3419] bg-[#AD3419] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#8A2913] hover:border-[#8A2913] transition-colors disabled:opacity-50 md:w-auto md:px-12"
+                    className="w-full border-2 border-[#6B5FC0] bg-[#6B5FC0] py-3 text-xs uppercase tracking-widest text-white hover:bg-[#5548A0] hover:border-[#5548A0] transition-colors disabled:opacity-50 md:w-auto md:px-12"
                   >
                     {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
                   </button>
@@ -402,8 +402,8 @@ export default function LogMeal() {
         </div>
 
         {/* ── Today's ledger ── */}
-        <div className="border border-[#1C1714]">
-          <div className="border-b-2 border-[#1C1714] px-6 py-5">
+        <div className="border border-[#1A1B2E]">
+          <div className="border-b-2 border-[#1A1B2E] px-6 py-5">
             <p className="text-[10px] uppercase tracking-widest opacity-60">Today's Record</p>
             <div className="mt-1 flex justify-between items-end">
               <span className="text-xl tracking-tight">
@@ -426,10 +426,10 @@ export default function LogMeal() {
                   <div
                     key={m.id}
                     data-testid={`row-meal-${m.id}`}
-                    className="flex items-center py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/30 transition-colors group"
+                    className="flex items-center py-3 border-b border-[#1A1B2E]/10 hover:border-[#1A1B2E]/30 transition-colors group"
                   >
                     <div className="flex-1 min-w-0 pr-2">
-                      <div className="text-[10px] uppercase tracking-widest text-[#AD3419] mb-0.5">{m.mealType}</div>
+                      <div className="text-[10px] uppercase tracking-widest text-[#6B5FC0] mb-0.5">{m.mealType}</div>
                       <div className="text-sm truncate leading-tight">{m.name}</div>
                       <div className="text-[10px] opacity-40 mt-0.5 tabular-nums">
                         P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
@@ -440,21 +440,21 @@ export default function LogMeal() {
                       <button
                         data-testid={`button-edit-meal-${m.id}`}
                         onClick={() => startEdit(m)}
-                        className="h-7 w-7 flex items-center justify-center text-[#6B6560] hover:text-[#AD3419] transition-colors"
+                        className="h-7 w-7 flex items-center justify-center text-[#6B6880] hover:text-[#6B5FC0] transition-colors"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         data-testid={`button-delete-meal-${m.id}`}
                         onClick={() => del.mutate(m.id)}
-                        className="h-7 w-7 flex items-center justify-center text-[#6B6560] hover:text-[#AD3419] transition-colors"
+                        className="h-7 w-7 flex items-center justify-center text-[#6B6880] hover:text-[#6B5FC0] transition-colors"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
                 ))}
-                <div className="flex justify-between items-center py-3 border-b-2 border-[#1C1714]">
+                <div className="flex justify-between items-center py-3 border-b-2 border-[#1A1B2E]">
                   <span className="text-[10px] uppercase tracking-widest opacity-60">Subtotal</span>
                   <span className="tabular-nums text-sm font-bold">
                     {todays.reduce((a, m) => a + m.calories, 0)}

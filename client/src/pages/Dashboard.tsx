@@ -88,11 +88,11 @@ export default function Dashboard() {
   return (
     <AppShell title="Overview">
       <div
-        className="mx-auto w-full max-w-md font-['Space_Mono'] text-[#1C1714]"
+        className="mx-auto w-full max-w-md font-['Space_Mono'] text-[#1A1B2E]"
         data-testid="card-dashboard-feed"
       >
         {/* ── Sticky tally header ── */}
-        <div className="sticky top-0 z-10 bg-[#F2EDE7] pb-4 border-b-2 border-[#1C1714] mb-8">
+        <div className="sticky top-0 z-10 bg-[#F0EEF8] pb-4 border-b-2 border-[#1A1B2E] mb-8">
           <div className="flex justify-between items-end">
             <div>
               <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Today's Tally</p>
@@ -104,7 +104,7 @@ export default function Dashboard() {
             <div className="text-right">
               <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Remaining</p>
               <div
-                className={`text-3xl tracking-tighter leading-none ${totals.calories > goal ? "text-[#AD3419]" : ""}`}
+                className={`text-3xl tracking-tighter leading-none ${totals.calories > goal ? "text-[#6B5FC0]" : ""}`}
                 data-testid="text-remaining-calories"
               >
                 {totals.calories > goal ? `+${totals.calories - goal}` : remaining}
@@ -112,7 +112,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex justify-between border-t border-[#1C1714]/20 pt-3 mt-4 text-sm">
+          <div className="flex justify-between border-t border-[#1A1B2E]/20 pt-3 mt-4 text-sm">
             <div className="flex gap-4">
               <div>
                 <span className="opacity-50">PRO</span>{" "}
@@ -131,8 +131,8 @@ export default function Dashboard() {
         </div>
 
         {/* ── Journey block ── */}
-        <div className="border border-[#1C1714] p-4 mb-8 text-sm">
-          <div className="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-[#1C1714]/20">
+        <div className="border border-[#1A1B2E] p-4 mb-8 text-sm">
+          <div className="flex justify-between items-center mb-3 pb-3 border-b border-dashed border-[#1A1B2E]/20">
             <div className="uppercase tracking-widest text-xs opacity-[1]">Journey Statement</div>
             <div data-testid="text-journey-day">DAY {String(dayNum).padStart(2, "0")}</div>
           </div>
@@ -155,7 +155,7 @@ export default function Dashboard() {
             </div>
           </div>
           {canProject && (
-            <div className="mt-4 pt-3 border-t border-dashed border-[#1C1714]/20 flex items-center justify-between">
+            <div className="mt-4 pt-3 border-t border-dashed border-[#1A1B2E]/20 flex items-center justify-between">
               <div className="text-xs uppercase opacity-60">Progress</div>
               <div data-testid="text-goal-percent">{weightProgressPct}% Complete</div>
             </div>
@@ -164,14 +164,14 @@ export default function Dashboard() {
 
         {/* ── Ledger ── */}
         <div className="mb-12">
-          <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
+          <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1A1B2E]/20 pb-2">
             Ledger
           </div>
 
           {showOnboarding ? (
             <div className="py-8 text-center">
               <div className="flex justify-center mb-4">
-                <div className="flex h-12 w-12 items-center justify-center border border-[#1C1714]/20">
+                <div className="flex h-12 w-12 items-center justify-center border border-[#1A1B2E]/20">
                   <Leaf className="h-5 w-5 opacity-40" />
                 </div>
               </div>
@@ -181,7 +181,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   data-testid="button-onboarding-log"
-                  className="inline-flex items-center gap-2 border border-[#1C1714] px-6 py-2.5 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors"
+                  className="inline-flex items-center gap-2 border border-[#1A1B2E] px-6 py-2.5 text-xs uppercase tracking-widest hover:bg-[#1A1B2E] hover:text-[#F0EEF8] transition-colors"
                 >
                   <Plus className="h-3 w-3" /> Log Meal
                 </button>
@@ -194,7 +194,7 @@ export default function Dashboard() {
                   <div
                     key={m.id}
                     data-testid={`row-meal-${m.id}`}
-                    className="flex py-3 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors"
+                    className="flex py-3 border-b border-[#1A1B2E]/10 hover:border-[#1A1B2E]/40 transition-colors"
                   >
                     <div className="w-14 text-xs opacity-50 pt-0.5 shrink-0">
                       {fmtTime(m.createdAt)}
@@ -210,7 +210,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <div className="flex justify-between items-center py-4 border-b-2 border-[#1C1714]">
+              <div className="flex justify-between items-center py-4 border-b-2 border-[#1A1B2E]">
                 <div className="uppercase tracking-widest text-xs">Subtotal</div>
                 <div className="tabular-nums" data-testid="text-subtotal">{totals.calories}</div>
               </div>
@@ -220,7 +220,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     data-testid="button-add-meal"
-                    className="w-full border border-[#AD3419]/40 py-2.5 text-xs uppercase tracking-widest text-[#AD3419] hover:border-[#AD3419] hover:bg-[#AD3419]/5 transition-all"
+                    className="w-full border border-[#6B5FC0]/40 py-2.5 text-xs uppercase tracking-widest text-[#6B5FC0] hover:border-[#6B5FC0] hover:bg-[#6B5FC0]/5 transition-all"
                   >
                     <Plus className="inline h-3 w-3 mr-1" /> Add entry
                   </button>
@@ -246,7 +246,7 @@ export default function Dashboard() {
                     className="w-full max-w-[28px] transition-all relative group"
                     style={{
                       height: `${heightPct}%`,
-                      backgroundColor: overGoal ? "#AD3419" : "#1C1714",
+                      backgroundColor: overGoal ? "#6B5FC0" : "#1A1B2E",
                       opacity: d.calories === 0 ? 0.15 : isToday ? 1 : 0.55,
                     }}
                     data-testid={`bar-week-${d.label}`}
@@ -266,7 +266,7 @@ export default function Dashboard() {
               );
             })}
           </div>
-          <div className="border-t border-[#1C1714] mt-3 pt-2 text-center text-[10px] uppercase opacity-40 tracking-widest">
+          <div className="border-t border-[#1A1B2E] mt-3 pt-2 text-center text-[10px] uppercase opacity-40 tracking-widest">
             End of Record
           </div>
         </div>

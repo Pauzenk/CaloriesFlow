@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, Trash2, X, Sparkles } from "lucide-react";
+import { Pencil, Trash2, X, Sparkles, MessageSquare } from "lucide-react";
+import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { insertMealSchema, MEAL_TYPES, type InsertMeal, type Meal } from "@shared/schema";
 import { type Food, macrosForServing } from "@shared/foods";
 import { mealsForDate, todayStr } from "@/lib/calorieflow";
-import { MealChat, type NutritionEstimate } from "@/components/MealChat";
 import { MealNameAutocomplete } from "@/components/MealNameAutocomplete";
 
 const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40";
@@ -35,7 +35,6 @@ function fmtTime(iso: string): string {
 export default function LogMeal() {
   const { toast } = useToast();
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
-  const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({ queryKey: ["/api/ai/status"] });
 
   const form = useForm<InsertMeal>({
     resolver: zodResolver(insertMealSchema),
@@ -47,6 +46,23 @@ export default function LogMeal() {
   const [grams, setGrams] = useState<number>(100);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAiEstimate, setIsAiEstimate] = useState(false);
+
+  // Pre-fill from AI chat query params (e.g. /log?name=X&calories=500&proteins=30&carbs=40&fats=15)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get("name");
+    const calories = params.get("calories");
+    if (name && calories) {
+      form.setValue("name", name);
+      form.setValue("calories", Number(calories) || 0);
+      form.setValue("proteins", Number(params.get("proteins")) || 0);
+      form.setValue("carbs", Number(params.get("carbs")) || 0);
+      form.setValue("fats", Number(params.get("fats")) || 0);
+      setIsAiEstimate(true);
+      // Clean the URL without a reload
+      window.history.replaceState({}, "", "/log");
+    }
+  }, []);
 
   const computedMacros = useMemo(() => {
     if (!selectedFood) return null;
@@ -98,16 +114,6 @@ export default function LogMeal() {
     setGrams(selectedFood.servings[Number(value)].grams);
   }
 
-  function applyEstimate(estimate: NutritionEstimate) {
-    form.setValue("name", estimate.name);
-    form.setValue("calories", estimate.calories);
-    form.setValue("proteins", estimate.proteins);
-    form.setValue("carbs", estimate.carbs);
-    form.setValue("fats", estimate.fats);
-    clearFood();
-    setIsAiEstimate(true);
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-  }
 
   const onError = (err: unknown) =>
     toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
@@ -191,17 +197,19 @@ export default function LogMeal() {
               </div>
             </div>
 
-            {/* AI chat block */}
+            {/* Link to AI chat */}
             {!editingId && (
-              <div className="border border-[#1C1714] p-4 mb-8">
-                <div className="text-xs uppercase tracking-widest opacity-60 mb-3 pb-2 border-b border-dashed border-[#1C1714]/20">
-                  AI Nutrition Chat
+              <Link href="/chat">
+                <div className="border border-[#1C1714]/30 p-4 mb-8 flex items-center justify-between hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors cursor-pointer group">
+                  <div>
+                    <div className="text-xs uppercase tracking-widest opacity-60 mb-0.5">AI Nutrition Chat</div>
+                    <div className="text-sm opacity-50 group-hover:opacity-80 transition-opacity">
+                      Describe what you ate — AI estimates calories &amp; macros
+                    </div>
+                  </div>
+                  <MessageSquare className="h-5 w-5 opacity-30 group-hover:opacity-70 transition-opacity shrink-0 ml-4" />
                 </div>
-                <MealChat
-                  hasApiKey={aiStatus?.hasApiKey ?? true}
-                  onUseEstimate={applyEstimate}
-                />
-              </div>
+              </Link>
             )}
 
             {/* AI estimate banner */}

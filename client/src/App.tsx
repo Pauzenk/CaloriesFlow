@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import ProgressPage from "@/pages/Progress";
 import LogMeal from "@/pages/LogMeal";
 import SettingsPage from "@/pages/Settings";
+import ChatPage from "@/pages/Chat";
 import { useAuth } from "@/hooks/use-auth";
 
 function Protected({ component: Component }: { component: React.ComponentType }) {
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/" component={() => <Protected component={Dashboard} />} />
       <Route path="/progress" component={() => <Protected component={ProgressPage} />} />
       <Route path="/log" component={() => <Protected component={LogMeal} />} />
+      <Route path="/chat" component={() => <Protected component={ChatPage} />} />
       <Route path="/settings" component={() => <Protected component={SettingsPage} />} />
       <Route component={NotFound} />
     </Switch>

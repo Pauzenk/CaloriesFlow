@@ -197,7 +197,7 @@ export default function LogMeal() {
   return (
     <AppShell title="Log Daily Meal">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
-        <Card className="rounded-3xl border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -239,7 +239,7 @@ export default function LogMeal() {
               {isAiEstimate && (
                 <div
                   data-testid="banner-ai-estimate"
-                  className="mb-4 flex items-start gap-2 rounded-xl border border-[#476550]/30 bg-[#edf0eb] px-4 py-3 text-sm text-[#476550]"
+                  className="mb-4 flex items-start gap-2 rounded border border-[#475C65]/30 bg-[#e8eff1] px-4 py-3 text-sm text-[#475C65]"
                 >
                   <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>
@@ -331,7 +331,7 @@ export default function LogMeal() {
                     {showSuggestions && foodResults.length > 0 && (
                       <div
                         data-testid="list-food-suggestions"
-                        className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-[#c2c8c14c] bg-white shadow-lg"
+                        className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded border border-[#c2c8c14c] bg-white shadow-lg"
                       >
                         {foodResults.map((f) => (
                           <button
@@ -347,7 +347,7 @@ export default function LogMeal() {
                                 {f.category} · {f.per100g.calories} kcal / 100 g
                               </p>
                             </div>
-                            <span className="shrink-0 text-xs text-[#476550]">
+                            <span className="shrink-0 text-xs text-[#475C65]">
                               P {f.per100g.proteins}g · C {f.per100g.carbs}g · F {f.per100g.fats}g
                             </span>
                           </button>
@@ -359,10 +359,10 @@ export default function LogMeal() {
                   {selectedFood && (
                     <div
                       data-testid="panel-serving-picker"
-                      className="grid grid-cols-1 gap-4 rounded-2xl border border-[#c2c8c14c] bg-[#f4f3ef] p-4 md:grid-cols-2"
+                      className="grid grid-cols-1 gap-4 rounded border border-[#c2c8c14c] bg-[#f4f3ef] p-4 md:grid-cols-2"
                     >
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#476550]">
+                        <FormLabel className="text-xs uppercase tracking-wider text-[#475C65]">
                           Serving size
                         </FormLabel>
                         <Select value={servingIdx} onValueChange={onServingChange}>
@@ -380,7 +380,7 @@ export default function LogMeal() {
                         </Select>
                       </div>
                       <div>
-                        <FormLabel className="text-xs uppercase tracking-wider text-[#476550]">
+                        <FormLabel className="text-xs uppercase tracking-wider text-[#475C65]">
                           Amount (g)
                         </FormLabel>
                         <Input
@@ -493,7 +493,7 @@ export default function LogMeal() {
                   <Button
                     type="submit"
                     disabled={isPending}
-                    className="w-full bg-[#476550] hover:bg-[#3f5b47] md:w-auto"
+                    className="w-full bg-[#475C65] hover:bg-[#3d5059] md:w-auto"
                     data-testid="button-save-meal"
                   >
                     {isPending ? "Saving..." : editingId ? "Update meal" : "Save meal"}
@@ -504,13 +504,13 @@ export default function LogMeal() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <h3 className="text-xl font-bold text-[#1a1c1a]">Today's meals</h3>
             <p className="mt-1 text-sm text-[#424843]">{todays.length} entries</p>
             <ul className="mt-4 space-y-2">
               {todays.length === 0 && (
-                <li className="rounded-xl border border-dashed border-[#c2c8c14c] p-6 text-center text-sm text-[#424843]">
+                <li className="rounded border border-dashed border-[#c2c8c14c] p-6 text-center text-sm text-[#424843]">
                   Nothing logged yet today.
                 </li>
               )}
@@ -518,10 +518,10 @@ export default function LogMeal() {
                 <li
                   key={m.id}
                   data-testid={`row-meal-${m.id}`}
-                  className="flex items-center justify-between rounded-xl border border-[#c2c8c14c] bg-[#f4f3ef] px-4 py-3"
+                  className="flex items-center justify-between rounded border border-[#c2c8c14c] bg-[#f4f3ef] px-4 py-3"
                 >
                   <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wider text-[#476550]">{m.mealType}</p>
+                    <p className="text-xs uppercase tracking-wider text-[#475C65]">{m.mealType}</p>
                     <p className="truncate text-sm font-medium text-[#1a1c1a]">{m.name}</p>
                     <p className="text-xs text-[#424843]">
                       {m.calories} kcal · P {Math.round(m.proteins)}g · C {Math.round(m.carbs)}g · F {Math.round(m.fats)}g
@@ -533,7 +533,7 @@ export default function LogMeal() {
                       size="icon"
                       data-testid={`button-edit-meal-${m.id}`}
                       onClick={() => startEdit(m)}
-                      className="h-9 w-9 text-[#424843] hover:text-[#476550]"
+                      className="h-9 w-9 text-[#424843] hover:text-[#475C65]"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>

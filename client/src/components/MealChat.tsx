@@ -169,7 +169,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
     return (
       <div
         data-testid="chat-no-api-key"
-        className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800"
+        className="flex items-start gap-3 rounded border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800"
       >
         <Bot className="mt-0.5 h-4 w-4 shrink-0" />
         <p>AI chat is not configured. You can still log meals manually using the form below.</p>
@@ -182,9 +182,9 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
   return (
     <div data-testid="meal-chat" className="flex flex-col gap-0">
       {messages.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#c2c8c14c] bg-[#f4f3ef] px-5 py-7 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#476550]/10">
-            <Sparkles className="h-6 w-6 text-[#476550]" />
+        <div className="flex flex-col items-center gap-3 rounded border border-dashed border-[#c2c8c14c] bg-[#f4f3ef] px-5 py-7 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded bg-[#475C65]/10">
+            <Sparkles className="h-6 w-6 text-[#475C65]" />
           </div>
           <div>
             <p className="text-sm font-semibold text-[#1a1c1a]">Describe what you ate</p>
@@ -200,7 +200,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
       {messages.length > 0 && (
         <div
           data-testid="chat-thread"
-          className="flex max-h-80 flex-col gap-3 overflow-y-auto rounded-2xl border border-[#c2c8c14c] bg-[#f4f3ef] p-3"
+          className="flex max-h-80 flex-col gap-3 overflow-y-auto rounded border border-[#c2c8c14c] bg-[#f4f3ef] p-3"
         >
           {messages.map((msg) => (
             <div
@@ -210,7 +210,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
             >
               <div
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white ${
-                  msg.role === "user" ? "bg-[#476550]" : "bg-[#424843]"
+                  msg.role === "user" ? "bg-[#475C65]" : "bg-[#424843]"
                 }`}
               >
                 {msg.role === "user" ? (
@@ -224,15 +224,15 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
                   <img
                     src={msg.imageDataUrl}
                     alt="Attached photo"
-                    className="max-h-40 rounded-xl object-cover"
+                    className="max-h-40 rounded object-cover"
                     data-testid={`chat-photo-${msg.id}`}
                   />
                 )}
                 {msg.text && (
                   <div
-                    className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                    className={`rounded px-3.5 py-2.5 text-sm leading-relaxed ${
                       msg.role === "user"
-                        ? "bg-[#476550] text-white"
+                        ? "bg-[#475C65] text-white"
                         : "bg-white text-[#1a1c1a] shadow-sm"
                     }`}
                   >
@@ -242,9 +242,9 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
                 {msg.estimate && (
                   <div
                     data-testid={`chat-estimate-${msg.id}`}
-                    className="w-full rounded-2xl border border-[#476550]/20 bg-white p-3 shadow-sm"
+                    className="w-full rounded border border-[#475C65]/20 bg-white p-3 shadow-sm"
                   >
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#476550]">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#475C65]">
                       Nutrition estimate
                     </p>
                     <p className="mt-1 font-medium text-[#1a1c1a]">{msg.estimate.name}</p>
@@ -257,7 +257,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
                           { label: "Fats", value: `${msg.estimate.fats}`, unit: "g" },
                         ] as const
                       ).map(({ label, value, unit }) => (
-                        <div key={label} className="rounded-xl bg-[#f4f3ef] px-2 py-1.5">
+                        <div key={label} className="rounded bg-[#f4f3ef] px-2 py-1.5">
                           <p className="text-[10px] uppercase tracking-wider text-[#424843]">{label}</p>
                           <p className="text-sm font-bold text-[#1a1c1a]">
                             {value}
@@ -271,7 +271,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
                       size="sm"
                       data-testid={`button-use-estimate-${msg.id}`}
                       onClick={() => onUseEstimate(msg.estimate!)}
-                      className="mt-3 w-full gap-1.5 bg-[#476550] hover:bg-[#3f5b47] text-xs"
+                      className="mt-3 w-full gap-1.5 bg-[#475C65] hover:bg-[#3d5059] text-xs"
                     >
                       <CheckCheck className="h-3.5 w-3.5" />
                       Use this estimate
@@ -286,7 +286,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#424843] text-white">
                 <Bot className="h-3.5 w-3.5" />
               </div>
-              <div className="flex items-center gap-1 rounded-2xl bg-white px-4 py-3 shadow-sm">
+              <div className="flex items-center gap-1 rounded bg-white px-4 py-3 shadow-sm">
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#424843] [animation-delay:0ms]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#424843] [animation-delay:150ms]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#424843] [animation-delay:300ms]" />
@@ -303,7 +303,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
             src={pendingPhoto.dataUrl}
             alt="Photo to attach"
             data-testid="chat-pending-photo"
-            className="h-20 w-24 rounded-xl object-cover border border-[#c2c8c14c]"
+            className="h-20 w-24 rounded object-cover border border-[#c2c8c14c]"
           />
           <button
             type="button"
@@ -337,7 +337,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
         <div className="flex shrink-0 flex-col gap-1.5">
           <label
             data-testid="button-chat-attach-photo"
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[#c2c8c14c] bg-[#f4f3ef] text-[#476550] hover:bg-[#edf0eb] transition-colors"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-[#c2c8c14c] bg-[#f4f3ef] text-[#475C65] hover:bg-[#e8eff1] transition-colors"
             title="Attach photo"
           >
             <Camera className="h-4 w-4" />
@@ -357,7 +357,7 @@ export function MealChat({ onUseEstimate, hasApiKey }: MealChatProps) {
             onClick={send}
             disabled={!canSend}
             data-testid="button-chat-send"
-            className="h-9 w-9 bg-[#476550] hover:bg-[#3f5b47] disabled:opacity-40"
+            className="h-9 w-9 bg-[#475C65] hover:bg-[#3d5059] disabled:opacity-40"
           >
             <Send className="h-4 w-4" />
           </Button>

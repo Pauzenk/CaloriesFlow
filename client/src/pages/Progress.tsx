@@ -77,7 +77,7 @@ export default function ProgressPage() {
   return (
     <AppShell title="Progress">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-        <Card className="rounded-3xl border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
@@ -88,14 +88,14 @@ export default function ProgressPage() {
                 type="single"
                 value={period}
                 onValueChange={(v) => v && setPeriod(v as Period)}
-                className="h-11 rounded-full bg-[#eeeeea] p-1"
+                className="h-11 rounded bg-[#eeeeea] p-1"
               >
                 {(["day", "week", "month"] as const).map((p) => (
                   <ToggleGroupItem
                     key={p}
                     value={p}
                     data-testid={`toggle-period-${p}`}
-                    className="h-9 rounded-full px-4 text-sm font-bold text-[#1a1c1a] data-[state=on]:bg-white data-[state=on]:text-[#476550]"
+                    className="h-9 rounded px-4 text-sm font-bold text-[#1a1c1a] data-[state=on]:bg-white data-[state=on]:text-[#475C65]"
                   >
                     {p.charAt(0).toUpperCase() + p.slice(1)}
                   </ToggleGroupItem>
@@ -115,15 +115,15 @@ export default function ProgressPage() {
                   />
                   <YAxis tickLine={false} axisLine={false} tick={{ fill: "#424843", fontSize: 11 }} width={40} />
                   <Tooltip />
-                  <ReferenceLine y={goal} stroke="#adcfb5" strokeDasharray="4 4" label={{ value: "Goal", position: "right", fill: "#476550", fontSize: 11 }} />
-                  <Bar dataKey="calories" fill="#4f7159" radius={[6, 6, 0, 0]} />
+                  <ReferenceLine y={goal} stroke="#8aaab3" strokeDasharray="4 4" label={{ value: "Goal", position: "right", fill: "#475C65", fontSize: 11 }} />
+                  <Bar dataKey="calories" fill="#475C65" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden rounded-3xl border-0 bg-[#476550]">
+        <Card className="overflow-hidden rounded border-0 bg-[#475C65]">
           <CardContent className="p-6 md:p-8">
             <Sparkles className="h-7 w-7 text-white" />
             <h3 className="mt-2 text-2xl text-white">Day {dayNum} of your journey.</h3>
@@ -135,7 +135,7 @@ export default function ProgressPage() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="rounded-3xl border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <h3 className="text-xl font-bold text-[#1a1c1a]">Weight Trend</h3>
             <p className="mt-1 text-sm text-[#424843]">Track your weight over time</p>
@@ -163,7 +163,7 @@ export default function ProgressPage() {
                 type="submit"
                 data-testid="button-log-weight"
                 disabled={addWeight.isPending || !weightInput}
-                className="bg-[#476550] hover:bg-[#3f5b47]"
+                className="bg-[#475C65] hover:bg-[#3d5059]"
               >
                 Save
               </Button>
@@ -180,7 +180,7 @@ export default function ProgressPage() {
                     <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#424843", fontSize: 11 }} />
                     <YAxis domain={["dataMin - 1", "dataMax + 1"]} tickLine={false} axisLine={false} tick={{ fill: "#424843", fontSize: 11 }} width={40} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="kg" stroke="#476550" strokeWidth={2} dot={{ fill: "#476550", r: 4 }} />
+                    <Line type="monotone" dataKey="kg" stroke="#475C65" strokeWidth={2} dot={{ fill: "#475C65", r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -188,11 +188,11 @@ export default function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c2c8c11a] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-8">
             <p className="text-sm font-bold uppercase tracking-[1.4px] text-[#424843]">Weekly Breakdown</p>
             <div className="mt-4 flex items-end gap-2">
-              <span className="text-5xl font-bold leading-[56px] text-[#486551]">
+              <span className="text-5xl font-bold leading-[56px] text-[#475C65]">
                 {totalLoss > 0 ? "+" : ""}{totalLoss.toFixed(1)}
               </span>
               <span className="mb-1 text-xl text-[#424843]">kg total</span>
@@ -205,7 +205,7 @@ export default function ProgressPage() {
                   <div key={item.week}>
                     <div className="flex items-center justify-between py-3">
                       <span className="text-sm font-medium text-[#1a1c1a]">{item.week}</span>
-                      <span className="text-base font-bold text-[#486551]" data-testid={`text-week-${i}`}>
+                      <span className="text-base font-bold text-[#475C65]" data-testid={`text-week-${i}`}>
                         {item.delta > 0 ? "+" : ""}{item.delta.toFixed(1)} kg
                       </span>
                     </div>

@@ -65,9 +65,9 @@ export default function AuthPage() {
   return (
     <main className="min-h-screen bg-[#f4f3ef] px-4 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-8 md:grid-cols-2">
-        <div className="hidden flex-col gap-4 rounded-3xl bg-[#476550] p-10 text-white md:flex">
+        <div className="hidden flex-col gap-4 rounded bg-[#475C65] p-10 text-white md:flex">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded bg-white/20">
               <Leaf className="h-6 w-6" />
             </div>
             <span className="text-2xl font-bold">CalorieFlow</span>
@@ -82,13 +82,13 @@ export default function AuthPage() {
             <li>• Track weight loss week by week</li>
           </ul>
         </div>
-        <Card className="rounded-3xl border-[#c2c8c14c] bg-white shadow-[4px_0px_12px_#0000000a]">
+        <Card className="rounded border-[#c2c8c14c] bg-white shadow-[4px_0px_12px_#0000000a]">
           <CardContent className="p-6 md:p-10">
             <div className="mb-6 flex items-center gap-3 md:hidden">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#476550] text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded bg-[#475C65] text-white">
                 <Leaf className="h-5 w-5" />
               </div>
-              <span className="text-xl font-bold text-[#476550]">CalorieFlow</span>
+              <span className="text-xl font-bold text-[#475C65]">CalorieFlow</span>
             </div>
             <h2 className="text-2xl font-bold text-[#1a1c1a]">Welcome</h2>
             <p className="mt-1 text-sm text-[#424843]">Log in or create an account to continue.</p>
@@ -129,7 +129,7 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       disabled={login.isPending}
-                      className="w-full bg-[#476550] hover:bg-[#3f5b47]"
+                      className="w-full bg-[#475C65] hover:bg-[#3d5059]"
                       data-testid="button-submit-login"
                     >
                       {login.isPending ? "Logging in..." : "Log in"}
@@ -182,7 +182,7 @@ export default function AuthPage() {
                     <Button
                       type="submit"
                       disabled={register.isPending}
-                      className="w-full bg-[#476550] hover:bg-[#3f5b47]"
+                      className="w-full bg-[#475C65] hover:bg-[#3d5059]"
                       data-testid="button-submit-register"
                     >
                       {register.isPending ? "Creating account..." : "Create account"}

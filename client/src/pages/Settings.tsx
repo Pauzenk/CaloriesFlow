@@ -120,7 +120,7 @@ export default function SettingsPage() {
                       <Input
                         type="number"
                         data-testid="input-goal"
-                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#3c3a40]"
                         {...field}
                         onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                       />
@@ -160,8 +160,8 @@ export default function SettingsPage() {
                             onClick={() => field.onChange(level)}
                             className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
                               active
-                                ? "border-[#7A7869] bg-[#7A7869] text-white"
-                                : "border-[#D4CFC8] bg-white text-[#1C1714] hover:border-[#7A7869]"
+                                ? "border-[#3c3a40] bg-[#3c3a40] text-white"
+                                : "border-[#D4CFC8] bg-white text-[#1C1714] hover:border-[#3c3a40]"
                             }`}
                           >
                             <span className="text-sm font-bold">{ACTIVITY_LEVEL_LABELS[level]}</span>
@@ -205,7 +205,7 @@ export default function SettingsPage() {
                           type="number"
                           step="0.1"
                           data-testid="input-starting-weight"
-                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#3c3a40]"
                           {...field}
                           onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                         />
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                           step="0.1"
                           data-testid="input-goal-weight"
                           placeholder="e.g. 68.0"
-                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#3c3a40]"
                           value={field.value ?? ""}
                           onChange={(e) =>
                             field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
@@ -254,7 +254,7 @@ export default function SettingsPage() {
                           type="number"
                           data-testid="input-height"
                           placeholder="e.g. 175"
-                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#3c3a40]"
                           value={field.value ?? ""}
                           onChange={(e) =>
                             field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
@@ -278,7 +278,7 @@ export default function SettingsPage() {
                           type="number"
                           data-testid="input-age"
                           placeholder="e.g. 30"
-                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                          className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#3c3a40]"
                           value={field.value ?? ""}
                           onChange={(e) =>
                             field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)
@@ -304,7 +304,7 @@ export default function SettingsPage() {
                         <FormControl>
                           <SelectTrigger
                             data-testid="select-sex"
-                            className="border-[#D4CFC8] bg-[#FAF8F6] focus:ring-[#7A7869]"
+                            className="border-[#D4CFC8] bg-[#FAF8F6] focus:ring-[#3c3a40]"
                           >
                             <SelectValue placeholder="Select…" />
                           </SelectTrigger>
@@ -343,7 +343,7 @@ export default function SettingsPage() {
                       <Input
                         type="date"
                         data-testid="input-start-date"
-                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#7A7869]"
+                        className="border-[#D4CFC8] bg-[#FAF8F6] focus-visible:ring-[#3c3a40]"
                         {...field}
                       />
                     </FormControl>
@@ -380,7 +380,7 @@ export default function SettingsPage() {
                     Suggested Goal
                   </p>
                   <p
-                    className="mt-1 text-3xl font-bold text-[#7A7869]"
+                    className="mt-1 text-3xl font-bold text-[#3c3a40]"
                     data-testid="text-suggested-goal"
                   >
                     {(estimatedTDEE - 500).toLocaleString()}
@@ -393,7 +393,7 @@ export default function SettingsPage() {
                 <Button
                   type="button"
                   data-testid="button-use-suggested-goal"
-                  className="shrink-0 bg-[#7A7869] text-white hover:bg-[#5C5B52]"
+                  className="shrink-0 bg-[#3c3a40] text-white hover:bg-[#2d2b30]"
                   onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
                 >
                   Use
@@ -410,7 +410,7 @@ export default function SettingsPage() {
               <Button
                 type="submit"
                 disabled={save.isPending}
-                className="h-12 w-full bg-[#7A7869] text-base font-bold text-white hover:bg-[#5C5B52] md:w-auto md:px-12"
+                className="h-12 w-full bg-[#3c3a40] text-base font-bold text-white hover:bg-[#2d2b30] md:w-auto md:px-12"
                 data-testid="button-save-settings"
               >
                 {save.isPending ? "Saving…" : "Save changes"}

@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy, type IVerifyOptions } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -64,6 +65,7 @@ export function setupAuth(app: Express) {
     }),
   );
 
+  // ── Local strategy ──────────────────────────────────────────────────────────
   passport.use(
     new LocalStrategy(
       { usernameField: "email", passwordField: "password" },
@@ -71,6 +73,7 @@ export function setupAuth(app: Express) {
         try {
           const user = await storage.getUserByEmail(email);
           if (!user) return done(null, false, { message: "Invalid credentials" });
+          if (!user.password) return done(null, false, { message: "This account uses Google sign-in. Please use the Google button." });
           const ok = await verifyPassword(user.password, password);
           if (!ok) return done(null, false, { message: "Invalid credentials" });
           return done(null, sanitizeUser(user));
@@ -80,6 +83,63 @@ export function setupAuth(app: Express) {
       },
     ),
   );
+
+  // ── Google strategy ─────────────────────────────────────────────────────────
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (googleClientId && googleClientSecret) {
+    const callbackURL = process.env.NODE_ENV === "production"
+      ? `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}/api/auth/google/callback`
+      : "http://localhost:5000/api/auth/google/callback";
+
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: googleClientId,
+          clientSecret: googleClientSecret,
+          callbackURL,
+        },
+        async (_accessToken, _refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value;
+            const name = profile.displayName || profile.name?.givenName || "User";
+            const googleId = profile.id;
+
+            // Already linked
+            const byGoogleId = await storage.getUserByGoogleId(googleId);
+            if (byGoogleId) return done(null, sanitizeUser(byGoogleId));
+
+            // Existing email account — link it
+            if (email) {
+              const byEmail = await storage.getUserByEmail(email);
+              if (byEmail) {
+                await storage.linkGoogleAccount(byEmail.id, googleId);
+                return done(null, sanitizeUser(byEmail));
+              }
+              // Brand new user
+              const created = await storage.createGoogleUser({ email, name, googleId });
+              return done(null, sanitizeUser(created));
+            }
+
+            return done(new Error("Google account has no email address"));
+          } catch (err) {
+            return done(err as Error);
+          }
+        },
+      ),
+    );
+
+    app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+
+    app.get(
+      "/api/auth/google/callback",
+      passport.authenticate("google", { failureRedirect: "/auth?error=google_failed" }),
+      (_req, res) => {
+        res.redirect("/");
+      },
+    );
+  }
 
   passport.serializeUser((user: Express.User, done: (err: Error | null, id?: string) => void) => done(null, user.id));
   passport.deserializeUser(async (id: string, done: (err: Error | null, user?: AuthUser | false) => void) => {
@@ -95,6 +155,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // ── Local auth routes ───────────────────────────────────────────────────────
   app.post("/api/auth/register", async (req, res, next) => {
     const parsed = insertUserSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -103,7 +164,7 @@ export function setupAuth(app: Express) {
     try {
       const existing = await storage.getUserByEmail(parsed.data.email);
       if (existing) return res.status(409).json({ message: "Email already registered" });
-      const hashed = await hashPassword(parsed.data.password);
+      const hashed = await hashPassword(parsed.data.password!);
       const user = await storage.createUser({ ...parsed.data, password: hashed });
       const safe = sanitizeUser(user);
       req.login(safe, (err) => {
@@ -141,6 +202,11 @@ export function setupAuth(app: Express) {
   app.get("/api/auth/me", (req, res) => {
     if (!req.isAuthenticated || !req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
     res.json(req.user);
+  });
+
+  // Tell the frontend whether Google sign-in is available
+  app.get("/api/auth/providers", (_req, res) => {
+    res.json({ google: !!(googleClientId && googleClientSecret) });
   });
 }
 

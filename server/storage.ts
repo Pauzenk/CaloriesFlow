@@ -30,6 +30,9 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  createGoogleUser(data: { email: string; name: string; googleId: string }): Promise<User>;
+  linkGoogleAccount(userId: string, googleId: string): Promise<void>;
 
   getSettings(userId: string): Promise<Settings>;
   upsertSettings(userId: string, data: UpsertSettings): Promise<Settings>;
@@ -67,15 +70,26 @@ export class DbStorage implements IStorage {
   }
 
   async createUser(user: InsertUser) {
-    const [created] = await db.insert(users).values(user).returning();
-    // Create default settings
+    const [created] = await db.insert(users).values({ ...user, password: user.password ?? null }).returning();
     const today = new Date().toISOString().slice(0, 10);
-    await db.insert(settings).values({
-      userId: created.id,
-      ...DEFAULT_SETTINGS,
-      journeyStartDate: today,
-    });
+    await db.insert(settings).values({ userId: created.id, ...DEFAULT_SETTINGS, journeyStartDate: today });
     return created;
+  }
+
+  async getUserByGoogleId(googleId: string) {
+    const rows = await db.select().from(users).where(eq(users.googleId, googleId));
+    return rows[0];
+  }
+
+  async createGoogleUser(data: { email: string; name: string; googleId: string }) {
+    const [created] = await db.insert(users).values({ email: data.email, name: data.name, googleId: data.googleId, password: null }).returning();
+    const today = new Date().toISOString().slice(0, 10);
+    await db.insert(settings).values({ userId: created.id, ...DEFAULT_SETTINGS, journeyStartDate: today });
+    return created;
+  }
+
+  async linkGoogleAccount(userId: string, googleId: string) {
+    await db.update(users).set({ googleId }).where(eq(users.id, userId));
   }
 
   async getSettings(userId: string): Promise<Settings> {

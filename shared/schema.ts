@@ -6,15 +6,16 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
   name: text("name").notNull().default(""),
+  googleId: text("google_id").unique(),
 });
 
 export const insertUserSchema = createInsertSchema(users)
   .pick({ email: true, password: true, name: true })
   .extend({
     email: z.string().email().max(200),
-    password: z.string().min(6).max(100),
+    password: z.string().min(6).max(100).optional(),
     name: z.string().min(1).max(80),
   });
 

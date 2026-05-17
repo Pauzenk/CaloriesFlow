@@ -122,7 +122,20 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex justify-between border-t border-[#1C1714]/20 pt-3 mt-4 text-sm">
+          <div className="mt-4 mb-1">
+            <div className="w-full h-1.5 bg-[#1C1714]/10 overflow-hidden">
+              <div
+                className="h-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, Math.round((netCalories / goal) * 100))}%`,
+                  backgroundColor: netCalories > goal ? "#9B4A2E" : "#1C1714",
+                }}
+                data-testid="bar-calorie-progress"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-between border-t border-[#1C1714]/20 pt-3 mt-3 text-sm">
             <div className="flex gap-4">
               <div>
                 <span className="opacity-50">PRO</span>{" "}

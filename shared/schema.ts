@@ -33,6 +33,23 @@ const nullableNumber = (min: number, max: number) =>
     z.number().min(min).max(max).nullable().optional(),
   );
 
+export const ACTIVITY_LEVELS = ["sedentary", "lightly_active", "moderately_active", "very_active"] as const;
+export type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
+
+export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
+  sedentary: 1.2,
+  lightly_active: 1.375,
+  moderately_active: 1.55,
+  very_active: 1.725,
+};
+
+export const ACTIVITY_LEVEL_LABELS: Record<ActivityLevel, string> = {
+  sedentary: "Sedentary (×1.2)",
+  lightly_active: "Lightly active (×1.375)",
+  moderately_active: "Moderately active (×1.55)",
+  very_active: "Very active (×1.725)",
+};
+
 export const settings = pgTable("settings", {
   userId: varchar("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   dailyCalorieGoal: integer("daily_calorie_goal").notNull().default(2000),
@@ -43,6 +60,7 @@ export const settings = pgTable("settings", {
   ageYears: integer("age_years"),
   sexAtBirth: text("sex_at_birth"),
   goalWeightKg: real("goal_weight_kg"),
+  activityLevel: text("activity_level").notNull().default("sedentary"),
 });
 
 export const upsertSettingsSchema = createInsertSchema(settings)
@@ -56,6 +74,7 @@ export const upsertSettingsSchema = createInsertSchema(settings)
     ageYears: nullableNumber(5, 120),
     sexAtBirth: z.enum(["male", "female"]).nullable().optional(),
     goalWeightKg: nullableNumber(20, 500),
+    activityLevel: z.enum(ACTIVITY_LEVELS).default("sedentary"),
   });
 
 export type Settings = typeof settings.$inferSelect;

@@ -1,4 +1,5 @@
 import type { Meal, Settings, Weight } from "@shared/schema";
+import { ACTIVITY_MULTIPLIERS, type ActivityLevel } from "@shared/schema";
 
 export function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -98,8 +99,8 @@ export function computeBMR(
   return 10 * weightKg + 6.25 * heightCm - 5 * ageYears - 161;
 }
 
-export function computeTDEE(bmr: number): number {
-  return bmr * 1.2; // sedentary activity multiplier
+export function computeTDEE(bmr: number, multiplier = 1.2): number {
+  return bmr * multiplier;
 }
 
 // ─── Weight Projection Engine ──────────────────────────────────────────────────
@@ -123,7 +124,8 @@ export function weightProjectionSeries(
 
   if (sexAtBirth !== "male" && sexAtBirth !== "female") return { points: [], projectedGoalDate: null };
   const bmr = computeBMR(startingWeightKg, heightCm, ageYears, sexAtBirth);
-  const tdee = computeTDEE(bmr);
+  const activityMultiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
+  const tdee = computeTDEE(bmr, activityMultiplier);
 
   // Build per-day calorie map from actual meals
   const calByDate = new Map<string, number>();

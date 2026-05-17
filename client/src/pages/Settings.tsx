@@ -10,7 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AppShell } from "@/components/AppShell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { upsertSettingsSchema, type Settings, type UpsertSettings } from "@shared/schema";
+import {
+  upsertSettingsSchema,
+  type Settings,
+  type UpsertSettings,
+  ACTIVITY_LEVELS,
+  ACTIVITY_LEVEL_LABELS,
+  ACTIVITY_MULTIPLIERS,
+  type ActivityLevel,
+} from "@shared/schema";
 import { computeBMR, computeTDEE } from "@/lib/calorieflow";
 
 export default function SettingsPage() {
@@ -28,6 +36,7 @@ export default function SettingsPage() {
       ageYears: null,
       sexAtBirth: null,
       goalWeightKg: null,
+      activityLevel: "sedentary",
     },
   });
 
@@ -42,6 +51,7 @@ export default function SettingsPage() {
         ageYears: settings.ageYears ?? null,
         sexAtBirth: (settings.sexAtBirth as "male" | "female" | null) ?? null,
         goalWeightKg: settings.goalWeightKg ?? null,
+        activityLevel: (settings.activityLevel as ActivityLevel) ?? "sedentary",
       });
     }
   }, [settings]);
@@ -50,12 +60,14 @@ export default function SettingsPage() {
   const watchedAge = form.watch("ageYears");
   const watchedSex = form.watch("sexAtBirth");
   const watchedStartWeight = form.watch("startingWeightKg");
+  const watchedActivityLevel = form.watch("activityLevel");
 
   const estimatedTDEE = useMemo(() => {
     if (!watchedHeight || !watchedAge || !watchedSex || !watchedStartWeight) return null;
     const bmr = computeBMR(watchedStartWeight, watchedHeight, watchedAge, watchedSex as "male" | "female");
-    return Math.round(computeTDEE(bmr));
-  }, [watchedHeight, watchedAge, watchedSex, watchedStartWeight]);
+    const multiplier = ACTIVITY_MULTIPLIERS[(watchedActivityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
+    return Math.round(computeTDEE(bmr, multiplier));
+  }, [watchedHeight, watchedAge, watchedSex, watchedStartWeight, watchedActivityLevel]);
 
   const save = useMutation({
     mutationFn: async (data: UpsertSettings) => {
@@ -231,12 +243,12 @@ export default function SettingsPage() {
                       )}
                     />
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="goalWeightKg"
                       render={({ field }) => (
-                        <FormItem className="md:w-48">
+                        <FormItem>
                           <FormLabel>Goal weight (kg)</FormLabel>
                           <FormControl>
                             <Input
@@ -250,6 +262,30 @@ export default function SettingsPage() {
                               }
                             />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="activityLevel"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Activity level</FormLabel>
+                          <Select value={field.value ?? "sedentary"} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-activity-level">
+                                <SelectValue placeholder="Select…" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {ACTIVITY_LEVELS.map((level) => (
+                                <SelectItem key={level} value={level}>
+                                  {ACTIVITY_LEVEL_LABELS[level]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -269,7 +305,7 @@ export default function SettingsPage() {
                           {estimatedTDEE.toLocaleString()} kcal / day
                         </p>
                         <p className="mt-0.5 text-xs text-[#424843]">
-                          Total Daily Energy Expenditure at sedentary activity — how many calories you burn at rest.
+                          Total Daily Energy Expenditure at your selected activity level — the calories you burn per day.
                         </p>
                       </div>
                     </div>

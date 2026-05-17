@@ -23,6 +23,7 @@ import { AppShell } from "@/components/AppShell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Meal, Settings, Weight } from "@shared/schema";
+import { ACTIVITY_MULTIPLIERS, type ActivityLevel } from "@shared/schema";
 import {
   caloriesByMealType,
   computeBMR,
@@ -205,7 +206,8 @@ export default function ProgressPage() {
     const sex = settings.sexAtBirth;
     if (sex !== "male" && sex !== "female") return null;
     const bmr = computeBMR(settings.startingWeightKg, settings.heightCm, settings.ageYears, sex);
-    return Math.round(computeTDEE(bmr));
+    const multiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
+    return Math.round(computeTDEE(bmr, multiplier));
   }, [settings]);
 
   const scheduleDelta = useMemo(() => {

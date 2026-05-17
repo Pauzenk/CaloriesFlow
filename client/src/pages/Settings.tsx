@@ -293,22 +293,50 @@ export default function SettingsPage() {
                   </div>
 
                   {estimatedTDEE !== null && (
-                    <div
-                      data-testid="panel-tdee"
-                      className="mt-4 flex items-center gap-3 rounded border border-[#475C65]/20 bg-[#e8eff1] px-4 py-3"
-                    >
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-[#475C65]">
-                          Your estimated TDEE
-                        </p>
-                        <p className="mt-0.5 text-2xl font-bold text-[#475C65]">
-                          {estimatedTDEE.toLocaleString()} kcal / day
-                        </p>
-                        <p className="mt-0.5 text-xs text-[#424843]">
-                          Total Daily Energy Expenditure at your selected activity level — the calories you burn per day.
-                        </p>
+                    <>
+                      <div
+                        data-testid="panel-tdee"
+                        className="mt-4 flex items-center gap-3 rounded border border-[#475C65]/20 bg-[#e8eff1] px-4 py-3"
+                      >
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-[#475C65]">
+                            Your estimated TDEE
+                          </p>
+                          <p className="mt-0.5 text-2xl font-bold text-[#475C65]">
+                            {estimatedTDEE.toLocaleString()} kcal / day
+                          </p>
+                          <p className="mt-0.5 text-xs text-[#424843]">
+                            Total Daily Energy Expenditure at your selected activity level — the calories you burn per day.
+                          </p>
+                        </div>
                       </div>
-                    </div>
+
+                      <div
+                        data-testid="panel-suggested-goal"
+                        className="mt-3 flex items-center justify-between gap-4 rounded border border-[#3a7d44]/20 bg-[#eef6f0] px-4 py-3"
+                      >
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-[#3a7d44]">
+                            Suggested calorie goal
+                          </p>
+                          <p className="mt-0.5 text-2xl font-bold text-[#3a7d44]" data-testid="text-suggested-goal">
+                            {(estimatedTDEE - 500).toLocaleString()} kcal / day
+                          </p>
+                          <p className="mt-0.5 text-xs text-[#424843]">
+                            TDEE − 500 kcal — a moderate deficit for roughly 0.5 kg of weight loss per week.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          data-testid="button-use-suggested-goal"
+                          className="shrink-0 border-[#3a7d44]/40 text-[#3a7d44] hover:bg-[#3a7d44]/10 hover:text-[#3a7d44]"
+                          onClick={() => form.setValue("dailyCalorieGoal", estimatedTDEE - 500)}
+                        >
+                          Use this goal
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </div>
 

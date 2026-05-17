@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, Trash2, X, Sparkles, MessageSquare } from "lucide-react";
-import { Link } from "wouter";
+import { Pencil, Trash2, X, Sparkles, MessageSquare, ChevronDown, Camera, Send, Bot, User as UserIcon, ArrowRight, Activity } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +31,372 @@ function fmtTime(iso: string): string {
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
+// ── Chat types ──────────────────────────────────────────────────────────────
+
+type NutritionEstimate = {
+  name: string;
+  calories: number;
+  proteins: number;
+  carbs: number;
+  fats: number;
+};
+
+type ActivityEstimate = {
+  name: string;
+  durationMinutes: number;
+  caloriesBurned: number;
+  activityType: "cardio" | "strength" | "other";
+};
+
+type ChatMessage = {
+  id: number;
+  role: "user" | "assistant";
+  text: string;
+  imageDataUrl?: string;
+  estimate?: NutritionEstimate;
+  activityEstimate?: ActivityEstimate;
+};
+
+type HistoryItem = {
+  role: "user" | "assistant";
+  content: string;
+  imageDataUrl?: string;
+};
+
+type ChatResponse = {
+  reply: string;
+  estimate?: NutritionEstimate;
+  activityEstimate?: ActivityEstimate;
+};
+
+const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_BYTES = 10 * 1024 * 1024;
+let msgId = 0;
+const nextId = () => ++msgId;
+
+// ── Inline Chat Component ────────────────────────────────────────────────────
+
+function InlineChat({ onApplyEstimate }: { onApplyEstimate: (e: NutritionEstimate) => void }) {
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [pendingPhoto, setPendingPhoto] = useState<{ file: File; dataUrl: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({ queryKey: ["/api/ai/status"] });
+  const hasApiKey = aiStatus?.hasApiKey ?? true;
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const logActivity = useMutation({
+    mutationFn: async (est: ActivityEstimate) =>
+      (await apiRequest("POST", "/api/activities", {
+        date: todayStr(),
+        name: est.name,
+        durationMinutes: est.durationMinutes,
+        caloriesBurned: est.caloriesBurned,
+        activityType: est.activityType,
+      })).json(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      toast({ title: "Activity logged" });
+    },
+    onError: (err: unknown) =>
+      toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" }),
+  });
+
+  const chat = useMutation({
+    mutationFn: async ({ history, userText, photo }: { history: HistoryItem[]; userText: string; photo: File | null }) => {
+      const fd = new FormData();
+      fd.append("messages", JSON.stringify(history));
+      fd.append("message", userText);
+      if (photo) fd.append("photo", photo);
+      const res = await fetch("/api/meals/chat", { method: "POST", credentials: "include", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: "Request failed" }));
+        throw new Error(err.message || "Request failed");
+      }
+      return (await res.json()) as ChatResponse;
+    },
+    onSuccess: (data) => {
+      setMessages((prev) => [
+        ...prev,
+        { id: nextId(), role: "assistant", text: data.reply, estimate: data.estimate, activityEstimate: data.activityEstimate },
+      ]);
+    },
+    onError: (err: unknown) => {
+      toast({ title: "Chat failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
+    },
+  });
+
+  function buildHistory(msgs: ChatMessage[]): HistoryItem[] {
+    return msgs.map((m) => ({
+      role: m.role,
+      content: m.text || "",
+      ...(m.imageDataUrl ? { imageDataUrl: m.imageDataUrl } : {}),
+    }));
+  }
+
+  function send() {
+    const text = input.trim();
+    if (!text && !pendingPhoto) return;
+    if (chat.isPending) return;
+    const userMsg: ChatMessage = { id: nextId(), role: "user", text, imageDataUrl: pendingPhoto?.dataUrl };
+    const history = buildHistory(messages);
+    const photoFile = pendingPhoto?.file ?? null;
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setPendingPhoto(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    chat.mutate({ history, userText: text, photo: photoFile });
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_MIME.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "JPEG, PNG, WebP or GIF only.", variant: "destructive" });
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast({ title: "Image too large", description: "Max 10 MB.", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => setPendingPhoto({ file, dataUrl: ev.target?.result as string });
+    reader.readAsDataURL(file);
+  }
+
+  const canSend = (input.trim().length > 0 || pendingPhoto !== null) && !chat.isPending;
+
+  if (!hasApiKey) {
+    return (
+      <div className="border border-[#1C1714] p-4 text-center">
+        <div className="text-xs uppercase tracking-widest opacity-60 mb-2">AI Not Configured</div>
+        <p className="text-sm opacity-70">An OpenAI API key is required for AI chat.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-[#1C1714]/20 p-4 flex flex-col gap-4" style={{ minHeight: 320 }}>
+      {/* Empty state / suggestions */}
+      {messages.length === 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs opacity-50 mb-1">Describe what you ate and AI will estimate calories &amp; macros.</p>
+          {[
+            "I had oatmeal with banana for breakfast",
+            "2 slices of sourdough with avocado",
+            "Chicken breast with rice and broccoli",
+          ].map((suggestion) => (
+            <button
+              key={suggestion}
+              type="button"
+              onClick={() => { setInput(suggestion); textareaRef.current?.focus(); }}
+              className="text-left border border-[#1C1714]/15 px-3 py-2 text-xs hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Message thread */}
+      {messages.length > 0 && (
+        <div data-testid="chat-thread" className="flex flex-col gap-3 max-h-80 overflow-y-auto">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              data-testid={`chat-message-${msg.id}`}
+              className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+            >
+              <div className={`flex h-5 w-5 shrink-0 items-center justify-center border text-[9px] mt-0.5 ${
+                msg.role === "user"
+                  ? "border-[#1C1714] bg-[#1C1714] text-[#F2EDE7]"
+                  : "border-[#1C1714]/30 bg-transparent"
+              }`}>
+                {msg.role === "user" ? <UserIcon className="h-2.5 w-2.5" /> : <Bot className="h-2.5 w-2.5 opacity-60" />}
+              </div>
+
+              <div className={`flex max-w-[80%] flex-col gap-2 ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                {msg.imageDataUrl && (
+                  <img
+                    src={msg.imageDataUrl}
+                    alt="Attached"
+                    className="max-h-36 border border-[#1C1714]/20 object-cover"
+                    data-testid={`chat-photo-${msg.id}`}
+                  />
+                )}
+                {msg.text && (
+                  <div className={`px-3 py-2 text-xs leading-relaxed ${
+                    msg.role === "user"
+                      ? "bg-[#1C1714] text-[#F2EDE7]"
+                      : "border border-[#1C1714]/20 bg-transparent"
+                  }`}>
+                    {msg.text}
+                  </div>
+                )}
+
+                {/* Meal estimate card */}
+                {msg.estimate && (
+                  <div data-testid={`chat-estimate-${msg.id}`} className="w-full border border-[#1C1714] p-3">
+                    <div className="text-[9px] uppercase tracking-widest opacity-60 mb-2 pb-1.5 border-b border-dashed border-[#1C1714]/20">
+                      Nutrition Estimate
+                    </div>
+                    <div className="text-xs mb-2">{msg.estimate.name}</div>
+                    <div className="grid grid-cols-4 gap-1.5 text-center mb-3">
+                      {[
+                        { label: "Kcal", value: msg.estimate.calories },
+                        { label: "PRO", value: `${msg.estimate.proteins}g` },
+                        { label: "CRB", value: `${msg.estimate.carbs}g` },
+                        { label: "FAT", value: `${msg.estimate.fats}g` },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="border border-[#1C1714]/10 py-1.5">
+                          <div className="text-[8px] uppercase tracking-widest opacity-50">{label}</div>
+                          <div className="text-xs tabular-nums mt-0.5">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      data-testid={`button-use-estimate-${msg.id}`}
+                      onClick={() => onApplyEstimate(msg.estimate!)}
+                      className="w-full flex items-center justify-center gap-1.5 border border-[#1C1714] py-1.5 text-[10px] uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors"
+                    >
+                      Log this meal <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Activity estimate card */}
+                {msg.activityEstimate && (
+                  <div data-testid={`chat-activity-estimate-${msg.id}`} className="w-full border border-[#1C1714]/50 p-3">
+                    <div className="text-[9px] uppercase tracking-widest opacity-60 mb-2 pb-1.5 border-b border-dashed border-[#1C1714]/20 flex items-center gap-1.5">
+                      <Activity className="h-3 w-3" /> Activity Estimate
+                    </div>
+                    <div className="text-xs mb-2">{msg.activityEstimate.name}</div>
+                    <div className="grid grid-cols-3 gap-1.5 text-center mb-3">
+                      {[
+                        { label: "Type", value: msg.activityEstimate.activityType },
+                        { label: "Duration", value: `${msg.activityEstimate.durationMinutes}min` },
+                        { label: "Burned", value: `${msg.activityEstimate.caloriesBurned} kcal` },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="border border-[#1C1714]/10 py-1.5">
+                          <div className="text-[8px] uppercase tracking-widest opacity-50">{label}</div>
+                          <div className="text-xs tabular-nums mt-0.5">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      data-testid={`button-log-activity-${msg.id}`}
+                      onClick={() => logActivity.mutate(msg.activityEstimate!)}
+                      disabled={logActivity.isPending}
+                      className="w-full flex items-center justify-center gap-1.5 border border-[#1C1714]/50 py-1.5 text-[10px] uppercase tracking-widest hover:bg-[#1C1714]/10 transition-colors disabled:opacity-40"
+                    >
+                      <Activity className="h-3 w-3" /> Log this activity
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {chat.isPending && (
+            <div data-testid="chat-typing" className="flex gap-2">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center border border-[#1C1714]/30 mt-0.5">
+                <Bot className="h-2.5 w-2.5 opacity-50" />
+              </div>
+              <div className="border border-[#1C1714]/20 px-3 py-2 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce bg-[#1C1714] opacity-40 [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce bg-[#1C1714] opacity-40 [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce bg-[#1C1714] opacity-40 [animation-delay:300ms]" />
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      )}
+
+      {/* Input area */}
+      <div className="border-t border-[#1C1714]/20 pt-3 mt-auto">
+        {pendingPhoto && (
+          <div className="relative mb-2 w-16">
+            <img
+              src={pendingPhoto.dataUrl}
+              alt="To attach"
+              data-testid="chat-pending-photo"
+              className="h-12 w-16 border border-[#1C1714]/20 object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => { setPendingPhoto(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+              data-testid="button-clear-pending-photo"
+              className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-[#1C1714] text-[#F2EDE7]"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            rows={2}
+            disabled={chat.isPending}
+            data-testid="input-chat-message"
+            placeholder={messages.length === 0 ? "Describe what you ate or an activity…" : "Ask a follow-up…"}
+            className="flex-1 resize-none border border-[#1C1714]/30 bg-transparent px-3 py-2 text-xs font-['Space_Mono'] text-[#1C1714] placeholder:opacity-40 focus:border-[#1C1714] focus:outline-none"
+          />
+          <div className="flex shrink-0 flex-col gap-1">
+            <label
+              data-testid="button-chat-attach-photo"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center border border-[#1C1714]/30 hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors"
+              title="Attach photo"
+            >
+              <Camera className="h-3.5 w-3.5 opacity-60" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                capture="environment"
+                className="sr-only"
+                onChange={onFileChange}
+                data-testid="input-chat-photo-file"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={send}
+              disabled={!canSend}
+              data-testid="button-chat-send"
+              className="flex h-8 w-8 items-center justify-center border-2 border-[#1C1714] bg-[#1C1714] text-[#F2EDE7] hover:bg-[#1C1714]/90 transition-colors disabled:opacity-30"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+        <p className="mt-1.5 text-[9px] uppercase tracking-widest opacity-30">
+          Enter to send · Shift+Enter for new line
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Main LogMeal Page ────────────────────────────────────────────────────────
+
 export default function LogMeal() {
   const { toast } = useToast();
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
@@ -46,6 +411,7 @@ export default function LogMeal() {
   const [grams, setGrams] = useState<number>(100);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAiEstimate, setIsAiEstimate] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Pre-fill from AI chat query params (e.g. /log?name=X&calories=500&proteins=30&carbs=40&fats=15)
   useEffect(() => {
@@ -59,7 +425,6 @@ export default function LogMeal() {
       form.setValue("carbs", Number(params.get("carbs")) || 0);
       form.setValue("fats", Number(params.get("fats")) || 0);
       setIsAiEstimate(true);
-      // Clean the URL without a reload
       window.history.replaceState({}, "", "/log");
     }
   }, []);
@@ -114,6 +479,17 @@ export default function LogMeal() {
     setGrams(selectedFood.servings[Number(value)].grams);
   }
 
+  function applyEstimate(estimate: { name: string; calories: number; proteins: number; carbs: number; fats: number }) {
+    form.setValue("name", estimate.name);
+    form.setValue("calories", estimate.calories);
+    form.setValue("proteins", estimate.proteins);
+    form.setValue("carbs", estimate.carbs);
+    form.setValue("fats", estimate.fats);
+    clearFood();
+    setIsAiEstimate(true);
+    setChatOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const onError = (err: unknown) =>
     toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
@@ -197,19 +573,35 @@ export default function LogMeal() {
               </div>
             </div>
 
-            {/* Link to AI chat */}
+            {/* ── Inline AI Chat accordion ── */}
             {!editingId && (
-              <Link href="/chat">
-                <div className="border border-[#1C1714]/30 p-4 mb-8 flex items-center justify-between hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors cursor-pointer group">
-                  <div>
+              <div className="mb-8">
+                <button
+                  type="button"
+                  data-testid="button-toggle-ai-chat"
+                  onClick={() => setChatOpen((o) => !o)}
+                  className="w-full border border-[#1C1714]/30 p-4 flex items-center justify-between hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors group"
+                >
+                  <div className="text-left">
                     <div className="text-xs uppercase tracking-widest opacity-60 mb-0.5">AI Nutrition Chat</div>
                     <div className="text-sm opacity-50 group-hover:opacity-80 transition-opacity">
                       Describe what you ate — AI estimates calories &amp; macros
                     </div>
                   </div>
-                  <MessageSquare className="h-5 w-5 opacity-30 group-hover:opacity-70 transition-opacity shrink-0 ml-4" />
-                </div>
-              </Link>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <MessageSquare className="h-4 w-4 opacity-30 group-hover:opacity-70 transition-opacity" />
+                    <ChevronDown
+                      className={`h-4 w-4 opacity-40 transition-transform duration-200 ${chatOpen ? "rotate-180" : ""}`}
+                    />
+                  </div>
+                </button>
+
+                {chatOpen && (
+                  <div className="border border-t-0 border-[#1C1714]/30">
+                    <InlineChat onApplyEstimate={applyEstimate} />
+                  </div>
+                )}
+              </div>
             )}
 
             {/* AI estimate banner */}

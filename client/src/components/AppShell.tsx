@@ -1,13 +1,12 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, Plus, LogOut, Leaf, MessageSquare } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, Plus, LogOut, Leaf } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 
 const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Chat", path: "/chat", icon: MessageSquare },
   { label: "Progress", path: "/progress", icon: TrendingUp },
   { label: "Settings", path: "/settings", icon: SettingsIcon },
 ];

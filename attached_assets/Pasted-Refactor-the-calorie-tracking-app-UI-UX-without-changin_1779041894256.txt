@@ -1,0 +1,92 @@
+Refactor the calorie tracking app UI/UX without changing the overall visual identity, typography family, or color palette. Do NOT redesign the brand style. Keep the same aesthetic direction, but improve layout clarity, readability, hierarchy, spacing, and usability like a senior product designer doing a UX polish pass.
+
+General UX Rules:
+- Improve readability across the app.
+- Improve hierarchy and navigation clarity.
+- Reduce visual clutter.
+- Improve spacing, alignment, and layout consistency.
+- Improve opacity/contrast because some text and blocks are difficult to read.
+- Use stronger visual hierarchy with spacing and font weights only when needed.
+- Do not change the font family or main colors.
+- Do not redesign the UI style completely.
+- Focus on structure, visibility, clarity, and usability.
+
+Dashboard:
+- Do NOT change the “Today’s Stats” section.
+- Keep protein, carbs, and fat exactly as they currently are.
+- Remove the “7-day volume” block completely.
+- Keep the rest of the dashboard mostly intact.
+
+Progress Page:
+- The first block is fine overall.
+- Keep:
+  - projection line
+  - goal line
+  - estimated current weight
+- Move the “Current Weight (Estimated)” block to the top of the page.
+- Remove the separate “Log Actual Weight” field and integrate it more cleanly beside the current weight section.
+- Keep “Goal with Activities” logic as it currently exists.
+
+Projection Chart:
+- Improve readability and clarity.
+- X-axis should represent weeks.
+- Y-axis should represent kilograms.
+- Projection and goal visualization are okay but need clearer visibility and cleaner presentation.
+
+Progress Metrics:
+Replace:
+- “Total Kilocalories”
+with:
+- “Calorie Deficit”
+
+Show:
+- calorie deficit achieved
+- average calories per day
+- estimated kilograms lost
+
+Remove unnecessary complexity and simplify the section.
+
+Settings:
+- Keep the calorie target logic as it currently works.
+- Redesign the goal timeframe selection cards (“Pick how long you want to reach your goal”) so they look cleaner and more structured.
+- Keep the automatic calorie adjustments depending on selected timeframe.
+
+Log Meal UX (Important):
+Completely rethink the layout behavior.
+
+When user clicks “Log Meal”:
+- The left dashboard/sidebar menu should disappear.
+- The page should become a dedicated meal logging interface.
+
+Web Version:
+- Use a 2-column layout:
+  - Column 1: meal categories (breakfast, lunch, dinner, snack, etc.)
+  - Column 2: nutrition chat
+- The meal logging interface should use most of the screen width.
+- Entries should stay visually compact/minimal.
+
+Mobile Version:
+- Collapse/minimize entries because entries already exist on dashboard.
+- Prioritize the chat and meal logging experience.
+
+Chat Behavior:
+- Remove search completely.
+- Do not show search in the meal logging area.
+- Do not show search inside the chat.
+- When clicking chat:
+  - open a full chat interface instead of a small expandable block
+  - the chat should visually replace the meal logging content area
+  - use a dark/black chat background instead of white
+- After adding an entry:
+  - close the chat automatically
+  - return user to the meal logging layout
+
+Overall Direction:
+- Cleaner structure
+- Better UX clarity
+- Better visibility
+- More professional product UX
+- Better spacing and readability
+- Simpler interactions
+- Less clutter
+- More structured layouts

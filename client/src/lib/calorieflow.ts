@@ -59,7 +59,7 @@ export function dailyCaloriesSeries(meals: Meal[], dates: string[]) {
 }
 
 export function weeklyWeightDeltas(weights: Weight[], settings: Settings | undefined) {
-  if (!settings || weights.length === 0) return [] as { week: string; delta: number }[];
+  if (!settings || weights.length === 0) return [] as { week: string; delta: number; avgKg: number }[];
   const sorted = [...weights].sort((a, b) => a.date.localeCompare(b.date));
   const start = new Date(settings.journeyStartDate + "T00:00:00");
   const groups = new Map<number, number[]>();
@@ -76,11 +76,12 @@ export function weeklyWeightDeltas(weights: Weight[], settings: Settings | undef
     settings.startingWeightKg && settings.startingWeightKg > 0
       ? settings.startingWeightKg
       : sorted[0]?.weightKg ?? 0;
-  const out: { week: string; delta: number }[] = [];
+  const out: { week: string; delta: number; avgKg: number }[] = [];
   for (const k of weekKeys) {
     const arr = groups.get(k)!;
     const last = arr[arr.length - 1];
-    out.push({ week: `Week ${k + 1}`, delta: +(last - prev).toFixed(1) });
+    const avg = +(arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1);
+    out.push({ week: `Week ${k + 1}`, delta: +(last - prev).toFixed(1), avgKg: avg });
     prev = last;
   }
   return out;

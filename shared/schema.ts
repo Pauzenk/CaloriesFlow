@@ -61,6 +61,7 @@ export const settings = pgTable("settings", {
   sexAtBirth: text("sex_at_birth"),
   goalWeightKg: real("goal_weight_kg"),
   activityLevel: text("activity_level").notNull().default("sedentary"),
+  goalDurationMonths: integer("goal_duration_months"),
 });
 
 export const upsertSettingsSchema = createInsertSchema(settings)
@@ -75,6 +76,11 @@ export const upsertSettingsSchema = createInsertSchema(settings)
     sexAtBirth: z.enum(["male", "female"]).nullable().optional(),
     goalWeightKg: nullableNumber(20, 500),
     activityLevel: z.enum(ACTIVITY_LEVELS).default("sedentary"),
+    goalDurationMonths: z
+      .preprocess(
+        (v) => (v === null || v === undefined || v === "" ? null : Number(v)),
+        z.number().int().min(1).max(24).nullable().optional(),
+      ),
   });
 
 export type Settings = typeof settings.$inferSelect;

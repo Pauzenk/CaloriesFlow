@@ -31,7 +31,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <aside className="hidden w-64 shrink-0 flex-col border-r border-[#1C1714]/10 bg-[#F2EDE7] md:flex">
           <div className="flex h-full flex-col px-4 py-6">
             <header className="ml-2 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#3c3a40] text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#B85C38] text-white">
                 <Leaf className="h-4 w-4" />
               </div>
               <div className="flex flex-col">
@@ -69,7 +69,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               <Button
                 data-testid="button-log-meal"
                 onClick={() => navigate("/log")}
-                className="h-12 w-full gap-2 bg-[#3c3a40] text-sm font-bold text-white hover:bg-[#2d2b30]"
+                className="h-12 w-full gap-2 bg-[#B85C38] text-sm font-bold text-white hover:bg-[#9A4A2E]"
               >
                 <Plus className="h-4 w-4" /> Log Meal
               </Button>
@@ -77,7 +77,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <div className="mt-auto">
               <div className="flex items-center gap-3 border border-[#D4CFC8] px-3 py-2.5">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-[#3c3a40] text-xs text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-[#B85C38] text-xs text-white">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <p className="truncate text-sm font-medium text-[#1C1714]" data-testid="text-user-name">
@@ -103,7 +103,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
           <header className="flex items-center justify-between border-b border-[#D4CFC8] bg-[#F2EDE7] px-4 py-4 md:px-10 md:py-5">
             <div className="flex items-center gap-2 md:hidden">
-              <div className="flex h-8 w-8 items-center justify-center bg-[#3c3a40] text-white">
+              <div className="flex h-8 w-8 items-center justify-center bg-[#B85C38] text-white">
                 <Leaf className="h-4 w-4" />
               </div>
               <span className="text-base font-bold text-[#1C1714]">CalorieFlow</span>

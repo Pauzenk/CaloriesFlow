@@ -161,24 +161,21 @@ export default function Dashboard() {
 
           {/* Clickable date → opens native date picker */}
           <div className="flex flex-col items-center gap-0.5">
-            <div className="relative">
-              <button
-                type="button"
-                data-testid="button-dashboard-date"
-                onClick={() => dateInputRef.current?.showPicker?.() ?? dateInputRef.current?.click()}
-                className="flex items-center gap-1.5 text-sm tracking-tight hover:opacity-70 transition-opacity"
-              >
+            <div className="relative cursor-pointer hover:opacity-70 transition-opacity">
+              {/* Visible display (non-interactive) */}
+              <div className="flex items-center gap-1.5 text-sm tracking-tight pointer-events-none">
                 <CalendarDays className="h-3.5 w-3.5 opacity-40" />
                 <span data-testid="text-dashboard-date">{formatDisplayDate(selectedDate)}</span>
-              </button>
+              </div>
+              {/* Invisible input on top — clicking the area opens the picker natively */}
               <input
                 ref={dateInputRef}
                 type="date"
                 value={selectedDate}
                 max={todayStr()}
                 onChange={(e) => { if (e.target.value) { setSelectedDate(e.target.value); setEditState(null); } }}
-                className="absolute inset-0 opacity-0 pointer-events-none w-full"
-                tabIndex={-1}
+                data-testid="button-dashboard-date"
+                className="absolute inset-0 opacity-0 cursor-pointer w-full"
               />
             </div>
             {dayNum !== null && (

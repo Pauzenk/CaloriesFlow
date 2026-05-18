@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Leaf, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react";
+import { Plus, Leaf, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Meal, Settings } from "@shared/schema";
@@ -35,11 +35,20 @@ function formatDisplayDate(dateStr: string): string {
   });
 }
 
-type EditState = { id: string; name: string; calories: string; proteins: string; carbs: string; fats: string; mealType: string } | null;
+type EditState = {
+  id: string;
+  name: string;
+  calories: string;
+  proteins: string;
+  carbs: string;
+  fats: string;
+  mealType: string;
+} | null;
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [editState, setEditState] = useState<EditState>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const { data: settings, isLoading: sLoading } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const { data: meals = [], isLoading: mLoading } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
@@ -94,7 +103,6 @@ export default function Dashboard() {
   const netCalories = totals.calories - totalActivityCalories;
   const goal = settings?.dailyCalorieGoal || 2000;
   const remaining = Math.max(0, goal - netCalories);
-
   const dayNum = settings ? daysSince(settings.journeyStartDate, selectedDate) : null;
 
   const mealsByType = new Map<string, Meal[]>();
@@ -107,7 +115,15 @@ export default function Dashboard() {
   const showOnboarding = meals.length === 0 && dayActivities.length === 0;
 
   function startEdit(m: Meal) {
-    setEditState({ id: m.id, name: m.name, calories: String(m.calories), proteins: String(m.proteins), carbs: String(m.carbs), fats: String(m.fats), mealType: m.mealType });
+    setEditState({
+      id: m.id,
+      name: m.name,
+      calories: String(m.calories),
+      proteins: String(m.proteins),
+      carbs: String(m.carbs),
+      fats: String(m.fats),
+      mealType: m.mealType,
+    });
   }
 
   function commitEdit() {
@@ -143,14 +159,40 @@ export default function Dashboard() {
             <ChevronLeft className="h-4 w-4 opacity-60" />
           </button>
 
-          <div className="text-center">
-            <div className="text-sm tracking-tight" data-testid="text-dashboard-date">
-              {formatDisplayDate(selectedDate)}
+          {/* Clickable date → opens native date picker */}
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="relative">
+              <button
+                type="button"
+                data-testid="button-dashboard-date"
+                onClick={() => dateInputRef.current?.showPicker?.() ?? dateInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-sm tracking-tight hover:opacity-70 transition-opacity"
+              >
+                <CalendarDays className="h-3.5 w-3.5 opacity-40" />
+                <span data-testid="text-dashboard-date">{formatDisplayDate(selectedDate)}</span>
+              </button>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={selectedDate}
+                max={todayStr()}
+                onChange={(e) => { if (e.target.value) { setSelectedDate(e.target.value); setEditState(null); } }}
+                className="absolute inset-0 opacity-0 pointer-events-none w-full"
+                tabIndex={-1}
+              />
             </div>
             {dayNum !== null && (
-              <div className="text-[10px] uppercase tracking-widest opacity-40 mt-0.5">
-                Day {dayNum}
-              </div>
+              <div className="text-[10px] uppercase tracking-widest opacity-40">Day {dayNum}</div>
+            )}
+            {!isToday && (
+              <button
+                type="button"
+                data-testid="button-dashboard-goto-today"
+                onClick={() => { setSelectedDate(todayStr()); setEditState(null); }}
+                className="text-[9px] uppercase tracking-widest opacity-50 hover:opacity-100 underline transition-opacity mt-0.5"
+              >
+                → Today
+              </button>
             )}
           </div>
 
@@ -247,7 +289,6 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
-              {/* Meals grouped by type */}
               {MEAL_TYPES.map((type) => {
                 const typeMeals = mealsByType.get(type) ?? [];
                 if (typeMeals.length === 0) return null;
@@ -353,7 +394,6 @@ export default function Dashboard() {
                 );
               })}
 
-              {/* Activities */}
               {dayActivities.length > 0 && (
                 <div className="mb-3">
                   <div className="text-[10px] uppercase tracking-widest opacity-35 mb-1 pt-1">Activity</div>

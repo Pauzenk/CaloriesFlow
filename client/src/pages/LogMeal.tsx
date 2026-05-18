@@ -1,18 +1,19 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "wouter";
-import { Pencil, Trash2, X, Sparkles, MessageSquare, Camera, Send, Bot, User as UserIcon, ArrowRight, Activity, ArrowLeft } from "lucide-react";
+import {
+  Pencil, Trash2, X, Sparkles, Send, Bot, User as UserIcon,
+  ArrowRight, Activity, ArrowLeft, Camera, MessageSquare, PenLine,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertMealSchema, MEAL_TYPES, type InsertMeal, type Meal } from "@shared/schema";
-import { type Food, macrosForServing } from "@shared/foods";
 import { mealsForDate, todayStr } from "@/lib/calorieflow";
-import { MealNameAutocomplete } from "@/components/MealNameAutocomplete";
 
 const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40";
 
@@ -79,12 +80,25 @@ const nextId = () => ++msgId;
 function InlineChat({
   onApplyEstimate,
   dark = false,
+  storageKey,
+  logDate,
 }: {
   onApplyEstimate: (e: NutritionEstimate) => void;
   dark?: boolean;
+  storageKey: string;
+  logDate: string;
 }) {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [input, setInput] = useState("");
   const [pendingPhoto, setPendingPhoto] = useState<{ file: File; dataUrl: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,6 +108,13 @@ function InlineChat({
   const { data: aiStatus } = useQuery<{ hasApiKey: boolean }>({ queryKey: ["/api/ai/status"] });
   const hasApiKey = aiStatus?.hasApiKey ?? true;
 
+  // Persist chat history for this day
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    } catch {}
+  }, [messages, storageKey]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -101,7 +122,7 @@ function InlineChat({
   const logActivity = useMutation({
     mutationFn: async (est: ActivityEstimate) =>
       (await apiRequest("POST", "/api/activities", {
-        date: todayStr(),
+        date: logDate,
         name: est.name,
         durationMinutes: est.durationMinutes,
         caloriesBurned: est.caloriesBurned,
@@ -189,7 +210,6 @@ function InlineChat({
   const bg = dark ? "#1C1714" : "transparent";
   const text = dark ? "#F2EDE7" : "#1C1714";
   const borderAlpha = dark ? "border-[#F2EDE7]/15" : "border-[#1C1714]/20";
-  const borderStrong = dark ? "border-[#F2EDE7]/30" : "border-[#1C1714]/30";
 
   if (!hasApiKey) {
     return (
@@ -451,123 +471,67 @@ export default function LogMeal() {
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
 
   // Read date from URL query param (?date=YYYY-MM-DD), fallback to today
-  const initialDate = (() => {
+  const logDate = (() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("date");
     return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : todayStr();
   })();
 
+  const chatStorageKey = `calorieflow-chat-${logDate}`;
+
   const form = useForm<InsertMeal>({
     resolver: zodResolver(insertMealSchema),
-    defaultValues: { ...defaultValues, date: initialDate },
+    defaultValues: { ...defaultValues, date: logDate },
   });
 
-  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
-  const [servingIdx, setServingIdx] = useState<string>("0");
-  const [grams, setGrams] = useState<number>(100);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAiEstimate, setIsAiEstimate] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  // Mobile view: "chat" (default) or "form"
+  const [mobileView, setMobileView] = useState<"chat" | "form">("chat");
 
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const dateLabel = new Date(logDate + "T00:00:00").toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric",
+  });
 
-  // Pre-fill from AI chat query params
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const name = params.get("name");
-    const calories = params.get("calories");
-    if (name && calories) {
-      form.setValue("name", name);
-      form.setValue("calories", Number(calories) || 0);
-      form.setValue("proteins", Number(params.get("proteins")) || 0);
-      form.setValue("carbs", Number(params.get("carbs")) || 0);
-      form.setValue("fats", Number(params.get("fats")) || 0);
-      setIsAiEstimate(true);
-      window.history.replaceState({}, "", "/log");
-    }
-  }, []);
-
-  const computedMacros = useMemo(() => {
-    if (!selectedFood) return null;
-    return macrosForServing(selectedFood, grams);
-  }, [selectedFood, grams]);
-
-  useEffect(() => {
-    if (!selectedFood || !computedMacros) return;
-    form.setValue("calories", computedMacros.calories);
-    form.setValue("proteins", computedMacros.proteins);
-    form.setValue("carbs", computedMacros.carbs);
-    form.setValue("fats", computedMacros.fats);
-  }, [computedMacros, selectedFood, form]);
-
-  function pickFood(food: Food) {
-    setSelectedFood(food);
-    form.setValue("name", food.name);
-    setServingIdx("0");
-    setGrams(food.servings[0].grams);
+  const resetForm = () => {
+    setEditingId(null);
+    form.reset({ ...defaultValues, date: logDate });
     setIsAiEstimate(false);
-  }
+  };
 
-  function clearFood(resetMacros = false) {
-    setSelectedFood(null);
-    setServingIdx("0");
-    setGrams(100);
-    if (resetMacros) {
-      form.setValue("calories", 0);
-      form.setValue("proteins", 0);
-      form.setValue("carbs", 0);
-      form.setValue("fats", 0);
-    }
-  }
-
-  function onPickHistory(item: { name: string; calories: number; proteins: number; carbs: number; fats: number }) {
-    form.setValue("name", item.name);
-    form.setValue("calories", item.calories);
-    form.setValue("proteins", item.proteins);
-    form.setValue("carbs", item.carbs);
-    form.setValue("fats", item.fats);
-    clearFood();
-    setIsAiEstimate(false);
-  }
-
-  function onServingChange(value: string) {
-    setServingIdx(value);
-    if (!selectedFood) return;
-    if (value === "custom") return;
-    setGrams(selectedFood.servings[Number(value)].grams);
-  }
-
-  function applyEstimate(estimate: { name: string; calories: number; proteins: number; carbs: number; fats: number }) {
+  function applyEstimate(estimate: NutritionEstimate) {
     form.setValue("name", estimate.name);
     form.setValue("calories", estimate.calories);
     form.setValue("proteins", estimate.proteins);
     form.setValue("carbs", estimate.carbs);
     form.setValue("fats", estimate.fats);
-    clearFood();
     setIsAiEstimate(true);
-    setChatOpen(false);
+    setMobileView("form");
   }
 
   const onError = (err: unknown) =>
     toast({ title: "Failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
 
-  const resetForm = () => {
-    setEditingId(null);
-    form.reset(defaultValues);
-    clearFood();
-    setIsAiEstimate(false);
-  };
-
   const create = useMutation({
     mutationFn: async (data: InsertMeal) => (await apiRequest("POST", "/api/meals", data)).json() as Promise<Meal>,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/meals"] }); resetForm(); toast({ title: "Meal added" }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      resetForm();
+      toast({ title: "Meal added" });
+      setMobileView("chat");
+    },
     onError,
   });
 
   const update = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: InsertMeal }) =>
       (await apiRequest("PATCH", `/api/meals/${id}`, data)).json() as Promise<Meal>,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/meals"] }); resetForm(); toast({ title: "Meal updated" }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      resetForm();
+      toast({ title: "Meal updated" });
+      setMobileView("chat");
+    },
     onError,
   });
 
@@ -583,7 +547,7 @@ export default function LogMeal() {
       carbs: meal.carbs,
       fats: meal.fats,
     });
-    clearFood();
+    setMobileView("form");
   }
 
   const del = useMutation({
@@ -596,311 +560,339 @@ export default function LogMeal() {
   });
 
   const isPending = create.isPending || update.isPending;
-  const todays = mealsForDate(meals, todayStr()).slice().sort(
+  const dayMeals = mealsForDate(meals, logDate).slice().sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
-  const todayTotal = todays.reduce((s, m) => s + m.calories, 0);
+  const dayTotal = dayMeals.reduce((s, m) => s + m.calories, 0);
 
-  return (
-    <div className="min-h-screen bg-[#F2EDE7] flex flex-col font-['Space_Mono'] text-[#1C1714]">
-
-      {/* ── Top bar ── */}
-      <header className="flex items-center justify-between px-5 py-4 border-b-2 border-[#1C1714] bg-[#F2EDE7] shrink-0 z-10">
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <button
-              type="button"
-              data-testid="button-back-to-dashboard"
-              className="flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Back
-            </button>
-          </Link>
-          <div className="h-4 w-px bg-[#1C1714]/20" />
-          <div>
-            <p className="text-[10px] uppercase tracking-widest opacity-50 leading-none mb-0.5">Log Meal</p>
-            <p className="text-base tracking-tighter leading-none" data-testid="text-form-title">
-              {editingId ? "Edit entry" : "New entry"}
-            </p>
-          </div>
+  // ── Shared header ──
+  const sharedHeader = (
+    <header className="flex items-center justify-between px-5 py-4 border-b-2 border-[#1C1714] bg-[#F2EDE7] shrink-0 z-10">
+      <div className="flex items-center gap-4">
+        <Link href="/">
+          <button
+            type="button"
+            data-testid="button-back-to-dashboard"
+            className="flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back
+          </button>
+        </Link>
+        <div className="h-4 w-px bg-[#1C1714]/20" />
+        <div>
+          <p className="text-[10px] uppercase tracking-widest opacity-50 leading-none mb-0.5">Log Meal</p>
+          <p className="text-base tracking-tighter leading-none" data-testid="text-form-title">
+            {editingId ? "Edit entry" : "New entry"}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          {editingId && (
-            <button
-              type="button"
-              data-testid="button-cancel-edit"
-              onClick={resetForm}
-              className="flex items-center gap-1 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
-            >
-              <X className="h-3 w-3" /> Cancel
-            </button>
-          )}
-          <p className="text-xs opacity-30 hidden sm:block">{today}</p>
+      </div>
+      <div className="flex items-center gap-3">
+        {editingId && (
+          <button
+            type="button"
+            data-testid="button-cancel-edit"
+            onClick={() => { resetForm(); setMobileView("chat"); }}
+            className="flex items-center gap-1 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+          >
+            <X className="h-3 w-3" /> Cancel
+          </button>
+        )}
+        <p className="text-xs opacity-30 hidden sm:block">{dateLabel}</p>
+      </div>
+    </header>
+  );
+
+  // ── Shared form ──
+  const mealForm = (
+    <div className="flex-1 overflow-y-auto px-5 py-6 md:px-8 md:py-8 pb-24 md:pb-8">
+
+      {isAiEstimate && (
+        <div
+          data-testid="banner-ai-estimate"
+          className="mb-5 flex items-start gap-2 border border-[#1C1714]/20 bg-[#1C1714]/5 px-4 py-3 text-xs"
+        >
+          <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-60" />
+          <span className="opacity-70">
+            <strong>AI estimate applied</strong> — review and adjust before saving.
+          </span>
         </div>
-      </header>
+      )}
 
-      {/* ── 2-column body ── */}
-      <div className="flex flex-1 overflow-hidden flex-row-reverse">
-
-        {/* Right (visually): form + compact entries */}
-        <div className="flex-1 overflow-y-auto px-5 py-6 md:px-8 md:py-8 pb-24 md:pb-8">
-
-          {/* AI estimate banner */}
-          {isAiEstimate && (
-            <div
-              data-testid="banner-ai-estimate"
-              className="mb-5 flex items-start gap-2 border border-[#1C1714]/20 bg-[#1C1714]/5 px-4 py-3 text-xs"
-            >
-              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-60" />
-              <span className="opacity-70">
-                <strong>AI estimate applied</strong> — review and adjust before saving.
-              </span>
-            </div>
+      <Form {...form}>
+        <form
+          className="space-y-0"
+          onSubmit={form.handleSubmit((data) =>
+            editingId ? update.mutate({ id: editingId, data }) : create.mutate(data)
           )}
-
-          <Form {...form}>
-            <form
-              className="space-y-0"
-              onSubmit={form.handleSubmit((data) =>
-                editingId ? update.mutate({ id: editingId, data }) : create.mutate(data)
+        >
+          {/* Meal type + date */}
+          <div className="grid grid-cols-2 gap-4 border-b border-[#1C1714]/10 pb-5 mb-5">
+            <FormField
+              control={form.control}
+              name="mealType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Meal type</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-meal-type" className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus:ring-0 text-sm h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {MEAL_TYPES.map((t) => (
+                        <SelectItem key={t} value={t} className="font-['Space_Mono']">
+                          {t.charAt(0).toUpperCase() + t.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
               )}
-            >
-              {/* Meal type + date */}
-              <div className="grid grid-cols-2 gap-4 border-b border-[#1C1714]/10 pb-5 mb-5">
-                <FormField
-                  control={form.control}
-                  name="mealType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Meal type</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-meal-type" className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus:ring-0 text-sm h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {MEAL_TYPES.map((t) => (
-                            <SelectItem key={t} value={t} className="font-['Space_Mono']">
-                              {t.charAt(0).toUpperCase() + t.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" data-testid="input-meal-date" className={IN} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            />
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" data-testid="input-meal-date" className={IN} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-              {/* Food name */}
-              <div className="border-b border-[#1C1714]/10 pb-5 mb-5">
+          {/* Food name */}
+          <div className="border-b border-[#1C1714]/10 pb-5 mb-5">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Food</FormLabel>
+                  <FormControl>
+                    <Input
+                      data-testid="input-meal-name"
+                      placeholder="e.g. Chicken breast with rice"
+                      className={IN}
+                      {...field}
+                      onChange={(e) => { field.onChange(e.target.value); setIsAiEstimate(false); }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Macros */}
+          <div className="border-b border-[#1C1714]/10 pb-5 mb-6">
+            <div className="text-[10px] uppercase tracking-widest opacity-60 mb-3">Nutrition</div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {([
+                { name: "calories" as const, label: "Kcal", testid: "input-meal-calories", step: "1" },
+                { name: "proteins" as const, label: "PRO g", testid: "input-meal-proteins", step: "0.1" },
+                { name: "carbs" as const, label: "CRB g", testid: "input-meal-carbs", step: "0.1" },
+                { name: "fats" as const, label: "FAT g", testid: "input-meal-fats", step: "0.1" },
+              ]).map(({ name, label, testid, step }) => (
                 <FormField
+                  key={name}
                   control={form.control}
-                  name="name"
+                  name={name}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Food</FormLabel>
+                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{label}</FormLabel>
                       <FormControl>
-                        <MealNameAutocomplete
-                          value={field.value}
-                          onChange={(v) => { field.onChange(v); setIsAiEstimate(false); }}
-                          onPickHistory={onPickHistory}
-                          onPickFood={(food) => pickFood(food)}
-                          onClearFood={() => { if (selectedFood) clearFood(true); }}
-                          disabled={isPending}
-                          placeholder="Search foods or past meals…"
+                        <Input
+                          type="number" step={step} data-testid={testid}
+                          className={IN + " tabular-nums"}
+                          {...field}
+                          onChange={(e) => { field.onChange(e.target.valueAsNumber || 0); setIsAiEstimate(false); }}
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-
-              {/* Serving picker */}
-              {selectedFood && (
-                <div
-                  data-testid="panel-serving-picker"
-                  className="border border-[#1C1714]/20 p-3 mb-5 grid grid-cols-2 gap-4"
-                >
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">Serving</div>
-                    <Select value={servingIdx} onValueChange={onServingChange}>
-                      <SelectTrigger className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-sm h-9 focus:ring-0" data-testid="select-serving-size">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedFood.servings.map((s, i) => (
-                          <SelectItem key={i} value={String(i)} className="font-['Space_Mono']">{s.label}</SelectItem>
-                        ))}
-                        <SelectItem value="custom" className="font-['Space_Mono']">Custom (g)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-widest opacity-60 mb-1.5">Grams</div>
-                    <Input
-                      type="number" min={0} max={5000} step={1} value={grams}
-                      onChange={(e) => { setGrams(e.target.valueAsNumber || 0); setServingIdx("custom"); }}
-                      className={IN} data-testid="input-serving-grams"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Macros */}
-              <div className="border-b border-[#1C1714]/10 pb-5 mb-6">
-                <div className="text-[10px] uppercase tracking-widest opacity-60 mb-3">Nutrition</div>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {([
-                    { name: "calories" as const, label: "Kcal", testid: "input-meal-calories", step: "1" },
-                    { name: "proteins" as const, label: "PRO g", testid: "input-meal-proteins", step: "0.1" },
-                    { name: "carbs" as const, label: "CRB g", testid: "input-meal-carbs", step: "0.1" },
-                    { name: "fats" as const, label: "FAT g", testid: "input-meal-fats", step: "0.1" },
-                  ]).map(({ name, label, testid, step }) => (
-                    <FormField
-                      key={name}
-                      control={form.control}
-                      name={name}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{label}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number" step={step} data-testid={testid}
-                              className={IN + " tabular-nums"}
-                              {...field}
-                              onChange={(e) => { field.onChange(e.target.valueAsNumber || 0); setIsAiEstimate(false); }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isPending}
-                data-testid="button-save-meal"
-                className="w-full bg-[#1C1714] text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 sm:w-auto sm:px-14"
-              >
-                {isPending ? "Saving…" : editingId ? "Update entry" : "Commit to record"}
-              </button>
-            </form>
-          </Form>
-
-          {/* ── Compact entries list — hidden on mobile (see Dashboard) ── */}
-          {todays.length > 0 && (
-            <div className="hidden md:block mt-10 border-t-2 border-[#1C1714] pt-6">
-              <div className="flex items-baseline justify-between mb-4">
-                <p className="text-[10px] uppercase tracking-widest opacity-60">Today's Ledger</p>
-                <p className="text-sm tabular-nums opacity-60">{todays.length} {todays.length === 1 ? "entry" : "entries"}</p>
-              </div>
-              <div className="flex flex-col">
-                {todays.map((m) => (
-                  <div
-                    key={m.id}
-                    data-testid={`row-meal-${m.id}`}
-                    className="group flex items-center py-2.5 border-b border-[#1C1714]/10 hover:border-[#1C1714]/30 transition-colors"
-                  >
-                    <div className="w-10 text-[10px] opacity-35 shrink-0">{fmtTime(m.createdAt)}</div>
-                    <div className="flex-1 min-w-0 px-2">
-                      <div className="text-xs leading-tight truncate">{m.name}</div>
-                      <div className="text-[9px] uppercase opacity-35 tracking-widest mt-0.5">{m.mealType}</div>
-                    </div>
-                    <div className="tabular-nums text-xs shrink-0 mr-1 opacity-70">+{m.calories}</div>
-                    <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button
-                        data-testid={`button-edit-meal-${m.id}`}
-                        onClick={() => startEdit(m)}
-                        className="h-6 w-6 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button
-                        data-testid={`button-delete-meal-${m.id}`}
-                        onClick={() => del.mutate(m.id)}
-                        className="h-6 w-6 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9e4515] transition-all"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between items-center py-3 border-b-2 border-[#1C1714]">
-                <div className="text-[10px] uppercase tracking-widest opacity-60">Subtotal</div>
-                <div className="tabular-nums text-sm">{todayTotal} kcal</div>
-              </div>
+              ))}
             </div>
-          )}
-        </div>
-
-        {/* Right: dark chat panel — always visible on desktop ── */}
-        <div className="hidden md:flex flex-col w-[400px] xl:w-[460px] bg-[#1C1714] text-[#F2EDE7] shrink-0 border-l-2 border-[#1C1714]">
-          <div className="px-6 py-5 border-b border-[#F2EDE7]/10 shrink-0">
-            <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 mb-0.5">AI Nutrition Chat</p>
-            <p className="text-xl tracking-tighter text-[#F2EDE7] leading-none">What did you eat?</p>
           </div>
-          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
-            <InlineChat onApplyEstimate={applyEstimate} dark />
-          </div>
-        </div>
-      </div>
 
-      {/* Mobile: AI Chat open button (fixed bottom bar) */}
-      {!chatOpen && (
-        <div className="md:hidden fixed bottom-0 inset-x-0 px-5 py-4 bg-[#F2EDE7] border-t border-[#1C1714]/20 z-30">
           <button
-            type="button"
-            data-testid="button-toggle-ai-chat"
-            onClick={() => setChatOpen(true)}
-            className="w-full bg-[#1C1714] text-[#F2EDE7] py-3.5 flex items-center justify-center gap-2.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/90 transition-colors"
+            type="submit"
+            disabled={isPending}
+            data-testid="button-save-meal"
+            className="w-full bg-[#1C1714] text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 sm:w-auto sm:px-14"
           >
-            <MessageSquare className="h-4 w-4" /> AI Nutrition Chat
+            {isPending ? "Saving…" : editingId ? "Update entry" : "Commit to record"}
           </button>
+        </form>
+      </Form>
+
+      {/* Today's Ledger — web only */}
+      {dayMeals.length > 0 && (
+        <div className="hidden md:block mt-10 border-t-2 border-[#1C1714] pt-6">
+          <div className="flex items-baseline justify-between mb-4">
+            <p className="text-[10px] uppercase tracking-widest opacity-60">
+              {logDate === todayStr() ? "Today's Ledger" : "Day's Ledger"}
+            </p>
+            <p className="text-sm tabular-nums opacity-60">{dayMeals.length} {dayMeals.length === 1 ? "entry" : "entries"}</p>
+          </div>
+          <div className="flex flex-col">
+            {dayMeals.map((m) => (
+              <div
+                key={m.id}
+                data-testid={`row-meal-${m.id}`}
+                className="group flex items-center py-2.5 border-b border-[#1C1714]/10 hover:border-[#1C1714]/30 transition-colors"
+              >
+                <div className="w-10 text-[10px] opacity-35 shrink-0">{fmtTime(m.createdAt)}</div>
+                <div className="flex-1 min-w-0 px-2">
+                  <div className="text-xs leading-tight truncate">{m.name}</div>
+                  <div className="text-[9px] uppercase opacity-35 tracking-widest mt-0.5">{m.mealType}</div>
+                </div>
+                <div className="tabular-nums text-xs shrink-0 mr-1 opacity-70">+{m.calories}</div>
+                <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <button
+                    data-testid={`button-edit-meal-${m.id}`}
+                    onClick={() => startEdit(m)}
+                    className="h-6 w-6 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    data-testid={`button-delete-meal-${m.id}`}
+                    onClick={() => del.mutate(m.id)}
+                    className="h-6 w-6 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9e4515] transition-all"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between items-center py-3 border-b-2 border-[#1C1714]">
+            <div className="text-[10px] uppercase tracking-widest opacity-60">Subtotal</div>
+            <div className="tabular-nums text-sm">{dayTotal} kcal</div>
+          </div>
         </div>
       )}
+    </div>
+  );
 
-      {/* Mobile: dark chat overlay */}
-      {chatOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-[#1C1714] flex flex-col">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F2EDE7]/10 shrink-0">
-            <div>
+  return (
+    <div className="min-h-screen bg-[#F2EDE7] flex flex-col font-['Space_Mono'] text-[#1C1714]">
+
+      {/* ════════════════════════════════════════════
+          MOBILE LAYOUT  (hidden on md+)
+      ════════════════════════════════════════════ */}
+      <div className="flex flex-col flex-1 md:hidden">
+
+        {mobileView === "chat" ? (
+          /* Mobile: Chat-first full screen */
+          <div className="flex flex-col flex-1 bg-[#1C1714] text-[#F2EDE7]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F2EDE7]/10 shrink-0">
+              <div className="flex items-center gap-4">
+                <Link href="/">
+                  <button
+                    type="button"
+                    data-testid="button-back-mobile"
+                    className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#F2EDE7]/50 hover:text-[#F2EDE7] transition-colors"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" /> Back
+                  </button>
+                </Link>
+                <div className="h-4 w-px bg-[#F2EDE7]/15" />
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 leading-none mb-0.5">AI Nutrition Chat</p>
+                  <p className="text-base tracking-tighter text-[#F2EDE7] leading-none">What did you eat?</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                data-testid="button-switch-to-form"
+                onClick={() => setMobileView("form")}
+                className="flex items-center gap-1.5 border border-[#F2EDE7]/20 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#F2EDE7] hover:border-[#F2EDE7]/50 transition-colors"
+              >
+                <PenLine className="h-3 w-3" /> Manual
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col">
+              <InlineChat
+                onApplyEstimate={applyEstimate}
+                dark
+                storageKey={chatStorageKey}
+                logDate={logDate}
+              />
+            </div>
+          </div>
+        ) : (
+          /* Mobile: Form view */
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center justify-between px-5 py-4 border-b-2 border-[#1C1714] bg-[#F2EDE7] shrink-0">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  data-testid="button-back-to-chat"
+                  onClick={() => { resetForm(); setMobileView("chat"); }}
+                  className="flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" /> Chat
+                </button>
+                <div className="h-4 w-px bg-[#1C1714]/20" />
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest opacity-50 leading-none mb-0.5">Log Meal</p>
+                  <p className="text-base tracking-tighter leading-none">
+                    {editingId ? "Edit entry" : "New entry"}
+                  </p>
+                </div>
+              </div>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={() => { resetForm(); setMobileView("chat"); }}
+                  className="text-xs uppercase tracking-widest opacity-50 hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {mealForm}
+          </div>
+        )}
+      </div>
+
+      {/* ════════════════════════════════════════════
+          WEB LAYOUT  (hidden on mobile)
+      ════════════════════════════════════════════ */}
+      <div className="hidden md:flex flex-col flex-1 overflow-hidden">
+        {sharedHeader}
+
+        {/* Two-column body */}
+        <div className="flex flex-1 overflow-hidden flex-row-reverse">
+          {/* Right column: form + ledger */}
+          {mealForm}
+
+          {/* Left column: dark chat */}
+          <div className="hidden md:flex flex-col w-[400px] xl:w-[460px] bg-[#1C1714] text-[#F2EDE7] shrink-0 border-r-2 border-[#1C1714]">
+            <div className="px-6 py-5 border-b border-[#F2EDE7]/10 shrink-0">
               <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 mb-0.5">AI Nutrition Chat</p>
               <p className="text-xl tracking-tighter text-[#F2EDE7] leading-none">What did you eat?</p>
             </div>
-            <button
-              type="button"
-              data-testid="button-close-ai-chat"
-              onClick={() => setChatOpen(false)}
-              className="flex items-center gap-1.5 border border-[#F2EDE7]/20 px-3 py-2 text-xs uppercase tracking-widest text-[#F2EDE7] hover:border-[#F2EDE7]/50 transition-colors"
-            >
-              <X className="h-3.5 w-3.5" /> Close
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col">
-            <InlineChat onApplyEstimate={applyEstimate} dark />
+            <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col">
+              <InlineChat
+                onApplyEstimate={applyEstimate}
+                dark
+                storageKey={chatStorageKey}
+                logDate={logDate}
+              />
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
     </div>
   );

@@ -136,20 +136,20 @@
     --card: transparent;
     --card-foreground: 20 12% 11%;
 
-    /* Terracotta as primary */
-    --primary: 14 52% 50%;
-    --primary-foreground: 30 30% 97%;
+    /* Green Mist as primary */
+    --primary: 53 7% 45%;
+    --primary-foreground: 0 0% 98%;
 
     --secondary: 30 15% 90%;
     --secondary-foreground: 20 12% 11%;
 
     --accent: 30 18% 88%;
-    --accent-foreground: 14 45% 36%;
+    --accent-foreground: 53 7% 35%;
 
     --destructive: 0 100% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --ring: 14 52% 50%;
+    --ring: 53 7% 45%;
 
     --radius: 0rem;
   }

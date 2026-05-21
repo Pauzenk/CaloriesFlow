@@ -1,0 +1,66 @@
+Please update the app with the following UX and functional changes. Keep the existing visual style, but simplify the interface and make it more readable and ergonomic.
+
+1. Meal logging confirmation
+- After the user adds a meal or activity through the chat, show a clear confirmation that the log was added successfully.
+- Example: “Added to today’s log” or “Breakfast saved”.
+
+2. Meal type selection inside chat
+- Add a dropdown inside the chat to choose:
+  - Breakfast
+  - Lunch
+  - Dinner
+  - Snack
+- The selected meal type should be saved with the entry.
+
+3. Remove manual product listing for now
+- Temporarily remove/hide the manual product listing section.
+- Focus the meal logging flow on chat-based input.
+
+4. Recipe generation feature
+- Add a new feature called “Generate Recipes” or “Meal Ideas”.
+- It should be accessible from the Dashboard.
+- Clicking it should redirect/open the chat.
+- The user should be able to:
+  - generate a full meal plan for the day based on today’s remaining calorie limit
+  - generate recipes separately for breakfast, lunch, dinner, or snack
+  - mix both: manually add some meals and generate ideas for the remaining meals
+- The recipe suggestions should respect the user’s daily calorie target and calories already logged.
+
+5. Remove log time
+- Do not show the time of each log entry.
+- Only show the meal name/type, food/activity description, and calories.
+
+6. Readability and simplicity
+- Make small grey text more readable.
+- Improve contrast across the app.
+- Hide unnecessary elements.
+- Keep the UI simple, ergonomic, and easy to scan.
+- Do not change the overall visual identity.
+
+7. First-time onboarding
+- When a user opens the app for the first time, show the Settings/onboarding screen first.
+- Guide the user to fill in required data before using the app:
+  - body metrics
+  - activity level
+  - daily target / calorie goal
+- The app needs this data to provide accurate calorie and recipe outputs.
+
+8. Chat guidance
+- Inside the chat, explain clearly what the user can do.
+- The chat should offer options like:
+  - add breakfast
+  - add lunch
+  - add dinner
+  - add snack
+  - generate today’s full menu
+  - generate one meal recipe
+  - regenerate recipe suggestions
+- Example user flow:
+  - user chooses “Generate full day menu”
+  - or user manually logs breakfast, then asks the chat to generate lunch and dinner based on remaining calories
+- Make the chat self-explanatory for new users.
+
+9. Google authentication issue
+- Google login/authorization is currently not working.
+- Please debug and repair Google authentication.
+- Make sure users can successfully sign in with Google.

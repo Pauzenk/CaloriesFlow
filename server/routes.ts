@@ -313,16 +313,33 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const userText: string =
         typeof req.body.message === "string" ? req.body.message.slice(0, 1000) : "";
 
+      let contextNote = "";
+      try {
+        const rawCtx = typeof req.body.context === "string" ? req.body.context : null;
+        if (rawCtx) {
+          const ctx = JSON.parse(rawCtx) as Record<string, unknown>;
+          const goal = typeof ctx.calorieGoal === "number" ? ctx.calorieGoal : null;
+          const logged = typeof ctx.caloriesLogged === "number" ? ctx.caloriesLogged : null;
+          const rem = typeof ctx.remainingCalories === "number" ? ctx.remainingCalories : null;
+          if (goal !== null && logged !== null && rem !== null) {
+            contextNote = `\n\nUSER'S DAY CONTEXT: Daily calorie goal = ${goal} kcal | Already logged = ${logged} kcal | Remaining = ${rem} kcal.`;
+          }
+        }
+      } catch { /* ignore */ }
+
       try {
         const openai = new OpenAI({ apiKey } as ClientOptions);
 
         const systemMessage: ChatCompletionMessageParam = {
           role: "system",
-          content: `You are a nutrition and fitness assistant inside a calorie-tracking app. You handle two types of input:
+          content: `You are a nutrition and fitness assistant inside a calorie-tracking app.${contextNote}
+
+You handle four types of input:
 
 TYPE A — FOOD/MEAL: The user describes something they ate or a food photo.
-TYPE B — PHYSICAL ACTIVITY: The user describes exercise, sport, or physical activity (e.g. "45 min cardio", "went for a run", "strength training").
-TYPE C — BOTH: The user mentions both food and activity in the same message.
+TYPE B — PHYSICAL ACTIVITY: The user describes exercise, sport, or physical activity.
+TYPE C — BOTH: The user mentions both food and activity.
+TYPE D — RECIPE IDEAS / MEAL PLAN: The user asks for recipe suggestions, meal ideas, or a full-day meal plan.
 
 ━━━ FOOD ESTIMATION RULES ━━━
 1. Identify every ingredient and its realistic portion size in grams.
@@ -341,10 +358,17 @@ Use standard MET values to estimate calories burned. Assume 75 kg bodyweight if 
 Formula: calories = MET × 75 kg × (durationMinutes / 60)
 Common MET values: walking (3.5), light cycling (6), running/jogging (8), HIIT/cardio (10), strength training (5), swimming (7), yoga (2.5).
 - activityType must be one of: "cardio", "strength", "other"
-- For mixed sessions (e.g. "cardio + strength"), split the time evenly and sum calories. Use "cardio" if unsure.
+
+━━━ RECIPE / MEAL PLAN RULES (TYPE D) ━━━
+When the user asks for meal ideas or a full-day plan:
+- Use the USER'S DAY CONTEXT (remaining calories) to size portions appropriately.
+- For a full-day plan: distribute remaining calories across meals not yet logged (breakfast ~25%, lunch ~35%, dinner ~30%, snack ~10% of daily goal).
+- For a single meal request: suggest one complete recipe that fits within the appropriate fraction of remaining calories.
+- Suggest realistic, balanced meals with varied ingredients.
+- Return multiple estimates using the "estimates" array format below. Include "mealType" in each estimate.
 
 ━━━ RESPONSE RULES ━━━
-- Write 1–2 sentences of reasoning first.
+- Write 1–3 sentences of context or reasoning first.
 - NEVER output 300 kcal as a default without reasoning.
 - If you need clarification, ask one focused question and omit JSON entirely.
 - Numbers: calories = integer, proteins/carbs/fats = 1 decimal place, caloriesBurned = integer.
@@ -352,7 +376,7 @@ Common MET values: walking (3.5), light cycling (6), running/jogging (8), HIIT/c
 ━━━ RESPONSE FORMAT ━━━
 End your reply with exactly ONE JSON block (no text after it). Include only the keys that apply:
 
-For food only:
+For single food:
 \`\`\`json
 {"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>}}
 \`\`\`
@@ -365,6 +389,11 @@ For activity only:
 For both food and activity:
 \`\`\`json
 {"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>},"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other"}}
+\`\`\`
+
+For multiple recipe suggestions (TYPE D):
+\`\`\`json
+{"estimates":[{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"breakfast|lunch|dinner|snack"},{"name":"...","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"..."}]}
 \`\`\``,
         };
 
@@ -408,8 +437,13 @@ For both food and activity:
           activityType: z.enum(["cardio", "strength", "other"]).default("other"),
         });
 
+        const recipeEstimateSchema = photoAnalysisSchema.extend({
+          mealType: z.string().optional(),
+        });
+
         const jsonBlockMatch = rawReply.match(/```json\s*(\{[\s\S]*?\})\s*```\s*$/);
         let estimate: z.infer<typeof photoAnalysisSchema> | undefined;
+        let estimates: z.infer<typeof recipeEstimateSchema>[] | undefined;
         let activityEstimate: z.infer<typeof activityEstimateSchema> | undefined;
         let reply = rawReply;
 
@@ -422,6 +456,14 @@ For both food and activity:
                 const v = photoAnalysisSchema.safeParse(p.estimate);
                 if (v.success) estimate = v.data;
               }
+              if ("estimates" in p && Array.isArray(p.estimates)) {
+                const arr: z.infer<typeof recipeEstimateSchema>[] = [];
+                for (const item of p.estimates) {
+                  const v = recipeEstimateSchema.safeParse(item);
+                  if (v.success) arr.push(v.data);
+                }
+                if (arr.length > 0) estimates = arr;
+              }
               if ("activityEstimate" in p && typeof p.activityEstimate === "object" && p.activityEstimate !== null) {
                 const v = activityEstimateSchema.safeParse(p.activityEstimate);
                 if (v.success) activityEstimate = v.data;
@@ -433,7 +475,7 @@ For both food and activity:
           reply = rawReply.slice(0, rawReply.lastIndexOf("```json")).trim();
         }
 
-        res.json({ reply: reply || "Here is the estimate.", estimate, activityEstimate });
+        res.json({ reply: reply || "Here is the estimate.", estimate, estimates, activityEstimate });
       } catch (err: unknown) {
         next(new Error(err instanceof Error ? err.message : "AI chat failed"));
       }

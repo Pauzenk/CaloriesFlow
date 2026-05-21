@@ -65,7 +65,8 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  // ── Local strategy ──────────────────────────────────────────────────────────
+  // ── Passport strategies ──────────────────────────────────────────────────────
+
   passport.use(
     new LocalStrategy(
       { usernameField: "email", passwordField: "password" },
@@ -84,7 +85,6 @@ export function setupAuth(app: Express) {
     ),
   );
 
-  // ── Google strategy ─────────────────────────────────────────────────────────
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -103,18 +103,15 @@ export function setupAuth(app: Express) {
             const name = profile.displayName || profile.name?.givenName || "User";
             const googleId = profile.id;
 
-            // Already linked
             const byGoogleId = await storage.getUserByGoogleId(googleId);
             if (byGoogleId) return done(null, sanitizeUser(byGoogleId));
 
-            // Existing email account — link it
             if (email) {
               const byEmail = await storage.getUserByEmail(email);
               if (byEmail) {
                 await storage.linkGoogleAccount(byEmail.id, googleId);
                 return done(null, sanitizeUser(byEmail));
               }
-              // Brand new user
               const created = await storage.createGoogleUser({ email, name, googleId });
               return done(null, sanitizeUser(created));
             }
@@ -125,16 +122,6 @@ export function setupAuth(app: Express) {
           }
         },
       ),
-    );
-
-    app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-
-    app.get(
-      "/api/auth/google/callback",
-      passport.authenticate("google", { failureRedirect: "/login?error=google_failed" }),
-      (_req, res) => {
-        res.redirect("/");
-      },
     );
   }
 
@@ -149,10 +136,24 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // ── IMPORTANT: initialize passport BEFORE registering any routes ────────────
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // ── Local auth routes ───────────────────────────────────────────────────────
+  // ── Google OAuth routes ──────────────────────────────────────────────────────
+  if (googleClientId && googleClientSecret) {
+    app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+
+    app.get(
+      "/api/auth/google/callback",
+      passport.authenticate("google", { failureRedirect: "/login?error=google_failed" }),
+      (_req, res) => {
+        res.redirect("/");
+      },
+    );
+  }
+
+  // ── Local auth routes ────────────────────────────────────────────────────────
   app.post("/api/auth/register", async (req, res, next) => {
     const parsed = insertUserSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -201,7 +202,6 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  // Tell the frontend whether Google sign-in is available
   app.get("/api/auth/providers", (_req, res) => {
     res.json({ google: !!(googleClientId && googleClientSecret) });
   });

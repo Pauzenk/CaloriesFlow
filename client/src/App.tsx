@@ -1,6 +1,6 @@
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -10,21 +10,46 @@ import ProgressPage from "@/pages/Progress";
 import LogMeal from "@/pages/LogMeal";
 import SettingsPage from "@/pages/Settings";
 import { useAuth } from "@/hooks/use-auth";
+import type { Settings } from "@shared/schema";
 
 function Protected({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#f4f3ef] text-[#475C65]">Loading…</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[#F2EDE7] font-['Space_Mono'] text-[#1C1714] text-xs tracking-widest uppercase opacity-50">Loading…</div>;
   }
   if (!user) return <Redirect to="/login" />;
   return <Component />;
+}
+
+function DashboardRoute() {
+  const { user, isLoading } = useAuth();
+  const [location] = useLocation();
+  const { data: settings, isLoading: sLoading } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    enabled: !!user,
+  });
+
+  if (isLoading || (user && sLoading)) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#F2EDE7] font-['Space_Mono'] text-[#1C1714] text-xs tracking-widest uppercase opacity-50">Loading…</div>;
+  }
+  if (!user) return <Redirect to="/login" />;
+
+  const needsOnboarding = settings &&
+    !settings.heightCm &&
+    !settings.ageYears &&
+    (!settings.currentWeightKg || settings.currentWeightKg === 0) &&
+    location !== "/settings";
+
+  if (needsOnboarding) return <Redirect to="/settings" />;
+
+  return <Dashboard />;
 }
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={AuthPage} />
-      <Route path="/" component={() => <Protected component={Dashboard} />} />
+      <Route path="/" component={DashboardRoute} />
       <Route path="/progress" component={() => <Protected component={ProgressPage} />} />
       <Route path="/log" component={() => <Protected component={LogMeal} />} />
       <Route path="/settings" component={() => <Protected component={SettingsPage} />} />

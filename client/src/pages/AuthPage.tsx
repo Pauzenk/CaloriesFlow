@@ -88,38 +88,38 @@ export default function AuthPage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#F2EDE7] px-4 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-8 md:grid-cols-2">
-        {/* Left brand panel */}
-        <div className="hidden flex-col gap-4 bg-[#302e35] p-10 text-white md:flex">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center bg-white/15">
-              <Leaf className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">CalorieFlow</span>
+    <main className="min-h-screen bg-[#F2EDE7] md:grid md:grid-cols-2">
+      {/* Left brand panel — full height on desktop */}
+      <div className="hidden md:flex flex-col justify-center gap-4 bg-[#302e35] px-14 py-16 text-white min-h-screen">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center bg-white/15">
+            <Leaf className="h-5 w-5" />
           </div>
-          <h1 className="mt-10 text-4xl font-bold leading-tight">Mindful nutrition, every day.</h1>
-          <p className="mt-2 text-base text-white/80">
-            Track your daily calories, watch your weight trend, and stay consistent with your weight-loss journey.
-          </p>
-          <ul className="mt-8 space-y-3 text-sm text-white/70">
-            <li className="flex items-center gap-2">
-              <span className="h-px w-4 bg-white/40" />
-              Log breakfast, lunch, dinner &amp; snacks
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="h-px w-4 bg-white/40" />
-              See macros and weekly progress at a glance
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="h-px w-4 bg-white/40" />
-              Track weight loss week by week
-            </li>
-          </ul>
+          <span className="text-xl font-bold tracking-tight">CalorieFlow</span>
         </div>
+        <h1 className="mt-10 text-4xl font-bold leading-tight">Mindful nutrition, every day.</h1>
+        <p className="mt-2 text-base text-white/80">
+          Track your daily calories, watch your weight trend, and stay consistent with your weight-loss journey.
+        </p>
+        <ul className="mt-8 space-y-3 text-sm text-white/70">
+          <li className="flex items-center gap-2">
+            <span className="h-px w-4 bg-white/40" />
+            Log breakfast, lunch, dinner &amp; snacks
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="h-px w-4 bg-white/40" />
+            See macros and weekly progress at a glance
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="h-px w-4 bg-white/40" />
+            Track weight loss week by week
+          </li>
+        </ul>
+      </div>
 
-        {/* Right auth card */}
-        <div className="border border-[#D4CFC8] bg-white p-6 md:p-10">
+      {/* Right auth panel — centered vertically */}
+      <div className="flex items-center justify-center min-h-screen px-6 py-10">
+        <div className="w-full max-w-sm border border-[#D4CFC8] bg-white p-6 md:p-10">
           {/* Mobile logo */}
           <div className="mb-6 flex items-center gap-3 md:hidden">
             <div className="flex h-9 w-9 items-center justify-center bg-[#3c3a40] text-white">

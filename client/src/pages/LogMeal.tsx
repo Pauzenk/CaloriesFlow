@@ -95,6 +95,7 @@ function InlineChat({
   const [input, setInput] = useState("");
   const [pendingPhoto, setPendingPhoto] = useState<{ file: File; dataUrl: string } | null>(null);
   const [loggingId, setLoggingId] = useState<number | null>(null);
+  const [loggingAll, setLoggingAll] = useState<number | null>(null);
   const [mealTypeOverride, setMealTypeOverride] = useState<Record<number, string>>({});
   const [showMealTypeFor, setShowMealTypeFor] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -112,13 +113,13 @@ function InlineChat({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-open ideas mode if URL has ?mode=ideas
+  // Auto-open recipes mode if URL has ?mode=recipes
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("mode") === "ideas" && messages.length === 0) {
+    if (params.get("mode") === "recipes" && messages.length === 0) {
       const prompt = remaining > 0
-        ? `Generate a full day menu for my remaining ${remaining} kcal today`
-        : "Generate meal ideas for today";
+        ? `Generate a complete daily plan — Breakfast, Lunch, Dinner and Snack — totaling ${calorieGoal} kcal (${remaining} kcal remaining today)`
+        : `Generate a complete daily plan — Breakfast, Lunch, Dinner and Snack — totaling ${calorieGoal} kcal`;
       setInput(prompt);
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
@@ -233,13 +234,41 @@ function InlineChat({
     }
   }
 
+  async function handleLogAll(msgId: number, estimates: NutritionEstimate[]) {
+    setLoggingAll(msgId);
+    try {
+      for (let i = 0; i < estimates.length; i++) {
+        const est = estimates[i];
+        const cardId = msgId * 100 + i;
+        const mealType = mealTypeOverride[cardId] || est.mealType || getDefaultMealType();
+        await onLogMeal(est, mealType);
+      }
+      const totalCal = estimates.reduce((s, e) => s + e.calories, 0);
+      setMessages((prev) =>
+        prev.map((m) => m.id === msgId ? { ...m, confirmed: true } : m)
+      );
+      setMessages((prev) => [...prev, {
+        id: nextId(), role: "assistant",
+        text: `Full day logged — ${estimates.length} meals added (${totalCal} kcal total)`,
+        confirmed: true,
+      }]);
+    } catch {
+      toast({ title: "Failed to log meals", variant: "destructive" });
+    } finally {
+      setLoggingAll(null);
+    }
+  }
+
   const canSend = (input.trim().length > 0 || pendingPhoto !== null) && !chat.isPending;
 
   const suggestions = [
-    ...(remaining > 0 ? [`Generate a full day menu for ${remaining} remaining kcal`] : []),
-    "Suggest a breakfast recipe",
-    "Suggest a lunch recipe",
-    "Suggest a dinner recipe",
+    ...(remaining > 0
+      ? [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack — ${remaining} kcal remaining`]
+      : [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack`]),
+    "Regenerate only the breakfast",
+    "Regenerate only the lunch",
+    "Regenerate only the dinner",
+    "Suggest a snack recipe",
     "I had oatmeal with banana for breakfast",
     "Chicken breast with rice and broccoli",
     "Cardio 25 minutes",
@@ -354,6 +383,42 @@ function InlineChat({
                         />
                       );
                     })}
+
+                    {/* Log all + regenerate controls for full day plans */}
+                    {msg.estimates.length >= 3 && (
+                      <div className="flex flex-col gap-2 pt-1">
+                        <button
+                          type="button"
+                          data-testid={`button-log-all-${msg.id}`}
+                          onClick={() => handleLogAll(msg.id, msg.estimates!)}
+                          disabled={loggingAll === msg.id}
+                          className="w-full flex items-center justify-center gap-1.5 bg-[#F2EDE7] text-[#1C1714] py-2.5 text-[10px] uppercase tracking-widest hover:bg-[#F2EDE7]/90 transition-colors disabled:opacity-40"
+                        >
+                          {loggingAll === msg.id ? "Logging…" : <><ArrowRight className="h-3 w-3" /> Add full day to log</>}
+                        </button>
+                        <div>
+                          <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/30 mb-1.5">Regenerate</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(["full plan", "breakfast", "lunch", "dinner", "snack"] as const).map((meal) => (
+                              <button
+                                key={meal}
+                                type="button"
+                                data-testid={`button-regen-${meal.replace(" ", "-")}-${msg.id}`}
+                                onClick={() => {
+                                  setInput(meal === "full plan"
+                                    ? `Regenerate the full day plan totaling ${calorieGoal} kcal`
+                                    : `Regenerate only the ${meal}`);
+                                  textareaRef.current?.focus();
+                                }}
+                                className="border border-[#F2EDE7]/15 px-2.5 py-1 text-[9px] uppercase tracking-widest text-[#F2EDE7]/50 hover:border-[#F2EDE7]/40 hover:text-[#F2EDE7]/80 transition-colors"
+                              >
+                                ↻ {meal}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -608,10 +673,10 @@ export default function LogMeal() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1C1714] flex flex-col font-['Space_Mono']">
+    <div className="h-dvh bg-[#1C1714] flex flex-col font-['Space_Mono'] overflow-hidden">
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#F2EDE7]/10 shrink-0">
+      {/* Header — sticky */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[#F2EDE7]/10 bg-[#1C1714] shrink-0">
         <div className="flex items-center gap-4">
           <Link href="/">
             <button

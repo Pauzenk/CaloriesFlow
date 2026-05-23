@@ -571,7 +571,7 @@ export default function ProgressPage() {
                   axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                   tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
                   width={36}
-                  domain={[intakeChartMin, intakeChartMax]}
+                  domain={[0, intakeChartMax]}
                 />
                 <Tooltip {...CHART_TOOLTIP} formatter={(v: number) => [`${v} kcal`]} />
                 <ReferenceLine

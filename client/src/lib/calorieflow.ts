@@ -1,8 +1,15 @@
 import type { Meal, Settings, Weight } from "@shared/schema";
 import { ACTIVITY_MULTIPLIERS, type ActivityLevel } from "@shared/schema";
 
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDateStr(new Date());
 }
 
 export function daysSince(dateStr: string, targetDateStr?: string): number {
@@ -40,7 +47,7 @@ export function lastNDates(n: number): string[] {
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    out.push(d.toISOString().slice(0, 10));
+    out.push(localDateStr(d));
   }
   return out;
 }
@@ -162,7 +169,7 @@ export function weightProjectionSeries(
   for (let i = 0; i < 730; i++) {
     const d = new Date(startDateObj);
     d.setDate(d.getDate() + i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const dateStr = localDateStr(d);
 
     if (i === 0) {
       // Anchor day-0 to actual weight if logged on journey start

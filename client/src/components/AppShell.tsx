@@ -148,6 +148,15 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <span className="text-[11px] font-medium">Log</span>
           </button>
         </Link>
+        <button
+          type="button"
+          data-testid="button-mobile-logout"
+          onClick={() => logout.mutate()}
+          className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-[#6B6560]"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="text-[11px] font-medium">Log out</span>
+        </button>
       </nav>
     </main>
   );

@@ -1,0 +1,62 @@
+Please fix and update the app with the following changes.
+
+1. Fix day navigation
+The navigation between days does not work correctly.
+When I click several days back, I cannot go forward day by day again.
+Please fix the logic so the user can freely navigate backward and forward between all existing days.
+
+2. Rename “Ideas” to “Recipes”
+Rename the “Ideas” button and section everywhere in the app to “Recipes”.
+
+3. Recipes generation logic
+The “Recipes” section should generate one full daily recipe plan:
+- Breakfast
+- Lunch
+- Dinner
+- Snack
+
+All meals together must fit within the user’s daily calorie limit.
+
+The user should be able to:
+- Regenerate the full day plan
+- Regenerate only one meal separately: breakfast, lunch, dinner, or snack
+- Add one single meal to their log
+- Add the full suggested day to their log
+
+The meals should make sense together as one coherent daily menu, not random disconnected dishes.
+
+4. Save logs correctly after republishing
+There is a serious issue after republishing the app: sometimes old logged days are not saved.
+This happens especially when part of the data was entered from mobile and part from desktop. Also when log in/log out.
+
+Please fix persistence and synchronization.
+After every deployment / republish, all previously entered logs must still be available.
+The user should not lose previous days or logs.
+
+Make sure data is stored consistently and does not depend on the device used.
+
+5. Fix Goal vs Actual chart
+In the “Goal vs Actual” chart, the Y-axis does not start from zero.
+Please update the chart so the Y-axis starts at 0.
+
+6. Sticky chat header
+In the chat page, the header with the back button should stay fixed at the top when the user scrolls.
+The back button should always remain visible.
+
+7. Remove “End of record”
+Remove the phrase “End of record” everywhere in the app.
+
+8. Add Log out on mobile
+In the mobile version, there is no Log out option.
+Please add a clear and accessible Log out button/menu item on mobile.
+
+9. General check
+After implementing the changes, please test:
+- Mobile and desktop
+- Navigation between past and future days
+- Recipe generation and regeneration
+- Adding one meal vs adding full day
+- Republishing without losing existing logs
+- Chart scaling
+- Sticky chat header
+- Log out visibility on mobile

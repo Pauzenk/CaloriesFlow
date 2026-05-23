@@ -55,6 +55,7 @@ export function setupAuth(app: Express) {
       store: sessionStore,
       secret: sessionSecret,
       resave: false,
+      rolling: true,
       saveUninitialized: false,
       cookie: {
         httpOnly: true,

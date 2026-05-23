@@ -18,7 +18,10 @@ import {
 function offsetDate(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function formatDisplayDate(dateStr: string): string {
@@ -438,14 +441,14 @@ export default function Dashboard() {
                   </button>
                 </Link>
                 {isToday && remaining > 0 && (
-                  <Link href={`/log?date=${selectedDate}&mode=ideas`}>
+                  <Link href={`/log?date=${selectedDate}&mode=recipes`}>
                     <button
                       type="button"
                       data-testid="button-meal-ideas"
                       className="border border-[#1C1714]/40 text-[#1C1714] py-3 px-4 text-xs uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors flex items-center justify-center gap-2"
-                      title={`${remaining} kcal remaining — get meal ideas`}
+                      title={`${remaining} kcal remaining — get recipe ideas`}
                     >
-                      <Sparkles className="h-3.5 w-3.5 opacity-60" /> Ideas
+                      <Sparkles className="h-3.5 w-3.5 opacity-60" /> Recipes
                     </button>
                   </Link>
                 )}
@@ -454,7 +457,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="text-center text-[10px] uppercase tracking-widest opacity-30 mb-8">— End of Record —</div>
 
       </div>
     </AppShell>

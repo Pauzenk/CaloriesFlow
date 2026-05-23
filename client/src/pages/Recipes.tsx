@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw, Plus, ChevronRight, Leaf } from "lucide-react";
@@ -172,7 +172,7 @@ export default function RecipesPage() {
   })();
 
   const { toast } = useToast();
-  const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
+  const { data: settings, isSuccess: settingsLoaded } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const calorieGoal = settings?.dailyCalorieGoal ?? 2000;
 
   const [meals, setMeals] = useState<RecipeMeal[] | null>(null);
@@ -182,13 +182,20 @@ export default function RecipesPage() {
   const [loggingAll, setLoggingAll] = useState(false);
   const [detailMeal, setDetailMeal] = useState<RecipeMeal | null>(null);
 
-  async function generateFullDay() {
+  const hasFetched = useRef(false);
+
+  async function generateFullDay(goal?: number) {
+    const targetGoal = goal ?? calorieGoal;
     setIsGenerating(true);
     try {
-      const res = await apiRequest("POST", "/api/recipes/generate", { calorieGoal });
+      const res = await apiRequest("POST", "/api/recipes/generate", { calorieGoal: targetGoal });
       const data = (await res.json()) as { meals: RecipeMeal[] };
+      if (!data.meals || !Array.isArray(data.meals) || data.meals.length === 0) {
+        throw new Error("Empty meal plan returned");
+      }
       setMeals(data.meals);
-    } catch {
+    } catch (err) {
+      console.error("[Recipes] generateFullDay failed:", err);
       toast({ title: "Failed to generate plan", description: "Please try again.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
@@ -205,8 +212,10 @@ export default function RecipesPage() {
         currentPlan: meals,
       });
       const data = (await res.json()) as { meals: RecipeMeal[] };
+      if (!data.meals || !Array.isArray(data.meals)) throw new Error("Invalid response");
       setMeals(data.meals);
-    } catch {
+    } catch (err) {
+      console.error("[Recipes] regenerateSingleMeal failed:", err);
       toast({ title: "Failed to regenerate", variant: "destructive" });
     } finally {
       setRegeneratingMeal(null);
@@ -227,7 +236,8 @@ export default function RecipesPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
       toast({ title: `${MEAL_LABEL[meal.mealType]} added to log`, description: `${meal.name} · ${meal.calories} kcal` });
-    } catch {
+    } catch (err) {
+      console.error("[Recipes] logSingleMeal failed:", err);
       toast({ title: "Failed to add to log", variant: "destructive" });
     } finally {
       setLoggingMeal(null);
@@ -252,16 +262,22 @@ export default function RecipesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
       const total = meals.reduce((s, m) => s + m.calories, 0);
       toast({ title: "Full day added to log", description: `${meals.length} meals · ${total} kcal total` });
-    } catch {
+    } catch (err) {
+      console.error("[Recipes] logAllMeals failed:", err);
       toast({ title: "Failed to log all meals", variant: "destructive" });
     } finally {
       setLoggingAll(false);
     }
   }
 
+  // Auto-generate once when settings are confirmed loaded — prevents double-fire
+  // from the default calorieGoal value firing before settings arrive.
   useEffect(() => {
-    if (calorieGoal > 0) generateFullDay();
-  }, [calorieGoal]);
+    if (!settingsLoaded) return;
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    generateFullDay(calorieGoal);
+  }, [settingsLoaded]);
 
   if (detailMeal) {
     return <RecipeDetail meal={detailMeal} onBack={() => setDetailMeal(null)} />;

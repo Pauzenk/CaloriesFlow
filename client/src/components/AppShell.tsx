@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, Plus, LogOut, Leaf } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, LogOut, Leaf, ChefHat } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,11 +8,12 @@ import { useAuth } from "@/hooks/use-auth";
 const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Progress", path: "/progress", icon: TrendingUp },
+  { label: "Recipes", path: "/recipes", icon: ChefHat },
   { label: "Settings", path: "/settings", icon: SettingsIcon },
 ];
 
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
-  const [location, navigate] = useLocation();
+  const [location] = useLocation();
   const { user, logout } = useAuth();
 
   const initials = (user?.name || user?.email || "U")
@@ -21,8 +22,6 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     .slice(0, 2)
     .join("")
     .toUpperCase();
-
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
     <main className="min-h-screen bg-[#F2EDE7]">
@@ -42,7 +41,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <nav className="mt-10" aria-label="Sidebar navigation">
               <ul className="space-y-1">
                 {navItems.map((item) => {
-                  const active = location === item.path;
+                  const active = location === item.path || (item.path === "/recipes" && location.startsWith("/recipes"));
                   const Icon = item.icon;
                   return (
                     <li key={item.label}>
@@ -65,15 +64,6 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                 })}
               </ul>
             </nav>
-            <div className="mt-6">
-              <Button
-                data-testid="button-log-meal"
-                onClick={() => navigate("/log")}
-                className="h-12 w-full gap-2 bg-[#3c3a40] text-sm font-bold text-white hover:bg-[#2d2b30]"
-              >
-                <Plus className="h-4 w-4" /> Log Meal
-              </Button>
-            </div>
             <div className="mt-auto">
               <div className="flex items-center gap-3 border border-[#D4CFC8] px-3 py-2.5">
                 <Avatar className="h-8 w-8">
@@ -85,22 +75,13 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                   </p>
                   <p className="text-[10px] uppercase tracking-wider text-[#6B6560]">Member</p>
                 </div>
-                <Button
-                  data-testid="button-logout"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-[#6B6560] hover:text-[#1C1714]"
-                  onClick={() => logout.mutate()}
-                  title="Log out"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                </Button>
               </div>
             </div>
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
+        <div className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+          {/* Top header — page title left, logout right */}
           <header className="flex items-center justify-between border-b border-[#D4CFC8] bg-[#F2EDE7] px-4 py-4 md:px-10 md:py-5">
             <div className="flex items-center gap-2 md:hidden">
               <div className="flex h-8 w-8 items-center justify-center bg-[#3c3a40] text-white">
@@ -109,54 +90,42 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               <span className="text-base font-bold text-[#1C1714]">CalorieFlow</span>
             </div>
             <h2 className="hidden text-xl font-bold text-[#1C1714] md:block">{title}</h2>
-            <p className="text-xs text-[#6B6560] md:text-sm">{today}</p>
+            <Button
+              data-testid="button-logout"
+              variant="ghost"
+              onClick={() => logout.mutate()}
+              title="Log out"
+              className="flex items-center gap-1.5 text-xs font-medium text-[#6B6560] hover:text-[#1C1714] px-2 py-1.5 h-auto uppercase tracking-widest"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Log out</span>
+            </Button>
           </header>
           <h2 className="px-4 pt-5 text-xl font-bold text-[#1C1714] md:hidden">{title}</h2>
           <section className="flex-1 px-4 pb-10 pt-4 md:px-8">{children}</section>
         </div>
       </div>
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — Dashboard, Progress, Recipes, Settings */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#1C1714]/10 bg-[#F2EDE7] py-1.5 md:hidden">
         {navItems.map((item) => {
-          const active = location === item.path;
+          const active = location === item.path || (item.path === "/recipes" && location.startsWith("/recipes"));
           const Icon = item.icon;
           return (
             <Link key={item.path} href={item.path}>
               <button
                 type="button"
                 data-testid={`link-mobile-nav-${item.label.toLowerCase()}`}
-                className={`flex flex-col items-center gap-0.5 px-4 py-1.5 ${
+                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 ${
                   active ? "text-[#3c3a40]" : "text-[#6B6560]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                <span className="text-[11px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium">{item.label}</span>
               </button>
             </Link>
           );
         })}
-        <Link href="/log">
-          <button
-            type="button"
-            data-testid="link-mobile-nav-log"
-            className={`flex flex-col items-center gap-0.5 px-4 py-1.5 ${
-              location === "/log" ? "text-[#3c3a40]" : "text-[#6B6560]"
-            }`}
-          >
-            <Plus className="h-5 w-5" />
-            <span className="text-[11px] font-medium">Log</span>
-          </button>
-        </Link>
-        <button
-          type="button"
-          data-testid="button-mobile-logout"
-          onClick={() => logout.mutate()}
-          className="flex flex-col items-center gap-0.5 px-4 py-1.5 text-[#6B6560]"
-        >
-          <LogOut className="h-5 w-5" />
-          <span className="text-[11px] font-medium">Log out</span>
-        </button>
       </nav>
     </main>
   );

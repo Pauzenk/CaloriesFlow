@@ -1,0 +1,94 @@
+Please apply these additional fixes and layout changes.
+
+1. Add Recipes to the web version
+
+The Recipes feature is missing on the web version.
+Please make sure Recipes is available both on mobile and desktop/web.
+
+Recipes must be a dedicated UI section, not inside the chat.
+
+The Recipes screen should show a daily list:
+- Breakfast
+- Lunch
+- Dinner
+- Snack
+
+Each item can be regenerated separately.
+The full day can also be regenerated.
+
+When the user clicks on a recipe name, it should open the recipe detail screen with:
+- Title
+- Ingredients
+- Step-by-step preparation
+- Calories
+- Back button to return to the recipe list
+
+The user should be able to add:
+- One recipe/meal to the daily log
+- The full suggested day to the daily log
+
+Do not show “Nutrition estimate” anywhere.
+
+2. Fix cross-device data persistence
+
+Days entered on mobile are not saved or visible on the web version.
+
+Example:
+Yesterday I filled in the day from my phone.
+Today I opened the web version, and yesterday’s day was not saved there.
+
+Please fix this.
+
+All logged days must be stored in the same persistent user account/database and must sync correctly between mobile and web.
+
+The data should not be stored only locally on one device.
+
+Requirements:
+- If I log a day on mobile, it must appear on web.
+- If I log a day on web, it must appear on mobile.
+- Previous days must remain available after refresh, logout/login, deployment, and republishing.
+- No logged history should disappear after using another device.
+
+3. Navigation changes
+
+Keep these main navigation items:
+- Dashboard
+- Progress
+- Settings
+
+Remove:
+- Log
+
+Do not show “Log” as a separate main navigation item anymore.
+
+4. Move Log out
+
+Move “Log out” to the top-right corner.
+
+It should replace the current date position in the header.
+
+The Log out action must be visible and accessible on both desktop and mobile.
+
+5. Move the date lower
+
+The date should no longer be in the top-right corner.
+
+Move the date lower in the interface, somewhere inside the dashboard content area.
+
+For example:
+- Near the daily summary
+- Above the calorie overview
+- Inside a small “Today” / selected day block
+
+The date should still be visible, but it should not take the main header action position.
+
+6. Final check
+
+Please test:
+- Recipes available on web and mobile
+- Mobile logs appear on web
+- Web logs appear on mobile
+- Previous days remain saved after refresh, logout/login, and redeployment
+- Main navigation only shows Dashboard, Progress, Settings
+- Log out is in the top-right corner
+- Date is moved into the page content

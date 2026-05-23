@@ -578,14 +578,15 @@ Return ONLY a JSON object with this exact structure:
     try {
       const openai = new OpenAI({ apiKey } as ClientOptions);
       const img = await openai.images.generate({
-        model: "dall-e-2",
-        prompt: `${name}, food photography, clean white background, square format, top-down view, appetizing`,
+        model: "gpt-image-1",
+        prompt: `${name}, food photography, appetizing, top-down view, clean plate presentation, soft natural lighting, square format`,
         n: 1,
-        size: "256x256",
-      });
-      const imageUrl = img.data[0]?.url;
-      if (!imageUrl) return res.status(502).json({ message: "Image generation failed" });
-      res.json({ imageUrl });
+        size: "1024x1024",
+        quality: "low",
+      } as Parameters<typeof openai.images.generate>[0]);
+      const b64 = img.data[0]?.b64_json;
+      if (!b64) return res.status(502).json({ message: "Image generation failed" });
+      res.json({ imageUrl: `data:image/png;base64,${b64}` });
     } catch (err) {
       next(err);
     }

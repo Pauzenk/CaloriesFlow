@@ -710,7 +710,7 @@ export default function LogMeal() {
       </div>
 
       {/* Chat */}
-      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col max-w-2xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col">
         <InlineChat
           onLogMeal={onLogMeal}
           storageKey={chatStorageKey}

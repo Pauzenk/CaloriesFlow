@@ -570,6 +570,27 @@ Return ONLY a JSON object with this exact structure:
     }
   });
 
+  app.get("/api/recipes/image", requireAuth, async (req, res, next) => {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return res.status(503).json({ message: "AI not configured" });
+    const name = typeof req.query.name === "string" ? req.query.name.trim().slice(0, 200) : "";
+    if (!name) return res.status(400).json({ message: "name is required" });
+    try {
+      const openai = new OpenAI({ apiKey } as ClientOptions);
+      const img = await openai.images.generate({
+        model: "dall-e-2",
+        prompt: `${name}, food photography, clean white background, square format, top-down view, appetizing`,
+        n: 1,
+        size: "256x256",
+      });
+      const imageUrl = img.data[0]?.url;
+      if (!imageUrl) return res.status(502).json({ message: "Image generation failed" });
+      res.json({ imageUrl });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get("/api/stats/calories", requireAuth, async (req, res, next) => {
     try {
       const userId = req.user!.id;

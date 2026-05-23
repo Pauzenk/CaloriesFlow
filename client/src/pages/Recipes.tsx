@@ -16,6 +16,7 @@ type RecipeMeal = {
   fats: number;
   ingredients: string[];
   instructions: string[];
+  imageUrl?: string | null;
 };
 
 const MEAL_ORDER: RecipeMeal["mealType"][] = ["breakfast", "lunch", "dinner", "snack"];
@@ -58,7 +59,16 @@ function RecipeDetail({ meal, onBack }: { meal: RecipeMeal; onBack: () => void }
         <span className="text-[10px] uppercase tracking-widest opacity-40">{MEAL_LABEL[meal.mealType]}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-7 max-w-2xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto">
+        {meal.imageUrl && (
+          <img
+            src={meal.imageUrl}
+            alt={meal.name}
+            data-testid="img-recipe-detail"
+            className="w-full h-52 object-cover border-b border-[#1C1714]/15"
+          />
+        )}
+        <div className="px-5 py-7 max-w-2xl w-full mx-auto">
         <h1 className="text-2xl tracking-tighter leading-tight mb-2" data-testid="text-recipe-detail-name">
           {meal.name}
         </h1>
@@ -94,6 +104,7 @@ function RecipeDetail({ meal, onBack }: { meal: RecipeMeal; onBack: () => void }
             ))}
           </ol>
         </section>
+        </div>
       </div>
     </div>
   );
@@ -119,21 +130,37 @@ function MealCard({
   return (
     <div className="border border-[#1C1714]/15 hover:border-[#1C1714]/30 transition-colors" data-testid={`card-recipe-${meal.mealType}`}>
       <div className="px-4 pt-4 pb-3">
-        <div className="text-[9px] uppercase tracking-widest opacity-40 mb-1">{MEAL_LABEL[meal.mealType]}</div>
-        <button
-          type="button"
-          onClick={onDetail}
-          data-testid={`button-recipe-detail-${meal.mealType}`}
-          className="group flex items-center gap-1.5 w-full text-left hover:opacity-70 transition-opacity"
-        >
-          <span className="text-base tracking-tight leading-snug">{meal.name}</span>
-          <ChevronRight className="h-3.5 w-3.5 opacity-30 group-hover:opacity-70 shrink-0 transition-opacity" />
-        </button>
-        <div className="flex gap-3 mt-2 text-[10px] opacity-50 tabular-nums">
-          <span>{meal.calories} kcal</span>
-          <span>P {meal.proteins}g</span>
-          <span>C {meal.carbs}g</span>
-          <span>F {meal.fats}g</span>
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-[9px] uppercase tracking-widest opacity-40 mb-1">{MEAL_LABEL[meal.mealType]}</div>
+            <button
+              type="button"
+              onClick={onDetail}
+              data-testid={`button-recipe-detail-${meal.mealType}`}
+              className="group flex items-center gap-1.5 w-full text-left hover:opacity-70 transition-opacity"
+            >
+              <span className="text-base tracking-tight leading-snug">{meal.name}</span>
+              <ChevronRight className="h-3.5 w-3.5 opacity-30 group-hover:opacity-70 shrink-0 transition-opacity" />
+            </button>
+            <div className="flex gap-3 mt-2 text-[10px] opacity-50 tabular-nums">
+              <span>{meal.calories} kcal</span>
+              <span>P {meal.proteins}g</span>
+              <span>C {meal.carbs}g</span>
+              <span>F {meal.fats}g</span>
+            </div>
+          </div>
+          <div className="h-[72px] w-[72px] shrink-0 border border-[#1C1714]/10 overflow-hidden">
+            {meal.imageUrl ? (
+              <img
+                src={meal.imageUrl}
+                alt={meal.name}
+                data-testid={`img-recipe-${meal.mealType}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full bg-[#1C1714]/5 animate-pulse" />
+            )}
+          </div>
         </div>
       </div>
 
@@ -180,9 +207,26 @@ export default function RecipesPage() {
   const [regeneratingMeal, setRegeneratingMeal] = useState<string | null>(null);
   const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
   const [loggingAll, setLoggingAll] = useState(false);
-  const [detailMeal, setDetailMeal] = useState<RecipeMeal | null>(null);
+  const [detailMealType, setDetailMealType] = useState<string | null>(null);
+  const detailMeal = detailMealType ? (meals?.find((m) => m.mealType === detailMealType) ?? null) : null;
 
   const hasFetched = useRef(false);
+
+  function fetchImages(newMeals: RecipeMeal[]) {
+    newMeals.forEach(async (meal) => {
+      try {
+        const res = await apiRequest("GET", `/api/recipes/image?name=${encodeURIComponent(meal.name)}`);
+        const data = (await res.json()) as { imageUrl: string };
+        if (data.imageUrl) {
+          setMeals((prev) =>
+            prev?.map((m) => m.mealType === meal.mealType ? { ...m, imageUrl: data.imageUrl } : m) ?? null
+          );
+        }
+      } catch {
+        // silently fail — meal still shows without image
+      }
+    });
+  }
 
   async function generateFullDay(goal?: number) {
     const targetGoal = goal ?? calorieGoal;
@@ -194,8 +238,9 @@ export default function RecipesPage() {
         throw new Error("Empty meal plan returned");
       }
       setMeals(data.meals);
+      fetchImages(data.meals);
     } catch (err) {
-      console.error("[Recipes] generateFullDay failed:", err);
+      console.error("[Recipes] generateFullDay failed:", err instanceof Error ? err.message : String(err));
       toast({ title: "Failed to generate plan", description: "Please try again.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
@@ -214,8 +259,10 @@ export default function RecipesPage() {
       const data = (await res.json()) as { meals: RecipeMeal[] };
       if (!data.meals || !Array.isArray(data.meals)) throw new Error("Invalid response");
       setMeals(data.meals);
+      const regenerated = data.meals.find((m) => m.mealType === mealType);
+      if (regenerated) fetchImages([regenerated]);
     } catch (err) {
-      console.error("[Recipes] regenerateSingleMeal failed:", err);
+      console.error("[Recipes] regenerateSingleMeal failed:", err instanceof Error ? err.message : String(err));
       toast({ title: "Failed to regenerate", variant: "destructive" });
     } finally {
       setRegeneratingMeal(null);
@@ -280,7 +327,7 @@ export default function RecipesPage() {
   }, [settingsLoaded]);
 
   if (detailMeal) {
-    return <RecipeDetail meal={detailMeal} onBack={() => setDetailMeal(null)} />;
+    return <RecipeDetail meal={detailMeal} onBack={() => setDetailMealType(null)} />;
   }
 
   const totalPlanned = meals?.reduce((s, m) => s + m.calories, 0) ?? 0;
@@ -308,7 +355,7 @@ export default function RecipesPage() {
 
         <button
           type="button"
-          onClick={generateFullDay}
+          onClick={() => generateFullDay()}
           disabled={isGenerating}
           data-testid="button-regenerate-all"
           className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40"
@@ -346,7 +393,7 @@ export default function RecipesPage() {
                       isLogging={loggingMeal === type}
                       onRegenerate={() => regenerateSingleMeal(type)}
                       onLog={() => logSingleMeal(meal)}
-                      onDetail={() => setDetailMeal(meal)}
+                      onDetail={() => setDetailMealType(meal.mealType)}
                     />
                   );
                 })

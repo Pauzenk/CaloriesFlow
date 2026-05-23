@@ -12,6 +12,8 @@ const navItems = [
   { label: "Settings", path: "/settings", icon: SettingsIcon },
 ];
 
+const mobileNavItems = navItems.filter((item) => item.label !== "Recipes");
+
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
@@ -106,9 +108,9 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         </div>
       </div>
 
-      {/* Mobile bottom nav — Dashboard, Progress, Recipes, Settings */}
+      {/* Mobile bottom nav — Dashboard, Progress, Settings */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#1C1714]/10 bg-[#F2EDE7] py-1.5 md:hidden">
-        {navItems.map((item) => {
+        {mobileNavItems.map((item) => {
           const active = location === item.path || (item.path === "/recipes" && location.startsWith("/recipes"));
           const Icon = item.icon;
           return (

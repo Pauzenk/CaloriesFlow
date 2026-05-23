@@ -1,0 +1,37 @@
+uploads = []
+
+[[generated]]
+id = "kH_d_Le8rP07W5rOvmSVU"
+uri = "file://attached_assets/logo_leaf_flame.png"
+type = "image"
+title = "calorieflow leaf flame logo"
+
+[[generated]]
+id = "mMzGf4JRJIgMMSEFH5hME"
+uri = "file://attached_assets/logo_flow_receipt.png"
+type = "image"
+title = "calorieflow receipt wave logo"
+
+[[generated]]
+id = "CllMhgdhwhwqoiNi7wwYl"
+uri = "file://attached_assets/logo_fork_leaf.png"
+type = "image"
+title = "calorieflow fork leaf logo"
+
+[[outputs]]
+id = "Zi8_n5gQe0fl-PBPd9GnH"
+uri = "file://attached_assets/logo_leaf_flame.png"
+type = "image"
+title = "Option 1 — Leaf + Flame"
+
+[[outputs]]
+id = "j4oFUwmhZ0TOCq3gjNClx"
+uri = "file://attached_assets/logo_flow_receipt.png"
+type = "image"
+title = "Option 2 — Receipt Wave"
+
+[[outputs]]
+id = "DzGN_CvtJ5WU32CrXJXR4"
+uri = "file://attached_assets/logo_fork_leaf.png"
+type = "image"
+title = "Option 3 — Fork + Leaf"

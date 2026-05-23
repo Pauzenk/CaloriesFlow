@@ -8,6 +8,7 @@ import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import ProgressPage from "@/pages/Progress";
 import LogMeal from "@/pages/LogMeal";
+import RecipesPage from "@/pages/Recipes";
 import SettingsPage from "@/pages/Settings";
 import { useAuth } from "@/hooks/use-auth";
 import type { Settings } from "@shared/schema";
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/" component={DashboardRoute} />
       <Route path="/progress" component={() => <Protected component={ProgressPage} />} />
       <Route path="/log" component={() => <Protected component={LogMeal} />} />
+      <Route path="/recipes" component={() => <Protected component={RecipesPage} />} />
       <Route path="/settings" component={() => <Protected component={SettingsPage} />} />
       <Route component={NotFound} />
     </Switch>

@@ -441,7 +441,7 @@ export default function Dashboard() {
                   </button>
                 </Link>
                 {isToday && remaining > 0 && (
-                  <Link href={`/log?date=${selectedDate}&mode=recipes`}>
+                  <Link href={`/recipes?date=${selectedDate}`}>
                     <button
                       type="button"
                       data-testid="button-meal-ideas"

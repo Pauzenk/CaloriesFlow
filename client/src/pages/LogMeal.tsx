@@ -566,7 +566,7 @@ function EstimateCard({
       className="w-full border border-[#F2EDE7]/25 p-3"
     >
       <div className="text-[9px] uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 opacity-50">
-        Nutrition Estimate
+        {estimate.mealType ? estimate.mealType.charAt(0).toUpperCase() + estimate.mealType.slice(1) : "Estimate"}
       </div>
       <div className="text-xs mb-2 text-[#F2EDE7]/85">{estimate.name}</div>
       <div className="grid grid-cols-4 gap-1.5 text-center mb-3">

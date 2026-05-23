@@ -482,6 +482,94 @@ For multiple recipe suggestions (TYPE D):
     });
   });
 
+  // ── Dedicated recipe plan generation ──────────────────────────────────────
+  app.post("/api/recipes/generate", requireAuth, async (req, res, next) => {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return res.status(503).json({ message: "AI not configured" });
+
+    const bodySchema = z.object({
+      calorieGoal: z.number().int().min(500).max(10000),
+      regenerateMeal: z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
+      currentPlan: z.array(z.object({
+        mealType: z.string(),
+        name: z.string(),
+        calories: z.number(),
+        proteins: z.number(),
+        carbs: z.number(),
+        fats: z.number(),
+        ingredients: z.array(z.string()),
+        instructions: z.array(z.string()),
+      })).optional(),
+    });
+
+    const parsed = bodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid request" });
+
+    const { calorieGoal, regenerateMeal, currentPlan } = parsed.data;
+    const bk = Math.round(calorieGoal * 0.25);
+    const ln = Math.round(calorieGoal * 0.35);
+    const dn = Math.round(calorieGoal * 0.30);
+    const sn = Math.round(calorieGoal * 0.10);
+
+    let prompt: string;
+
+    if (regenerateMeal && currentPlan && currentPlan.length > 0) {
+      const targets: Record<string, number> = { breakfast: bk, lunch: ln, dinner: dn, snack: sn };
+      const targetCal = targets[regenerateMeal] ?? bk;
+      prompt = `I have this daily meal plan (JSON):
+${JSON.stringify(currentPlan, null, 2)}
+
+Regenerate ONLY the "${regenerateMeal}" entry. Replace it with a completely different recipe around ${targetCal} kcal. Keep all other meals exactly as-is (same name, calories, ingredients, instructions).
+
+Return the complete updated plan as a JSON object with this structure:
+{"meals":[{"mealType":"breakfast|lunch|dinner|snack","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...",...]},...]}`; 
+    } else {
+      prompt = `Generate a balanced daily meal plan with exactly 4 meals: breakfast, lunch, dinner, snack.
+Total target: ${calorieGoal} kcal. Distribution: breakfast ~${bk} kcal, lunch ~${ln} kcal, dinner ~${dn} kcal, snack ~${sn} kcal.
+
+Rules:
+- Meals must form a coherent, realistic menu for one day
+- Each meal: 3–6 ingredients with specific quantities (e.g. "80g oats", "1 medium egg")
+- Each meal: 3–5 clear numbered instruction steps
+- calories = integer; proteins, carbs, fats = one decimal place
+- Varied ingredients; no repeated main protein source
+
+Return ONLY a JSON object with this exact structure:
+{"meals":[{"mealType":"breakfast","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...",...]},{"mealType":"lunch",...},{"mealType":"dinner",...},{"mealType":"snack",...}]}`;
+    }
+
+    try {
+      const openai = new OpenAI({ apiKey } as ClientOptions);
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        max_tokens: 1200,
+        response_format: { type: "json_object" },
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      const raw = completion.choices[0]?.message?.content ?? "{}";
+      const result = JSON.parse(raw) as { meals?: unknown };
+
+      const mealSchema = z.object({
+        mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]),
+        name: z.string().min(1).max(200),
+        calories: z.number().int().min(0).max(3000),
+        proteins: z.number().min(0).max(300),
+        carbs: z.number().min(0).max(500),
+        fats: z.number().min(0).max(200),
+        ingredients: z.array(z.string().max(200)).min(1).max(15),
+        instructions: z.array(z.string().max(500)).min(1).max(15),
+      });
+
+      const meals = z.array(mealSchema).safeParse(result.meals);
+      if (!meals.success) return res.status(502).json({ message: "AI returned invalid meal plan" });
+
+      res.json({ meals: meals.data });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get("/api/stats/calories", requireAuth, async (req, res, next) => {
     try {
       const userId = req.user!.id;

@@ -131,8 +131,9 @@ export default function ProgressPage() {
 
   const periodMeals = meals.filter((m) => dates.includes(m.date));
   const periodTotals = sumMacros(periodMeals);
-  const avgPerDay = Math.round(periodTotals.calories / n);
-  const periodDeficit = goal * n - periodTotals.calories;
+  const daysWithLogs = Math.max(1, dates.filter((d) => meals.some((m) => m.date === d)).length);
+  const avgPerDay = Math.round(periodTotals.calories / daysWithLogs);
+  const periodDeficit = goal * daysWithLogs - periodTotals.calories;
   const estimatedKgLost = periodDeficit / 7700;
 
   const canProject = !!(
@@ -726,10 +727,15 @@ export default function ProgressPage() {
             <div className="grid grid-cols-3 divide-x divide-[#1C1714]/10">
               <div className="px-3 py-4 text-center">
                 <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("calorieDeficit")}</p>
-                <p className="text-base tabular-nums font-medium" data-testid="text-period-deficit">
+                <p
+                  className={`text-base tabular-nums font-medium ${periodDeficit < 0 ? "text-red-600" : ""}`}
+                  data-testid="text-period-deficit"
+                >
                   {Math.abs(periodDeficit).toLocaleString()}
                 </p>
-                <p className="text-[10px] opacity-40 mt-0.5">{periodDeficit >= 0 ? t("deficitLabel") : t("surplusLabel")}</p>
+                <p className={`text-[10px] mt-0.5 ${periodDeficit < 0 ? "text-red-500 opacity-70" : "opacity-40"}`}>
+                  {periodDeficit >= 0 ? t("deficitLabel") : t("surplusLabel")}
+                </p>
               </div>
               <div className="px-3 py-4 text-center">
                 <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("avgPerDay")}</p>

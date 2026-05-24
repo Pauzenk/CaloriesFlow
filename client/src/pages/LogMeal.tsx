@@ -183,8 +183,9 @@ function InlineChat({
                 sseError = json.error;
               } else if (typeof json.delta === "string") {
                 streamText += json.delta;
-                // Don't stream raw JSON text into the bubble — card will appear on done
-                const looksLikeJson = streamText.trimStart().startsWith("{");
+                // Don't stream raw JSON or fenced JSON into the bubble — card appears on done
+                const t0 = streamText.trimStart();
+                const looksLikeJson = t0.startsWith("{") || t0.startsWith("```");
                 if (!looksLikeJson) {
                   setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
                 }
@@ -243,7 +244,7 @@ function InlineChat({
     // Only send the last 12 messages and skip error/empty messages
     // Truncate content to 1800 chars to stay under server's 2000-char limit per message
     return msgs
-      .filter((m) => m.text && !m.error)
+      .filter((m) => m.text && !m.error && !m.text.trimStart().startsWith("{") && !m.text.trimStart().startsWith("```"))
       .slice(-8)
       .map((m) => ({
         role: m.role,
@@ -419,7 +420,7 @@ function InlineChat({
                     data-testid={`chat-photo-${msg.id}`}
                   />
                 )}
-                {msg.text && (
+                {msg.text && !msg.text.trimStart().startsWith("{") && !msg.text.trimStart().startsWith("```") && (
                   <div className={`px-3 py-2 text-xs leading-relaxed border ${
                     msg.role === "user"
                       ? "bg-[#F2EDE7] text-[#1C1714] border-transparent"

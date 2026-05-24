@@ -29,6 +29,7 @@ import {
   todayStr,
   weightProjectionSeries,
 } from "@/lib/calorieflow";
+import type { Lang } from "@/lib/i18n";
 
 type Period = "day" | "week" | "month";
 
@@ -42,23 +43,49 @@ const CHART_TOOLTIP = {
   },
 };
 
-function relativeTime(dateStr: string): string {
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
+function relativeTime(dateStr: string, lang: Lang): string {
   const today = new Date();
   const target = new Date(dateStr + "T00:00:00");
   const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 0) return "Goal reached!";
-  if (diffDays < 7) return `In ${diffDays} day${diffDays !== 1 ? "s" : ""}`;
-  if (diffDays < 30) return `In ~${Math.round(diffDays / 7)} wks`;
+  if (diffDays <= 0) return lang === "ru" ? "Цель достигнута!" : "Goal reached!";
+  if (diffDays < 7) {
+    if (lang === "ru") return `Через ${diffDays} ${pluralRu(diffDays, "день", "дня", "дней")}`;
+    return `In ${diffDays} day${diffDays !== 1 ? "s" : ""}`;
+  }
+  if (diffDays < 30) {
+    const wks = Math.round(diffDays / 7);
+    if (lang === "ru") return `Через ~${wks} нед.`;
+    return `In ~${wks} wks`;
+  }
   const months = Math.round(diffDays / 30);
+  if (lang === "ru") return `Через ~${months} мес.`;
   return `In ~${months} mo${months !== 1 ? "s" : ""}`;
 }
 
-function formatGoalDate(dateStr: string): string {
+function formatGoalDate(dateStr: string, lang: Lang): string {
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function journeyTimeframeLabel(days: number): string {
+function journeyTimeframeLabel(days: number, lang: Lang): string {
+  if (lang === "ru") {
+    if (days < 7) return `${days} ${pluralRu(days, "день", "дня", "дней")}`;
+    if (days < 30) {
+      const wks = Math.round(days / 7);
+      return `${wks} ${pluralRu(wks, "неделя", "недели", "недель")}`;
+    }
+    const months = Math.round(days / 30);
+    return `${months} ${pluralRu(months, "месяц", "месяца", "месяцев")}`;
+  }
   if (days < 7) return `${days} day${days !== 1 ? "s" : ""}`;
   if (days < 30) {
     const wks = Math.round(days / 7);
@@ -69,7 +96,7 @@ function journeyTimeframeLabel(days: number): string {
 }
 
 export default function ProgressPage() {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const [period, setPeriod] = useState<Period>("week");
   const [weightInput, setWeightInput] = useState("");
   const [selectedWeekKey, setSelectedWeekKey] = useState<number | null>(null);
@@ -88,10 +115,10 @@ export default function ProgressPage() {
       setWeightInput("");
       queryClient.invalidateQueries({ queryKey: ["/api/weights"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "Weight logged" });
+      toast({ title: t("weightLogged") });
     },
     onError: (err: unknown) =>
-      toast({ title: "Failed to log weight", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" }),
+      toast({ title: t("failedToLogWeight"), description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" }),
   });
 
   const goal = settings?.dailyCalorieGoal || 2000;
@@ -202,6 +229,9 @@ export default function ProgressPage() {
       }
     });
 
+    const nowLabel = lang === "ru" ? "Сейчас" : "Now";
+    const wkLabel = lang === "ru" ? "Нед." : "Wk";
+
     const sorted = Array.from(weekMap.entries()).sort(([a], [b]) => a - b);
     return sorted.map(([weekIdx, { projected, actuals }], i) => {
       const prevProjected = i > 0 ? sorted[i - 1][1].projected : null;
@@ -209,7 +239,7 @@ export default function ProgressPage() {
         prevProjected !== null ? Math.round((prevProjected - projected) * 7700) : null;
       return {
         weekIdx,
-        week: weekIdx === 0 ? "Now" : `Wk ${weekIdx}`,
+        week: weekIdx === 0 ? nowLabel : `${wkLabel} ${weekIdx}`,
         projected: +projected.toFixed(1),
         goal: settings?.goalWeightKg ?? undefined,
         actual:
@@ -219,7 +249,7 @@ export default function ProgressPage() {
         deficitKcal,
       };
     });
-  }, [projectionPoints, actualWeightMap, settings, canProject]);
+  }, [projectionPoints, actualWeightMap, settings, canProject, lang]);
 
   const activityLabel = settings?.activityLevel
     ? ACTIVITY_LEVEL_LABELS[settings.activityLevel as ActivityLevel]
@@ -228,10 +258,6 @@ export default function ProgressPage() {
   const intakeChartMax = Math.max(
     (estimatedTDEE ?? goal) + 200,
     ...chartData.map((d) => d.calories ?? 0),
-  );
-  const intakeChartMin = Math.max(
-    0,
-    Math.floor((Math.min(goal, estimatedTDEE ?? goal) - 400) / 100) * 100,
   );
 
   useEffect(() => {
@@ -245,8 +271,14 @@ export default function ProgressPage() {
     return () => document.removeEventListener("pointerdown", handler);
   }, [selectedWeekKey]);
 
+  const periodLabels: Record<Period, string> = {
+    day: t("periodDay"),
+    week: t("periodWeek"),
+    month: t("periodMonth"),
+  };
+
   return (
-    <AppShell title="Progress">
+    <AppShell title={t("progressTitle")}>
       <div className="w-full font-['Space_Mono'] text-[#1C1714] space-y-8">
 
         {/* ══ Current Weight ══ */}
@@ -254,8 +286,8 @@ export default function ProgressPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
-                Current Weight
-                <span className="ml-2 opacity-60">({isActualWeight ? "Actual" : "Estimated"})</span>
+                {t("currentWeightTitle")}
+                <span className="ml-2 opacity-60">({isActualWeight ? t("actual") : t("estimated")})</span>
               </p>
               <div className="flex items-end gap-2">
                 <span className="text-4xl tabular-nums tracking-tighter leading-none" data-testid="text-estimated-weight">
@@ -263,16 +295,16 @@ export default function ProgressPage() {
                 </span>
                 <span className="text-xl opacity-40 mb-0.5">kg</span>
                 {settings?.goalWeightKg && (
-                  <span className="text-sm opacity-35 mb-0.5">/ {settings.goalWeightKg} kg goal</span>
+                  <span className="text-sm opacity-35 mb-0.5">/ {settings.goalWeightKg} {t("goalWeightSuffix")}</span>
                 )}
               </div>
               {displayWeight !== null && (
                 <p className="text-[10px] opacity-40 mt-1">
                   {isActualWeight && mostRecentActualWeight
-                    ? `Logged ${formatGoalDate(mostRecentActualWeight.date)}`
+                    ? `${t("loggedOn")} ${formatGoalDate(mostRecentActualWeight.date, lang)}`
                     : activityLabel
-                    ? `Calculated from calorie deficit · ${activityLabel}`
-                    : "Calculated from calorie deficit"}
+                    ? `${t("calcFromDeficit")} · ${activityLabel}`
+                    : t("calcFromDeficit")}
                 </p>
               )}
             </div>
@@ -290,7 +322,7 @@ export default function ProgressPage() {
                 step="0.1"
                 value={weightInput}
                 onChange={(e) => setWeightInput(e.target.value)}
-                placeholder="Log actual (kg)"
+                placeholder={t("logActualPlaceholder")}
                 className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40 h-9 text-sm flex-1"
               />
               <button
@@ -299,7 +331,7 @@ export default function ProgressPage() {
                 disabled={addWeight.isPending || !weightInput}
                 className="shrink-0 bg-[#1C1714] text-[#F2EDE7] px-4 py-2 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 transition-colors disabled:opacity-40 whitespace-nowrap"
               >
-                {addWeight.isPending ? "…" : "Add"}
+                {addWeight.isPending ? "…" : t("addButton")}
               </button>
             </form>
           </div>
@@ -309,17 +341,17 @@ export default function ProgressPage() {
         <div className="border border-[#1C1714] p-5">
           <div className="flex items-start justify-between mb-4 pb-3 border-b border-dashed border-[#1C1714]/20">
             <div>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">Journey Statement</p>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("journeyStatement")}</p>
               <p className="text-4xl tabular-nums tracking-tighter leading-none" data-testid="text-journey-day">
-                Day {dayNum}
+                {t("day")} {dayNum}
               </p>
             </div>
             {canProject && settings?.goalWeightKg && (
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">Goal</p>
+                <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("goal")}</p>
                 <p className="text-lg tabular-nums">{settings.goalWeightKg} kg</p>
                 {projectedGoalDate && (
-                  <p className="text-[10px] opacity-35 mt-0.5">{relativeTime(projectedGoalDate)}</p>
+                  <p className="text-[10px] opacity-35 mt-0.5">{relativeTime(projectedGoalDate, lang)}</p>
                 )}
               </div>
             )}
@@ -328,9 +360,9 @@ export default function ProgressPage() {
           {canProject && (
             <div className="pt-3 border-t border-dashed border-[#1C1714]/20">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs uppercase opacity-70">Journey Progress</div>
+                <div className="text-xs uppercase opacity-70">{t("journeyProgress")}</div>
                 <div data-testid="text-goal-percent" className="text-xs font-medium">
-                  {journeyTimeframeLabel(dayNum)} in
+                  {journeyTimeframeLabel(dayNum, lang)} {t("journeyIn")}
                 </div>
               </div>
               <div className="w-full h-2 bg-[#1C1714]/10 overflow-hidden">
@@ -341,8 +373,8 @@ export default function ProgressPage() {
                 />
               </div>
               <div className="flex justify-between mt-1.5 text-[10px] opacity-50">
-                <span>Start</span>
-                <span>{weightProgressPct}% of goal weight</span>
+                <span>{t("startLabel")}</span>
+                <span>{weightProgressPct}{t("ofGoalWeight")}</span>
               </div>
             </div>
           )}
@@ -352,35 +384,27 @@ export default function ProgressPage() {
         {weightGapAnalysis && (
           <div className="border-2 border-[#1C1714] p-5" data-testid="panel-weight-gap">
             <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
-              {lang === "ru" ? "Оптимальное время" : "Optimal Timeline"}
+              {t("optimalTime")}
             </p>
             <p className="text-2xl tracking-tighter leading-none mb-4">
-              {weightGapAnalysis.isAhead
-                ? lang === "ru" ? "Вы опережаете план" : "Ahead of schedule"
-                : lang === "ru" ? "Вы отстаёте от плана" : "Behind schedule"}
+              {weightGapAnalysis.isAhead ? t("aheadOfSchedule") : t("behindSchedule")}
             </p>
 
             <div className="grid grid-cols-2 gap-4 mb-5 sm:grid-cols-4">
               <div>
-                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
-                  {lang === "ru" ? "Ожидаемый вес" : "Expected weight"}
-                </p>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("expectedWeightLabel")}</p>
                 <p className="text-base tabular-nums" data-testid="text-expected-weight">
                   {currentEstimatedWeight?.toFixed(1)} kg
                 </p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
-                  {lang === "ru" ? "Фактический вес" : "Actual weight"}
-                </p>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("actualWeightLabel")}</p>
                 <p className="text-base tabular-nums" data-testid="text-actual-weight-gap">
                   {mostRecentActualWeight?.weightKg.toFixed(1)} kg
                 </p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
-                  {lang === "ru" ? "Разница" : "Gap"}
-                </p>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("gapLabel")}</p>
                 <p
                   className={`text-base tabular-nums ${weightGapAnalysis.isAhead ? "text-[#4a8c4a]" : "text-[#9B4A2E]"}`}
                   data-testid="text-weight-gap"
@@ -389,9 +413,7 @@ export default function ProgressPage() {
                 </p>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
-                  {lang === "ru" ? "Дефицит/день" : "Deficit/day"}
-                </p>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficitPerDay")}</p>
                 <p className="text-base tabular-nums opacity-70">
                   {weightGapAnalysis.dailyDeficit.toLocaleString()} kcal
                 </p>
@@ -402,34 +424,30 @@ export default function ProgressPage() {
               {weightGapAnalysis.isAhead ? (
                 <p className="text-sm leading-relaxed" data-testid="text-gap-recommendation">
                   {lang === "ru"
-                    ? `Вы на ${Math.abs(weightGapAnalysis.gap).toFixed(2)} кг впереди расчётного веса. При текущем дефиците вы достигнете цели примерно на ${weightGapAnalysis.extraDays} дней раньше срока. Отличная работа — можно немного увеличить калории, чтобы не потерять мышечную массу.`
+                    ? `Вы на ${Math.abs(weightGapAnalysis.gap).toFixed(2)} кг впереди расчётного веса. При текущем дефиците вы достигнете цели примерно на ${weightGapAnalysis.extraDays} ${pluralRu(weightGapAnalysis.extraDays, "день", "дня", "дней")} раньше срока. Отличная работа — можно немного увеличить калории, чтобы не потерять мышечную массу.`
                     : `You're ${Math.abs(weightGapAnalysis.gap).toFixed(2)} kg ahead of projected weight. At your current deficit you'll reach your goal ~${weightGapAnalysis.extraDays} day${weightGapAnalysis.extraDays !== 1 ? "s" : ""} early. Consider eating slightly more to preserve muscle.`}
                 </p>
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm leading-relaxed" data-testid="text-gap-recommendation">
                     {lang === "ru"
-                      ? `Ваш фактический вес на ${Math.abs(weightGapAnalysis.gap).toFixed(2)} кг выше ожидаемого. При текущем дефиците ${weightGapAnalysis.dailyDeficit.toLocaleString()} ккал/день потребуется ещё ~${weightGapAnalysis.extraDays} дней, чтобы наверстать разницу.`
+                      ? `Ваш фактический вес на ${Math.abs(weightGapAnalysis.gap).toFixed(2)} кг выше ожидаемого. При текущем дефиците ${weightGapAnalysis.dailyDeficit.toLocaleString()} ккал/день потребуется ещё ~${weightGapAnalysis.extraDays} ${pluralRu(weightGapAnalysis.extraDays, "день", "дня", "дней")}, чтобы наверстать разницу.`
                       : `Your actual weight is ${Math.abs(weightGapAnalysis.gap).toFixed(2)} kg above the projected curve. At your current deficit of ${weightGapAnalysis.dailyDeficit.toLocaleString()} kcal/day, it will take ~${weightGapAnalysis.extraDays} additional day${weightGapAnalysis.extraDays !== 1 ? "s" : ""} to close the gap.`}
                   </p>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-[10px]">
                     <div className="border border-[#1C1714]/20 px-4 py-3">
-                      <p className="uppercase tracking-widest opacity-50 mb-1">
-                        {lang === "ru" ? "Вариант A — больше времени" : "Option A — extend timeline"}
-                      </p>
+                      <p className="uppercase tracking-widest opacity-50 mb-1">{t("optionATitle")}</p>
                       <p className="opacity-80">
                         {lang === "ru"
-                          ? `Оставьте цель ${settings?.dailyCalorieGoal?.toLocaleString()} ккал — добавьте ~${weightGapAnalysis.extraDays} дней к плану.`
+                          ? `Оставьте цель ${settings?.dailyCalorieGoal?.toLocaleString()} ккал — добавьте ~${weightGapAnalysis.extraDays} ${pluralRu(weightGapAnalysis.extraDays, "день", "дня", "дней")} к плану.`
                           : `Keep ${settings?.dailyCalorieGoal?.toLocaleString()} kcal goal — add ~${weightGapAnalysis.extraDays} days to your plan.`}
                       </p>
                     </div>
                     <div className="border border-[#1C1714]/20 px-4 py-3">
-                      <p className="uppercase tracking-widest opacity-50 mb-1">
-                        {lang === "ru" ? "Вариант B — больше дефицит" : "Option B — increase deficit"}
-                      </p>
+                      <p className="uppercase tracking-widest opacity-50 mb-1">{t("optionBTitle")}</p>
                       <p className="opacity-80">
                         {lang === "ru"
-                          ? `Снизьте цель на 100–200 ккал/день, чтобы наверстать разницу за ${Math.round(weightGapAnalysis.extraDays * 0.6)} дней.`
+                          ? `Снизьте цель на 100–200 ккал/день, чтобы наверстать разницу за ${Math.round(weightGapAnalysis.extraDays * 0.6)} ${pluralRu(Math.round(weightGapAnalysis.extraDays * 0.6), "день", "дня", "дней")}.`
                           : `Reduce goal by 100–200 kcal/day to close the gap in ~${Math.round(weightGapAnalysis.extraDays * 0.6)} days instead.`}
                       </p>
                     </div>
@@ -443,9 +461,9 @@ export default function ProgressPage() {
         {/* ══ Weight Projection ══ */}
         <div>
           <div className="border-b-2 border-[#1C1714] pb-4 mb-6">
-            <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">Weight</p>
+            <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("weightSection")}</p>
             <div className="text-3xl tracking-tighter leading-none">
-              {canProject ? "Projection" : "Log Weight"}
+              {canProject ? t("projection") : t("logWeightPrompt")}
             </div>
           </div>
 
@@ -455,16 +473,16 @@ export default function ProgressPage() {
                 <div className="flex flex-wrap gap-5 mb-3 text-[10px] uppercase tracking-widest opacity-50">
                   <span className="flex items-center gap-1.5">
                     <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#9e4515]" />
-                    Projected
+                    {t("projected")}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#1C1714]/40" />
-                    Goal ({settings?.goalWeightKg} kg)
+                    {t("goal")} ({settings?.goalWeightKg} kg)
                   </span>
                   {weights.length > 0 && (
                     <span className="flex items-center gap-1.5">
                       <span className="inline-block h-2 w-2 rounded-full bg-[#1C1714]" />
-                      Actual
+                      {t("actualShort")}
                     </span>
                   )}
                 </div>
@@ -503,7 +521,11 @@ export default function ProgressPage() {
                       <Tooltip
                         {...CHART_TOOLTIP}
                         formatter={(v: number, name: string) => {
-                          const labels: Record<string, string> = { projected: "Projected", goal: "Goal", actual: "Actual" };
+                          const labels: Record<string, string> = {
+                            projected: t("projected"),
+                            goal: t("goal"),
+                            actual: t("actualShort"),
+                          };
                           return [`${v?.toFixed(1)} kg`, labels[name] ?? name];
                         }}
                       />
@@ -579,21 +601,21 @@ export default function ProgressPage() {
                       className="mt-3 border border-[#1C1714] p-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 text-[#1C1714]"
                     >
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Week</p>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("weekLabel")}</p>
                         <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">{point.week}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Projected</p>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("projected")}</p>
                         <p className="text-base tabular-nums tracking-tight" data-testid="detail-projected">{point.projected.toFixed(1)} kg</p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Actual Avg</p>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("actualAvg")}</p>
                         <p className="text-base tabular-nums tracking-tight opacity-60" data-testid="detail-actual">
                           {point.actual !== undefined ? `${point.actual.toFixed(1)} kg` : "—"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">Est. Deficit</p>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("estDeficit")}</p>
                         <p
                           className={`text-base tabular-nums tracking-tight ${point.deficitKcal !== null && point.deficitKcal > 0 ? "opacity-100" : "opacity-60"}`}
                           data-testid="detail-deficit"
@@ -609,7 +631,7 @@ export default function ProgressPage() {
                         onClick={() => setSelectedWeekKey(null)}
                         className="col-span-2 sm:col-span-4 text-[9px] uppercase tracking-widest opacity-30 hover:opacity-60 transition-opacity text-left mt-1"
                       >
-                        Tap to dismiss
+                        {t("tapToDismiss")}
                       </button>
                     </div>
                   );
@@ -617,7 +639,7 @@ export default function ProgressPage() {
               </>
             ) : (
               <div className="flex items-center justify-center h-40 border border-dashed border-[#1C1714]/20 text-xs opacity-40">
-                Add height, age, sex &amp; goal weight in Settings to see projections.
+                {t("fillMetricsForProjection")}
               </div>
             )}
           </div>
@@ -627,8 +649,8 @@ export default function ProgressPage() {
         <div>
           <div className="flex flex-col gap-3 border-b-2 border-[#1C1714] pb-4 mb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">Intake Record</p>
-              <div className="text-3xl tracking-tighter leading-none">Goal vs. Actual</div>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("intakeRecord")}</p>
+              <div className="text-3xl tracking-tighter leading-none">{t("goalVsActual")}</div>
             </div>
             <div className="flex border border-[#1C1714]/30">
               {(["day", "week", "month"] as const).map((p) => (
@@ -641,7 +663,7 @@ export default function ProgressPage() {
                     period === p ? "bg-[#1C1714] text-[#F2EDE7]" : "opacity-50 hover:opacity-80"
                   }`}
                 >
-                  {p}
+                  {periodLabels[p]}
                 </button>
               ))}
             </div>
@@ -650,12 +672,12 @@ export default function ProgressPage() {
           <div className="mb-3 flex flex-wrap gap-5 text-[10px] uppercase tracking-widest opacity-60">
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#1C1714]" />
-              Goal ({goal.toLocaleString()} kcal)
+              {t("goal")} ({goal.toLocaleString()} kcal)
             </span>
             {estimatedTDEE && (
               <span className="flex items-center gap-1.5">
                 <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#9e4515]" />
-                Maintenance ({estimatedTDEE.toLocaleString()} kcal)
+                {t("maintenance")} ({estimatedTDEE.toLocaleString()} kcal)
               </span>
             )}
           </div>
@@ -684,7 +706,7 @@ export default function ProgressPage() {
                   stroke="#1C1714"
                   strokeDasharray="5 4"
                   strokeWidth={1.5}
-                  label={{ value: "Goal", position: "right", fill: "#1C1714", fontSize: 9, opacity: 0.7 }}
+                  label={{ value: t("goal"), position: "right", fill: "#1C1714", fontSize: 9, opacity: 0.7 }}
                 />
                 {estimatedTDEE && (
                   <ReferenceLine
@@ -692,7 +714,7 @@ export default function ProgressPage() {
                     stroke="#9e4515"
                     strokeDasharray="5 4"
                     strokeWidth={1.5}
-                    label={{ value: "Maint.", position: "right", fill: "#9e4515", fontSize: 9, opacity: 0.7 }}
+                    label={{ value: t("maintenanceShort"), position: "right", fill: "#9e4515", fontSize: 9, opacity: 0.7 }}
                   />
                 )}
                 <Bar dataKey="calories" fill="#1C1714" fillOpacity={0.75} radius={0} />
@@ -703,21 +725,21 @@ export default function ProgressPage() {
           <div className="mt-5 border border-[#1C1714]">
             <div className="grid grid-cols-3 divide-x divide-[#1C1714]/10">
               <div className="px-3 py-4 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">Calorie Deficit</p>
+                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("calorieDeficit")}</p>
                 <p className="text-base tabular-nums font-medium" data-testid="text-period-deficit">
                   {Math.abs(periodDeficit).toLocaleString()}
                 </p>
-                <p className="text-[10px] opacity-40 mt-0.5">{periodDeficit >= 0 ? "deficit" : "surplus"}</p>
+                <p className="text-[10px] opacity-40 mt-0.5">{periodDeficit >= 0 ? t("deficitLabel") : t("surplusLabel")}</p>
               </div>
               <div className="px-3 py-4 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">Avg / Day</p>
+                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("avgPerDay")}</p>
                 <p className="text-base tabular-nums font-medium" data-testid="text-period-avg">
                   {avgPerDay.toLocaleString()}
                 </p>
                 <p className="text-[10px] opacity-40 mt-0.5">kcal</p>
               </div>
               <div className="px-3 py-4 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">Est. Lost</p>
+                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("estLost")}</p>
                 <p className="text-base tabular-nums font-medium" data-testid="text-period-kg-lost">
                   {estimatedKgLost >= 0 ? estimatedKgLost.toFixed(2) : `+${Math.abs(estimatedKgLost).toFixed(2)}`}
                 </p>
@@ -727,7 +749,7 @@ export default function ProgressPage() {
           </div>
         </div>
 
-        <div className="text-center text-[10px] uppercase tracking-widest opacity-30">— End of Record —</div>
+        <div className="text-center text-[10px] uppercase tracking-widest opacity-30">{t("endOfRecord")}</div>
       </div>
     </AppShell>
   );

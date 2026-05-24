@@ -18,7 +18,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     { labelKey: "settings" as const, path: "/settings", icon: SettingsIcon },
   ];
 
-  const mobileNavItems = navItems.filter((item) => item.labelKey !== "recipes");
+  const mobileNavItems = navItems;
 
   const initials = (user?.name || user?.email || "U")
     .split(" ")

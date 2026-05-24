@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   Send, Bot, User as UserIcon, ArrowRight, Activity,
-  ArrowLeft, Camera, X, ChevronDown, Check,
+  ArrowLeft, Camera, X, ChevronDown, Check, Trash2,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,7 @@ type ChatMessage = {
   estimates?: NutritionEstimate[];
   activityEstimate?: ActivityEstimate;
   confirmed?: boolean;
+  error?: boolean;
 };
 
 type HistoryItem = {
@@ -198,9 +199,11 @@ function InlineChat({
         reader.releaseLock();
       }
 
-      // Surface server-side errors sent via SSE
+      // Surface server-side errors sent via SSE — show inline instead of just a toast
       if (sseError) {
-        setMessages((prev) => prev.filter((m) => m.id !== streamId));
+        setMessages((prev) => prev.map((m) =>
+          m.id === streamId ? { ...m, text: sseError, error: true } : m
+        ));
         throw new Error(sseError);
       }
 
@@ -209,8 +212,11 @@ function InlineChat({
         if (streamText) {
           setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
         } else {
-          setMessages((prev) => prev.filter((m) => m.id !== streamId));
-          throw new Error("No response received — please try again.");
+          const errMsg = lang === "ru" ? "Нет ответа — попробуйте ещё раз" : "No response — please try again";
+          setMessages((prev) => prev.map((m) =>
+            m.id === streamId ? { ...m, text: errMsg, error: true } : m
+          ));
+          throw new Error(errMsg);
         }
       }
 
@@ -222,17 +228,22 @@ function InlineChat({
         toast({ title: t("activityLogged") });
       }
     },
-    onError: (err: unknown) => {
-      toast({ title: t("chatFailed"), description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
+    onError: () => {
+      // errors are shown inline in the chat thread — no extra toast needed
     },
   });
 
   function buildHistory(msgs: ChatMessage[]): HistoryItem[] {
-    return msgs.map((m) => ({
-      role: m.role,
-      content: m.text || "",
-      ...(m.imageDataUrl ? { imageDataUrl: m.imageDataUrl } : {}),
-    }));
+    // Only send the last 12 messages and skip error/empty messages
+    // Truncate content to 1800 chars to stay under server's 2000-char limit per message
+    return msgs
+      .filter((m) => m.text && !m.error)
+      .slice(-12)
+      .map((m) => ({
+        role: m.role,
+        content: m.text.length > 1800 ? m.text.slice(0, 1800) + "…" : m.text,
+        ...(m.imageDataUrl ? { imageDataUrl: m.imageDataUrl } : {}),
+      }));
   }
 
   function send() {
@@ -406,9 +417,11 @@ function InlineChat({
                   <div className={`px-3 py-2 text-xs leading-relaxed border ${
                     msg.role === "user"
                       ? "bg-[#F2EDE7] text-[#1C1714] border-transparent"
-                      : msg.confirmed
-                        ? "bg-[#F2EDE7]/8 border-[#F2EDE7]/20 text-[#F2EDE7]/70 italic"
-                        : "bg-[#F2EDE7]/8 border-[#F2EDE7]/15 text-[#F2EDE7]"
+                      : msg.error
+                        ? "bg-red-950/40 border-red-700/50 text-red-300"
+                        : msg.confirmed
+                          ? "bg-[#F2EDE7]/8 border-[#F2EDE7]/20 text-[#F2EDE7]/70 italic"
+                          : "bg-[#F2EDE7]/8 border-[#F2EDE7]/15 text-[#F2EDE7]"
                   }`}>
                     {msg.confirmed && msg.role === "assistant" && <Check className="h-3 w-3 inline mr-1.5 opacity-60" />}
                     {msg.text}
@@ -602,6 +615,17 @@ function InlineChat({
                 data-testid="input-chat-photo-file"
               />
             </label>
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => { setMessages([]); try { localStorage.removeItem(storageKey); } catch {} }}
+                data-testid="button-chat-clear"
+                title={lang === "ru" ? "Очистить чат" : "Clear chat"}
+                className="flex h-8 w-8 items-center justify-center border border-[#F2EDE7]/15 hover:border-red-500/50 hover:bg-red-950/30 transition-colors"
+              >
+                <Trash2 className="h-3 w-3 text-[#F2EDE7]/30 hover:text-red-400" />
+              </button>
+            )}
             <button
               type="button"
               onClick={send}

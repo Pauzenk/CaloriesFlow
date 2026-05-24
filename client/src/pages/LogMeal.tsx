@@ -154,38 +154,63 @@ function InlineChat({
         throw new Error(err.message || "Request failed");
       }
 
+      if (!res.body) throw new Error("No response body");
+
       // Add streaming placeholder message
       const streamId = nextId();
       setMessages((prev) => [...prev, { id: streamId, role: "assistant", text: "" }]);
 
-      const reader = res.body!.getReader();
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let streamText = "";
       let finalData: ChatResponse | null = null;
+      let sseError: string | null = null;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop() ?? "";
-        for (const part of parts) {
-          if (!part.startsWith("data: ")) continue;
-          try {
-            const json = JSON.parse(part.slice(6)) as Record<string, unknown>;
-            if (typeof json.delta === "string") {
-              streamText += json.delta;
-              setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
-            } else if (json.done) {
-              finalData = json as unknown as ChatResponse;
-              setMessages((prev) => prev.map((m) =>
-                m.id === streamId
-                  ? { ...m, text: (json.reply as string) || streamText, estimate: json.estimate as NutritionEstimate | undefined, estimates: json.estimates as NutritionEstimate[] | undefined, activityEstimate: json.activityEstimate as ActivityEstimate | undefined }
-                  : m
-              ));
-            }
-          } catch { /* ignore parse errors */ }
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+          for (const part of parts) {
+            if (!part.startsWith("data: ")) continue;
+            try {
+              const json = JSON.parse(part.slice(6)) as Record<string, unknown>;
+              if (typeof json.error === "string") {
+                sseError = json.error;
+              } else if (typeof json.delta === "string") {
+                streamText += json.delta;
+                setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
+              } else if (json.done) {
+                finalData = json as unknown as ChatResponse;
+                setMessages((prev) => prev.map((m) =>
+                  m.id === streamId
+                    ? { ...m, text: (json.reply as string) || streamText, estimate: json.estimate as NutritionEstimate | undefined, estimates: json.estimates as NutritionEstimate[] | undefined, activityEstimate: json.activityEstimate as ActivityEstimate | undefined }
+                    : m
+                ));
+              }
+            } catch { /* ignore individual parse errors */ }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      // Surface server-side errors sent via SSE
+      if (sseError) {
+        setMessages((prev) => prev.filter((m) => m.id !== streamId));
+        throw new Error(sseError);
+      }
+
+      // If stream closed without a done event, use whatever text arrived
+      if (!finalData) {
+        if (streamText) {
+          setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== streamId));
+          throw new Error("No response received — please try again.");
         }
       }
 

@@ -456,10 +456,12 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
           mealType: z.string().optional(),
         });
 
-        // Stream the response for immediate perceived speed
+        // Stream the response for immediate perceived speed.
+        // X-Accel-Buffering: no prevents nginx/proxies from buffering SSE chunks.
         res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Cache-Control", "no-cache, no-transform");
         res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
         res.flushHeaders();
 
         const stream = await openai.chat.completions.create({
@@ -517,7 +519,15 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
         res.end();
         return;
       } catch (err: unknown) {
-        next(new Error(err instanceof Error ? err.message : "AI chat failed"));
+        if (res.headersSent) {
+          // SSE stream already started — send an error event so the client knows
+          try {
+            res.write(`data: ${JSON.stringify({ error: err instanceof Error ? err.message : "AI chat failed" })}\n\n`);
+            res.end();
+          } catch { /* ignore secondary errors */ }
+        } else {
+          next(new Error(err instanceof Error ? err.message : "AI chat failed"));
+        }
       }
     });
   });

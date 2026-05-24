@@ -212,7 +212,8 @@ export default function RecipesPage() {
   const { data: settings, isSuccess: settingsLoaded } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const calorieGoal = settings?.dailyCalorieGoal ?? 2000;
 
-  const [meals, setMeals] = useState<RecipeMeal[] | null>(null);
+  // Initialize immediately from localStorage — no flicker, no unnecessary API call
+  const [meals, setMeals] = useState<RecipeMeal[] | null>(() => loadSavedPlan());
   const [isGenerating, setIsGenerating] = useState(false);
   const [regeneratingMeal, setRegeneratingMeal] = useState<string | null>(null);
   const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
@@ -356,13 +357,13 @@ export default function RecipesPage() {
   useEffect(() => {
     if (!settingsLoaded || hasFetched.current) return;
     hasFetched.current = true;
-    const saved = loadSavedPlan();
-    if (saved) {
-      setMeals(saved);
-      fetchImages(saved);
+    if (meals && meals.length > 0) {
+      // Restored from localStorage — just re-fetch images (they aren't persisted)
+      fetchImages(meals);
     } else {
       generateFullDay(calorieGoal);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsLoaded]);
 
   if (detailMeal) {

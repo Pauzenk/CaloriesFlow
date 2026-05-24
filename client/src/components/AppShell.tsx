@@ -1,22 +1,24 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, LogOut, Leaf, ChefHat } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, LogOut, ChefHat } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-
-const navItems = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Progress", path: "/progress", icon: TrendingUp },
-  { label: "Recipes", path: "/recipes", icon: ChefHat },
-  { label: "Settings", path: "/settings", icon: SettingsIcon },
-];
-
-const mobileNavItems = navItems.filter((item) => item.label !== "Recipes");
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
+
+  const navItems = [
+    { labelKey: "dashboard" as const, path: "/", icon: LayoutDashboard },
+    { labelKey: "progress" as const, path: "/progress", icon: TrendingUp },
+    { labelKey: "recipes" as const, path: "/recipes", icon: ChefHat },
+    { labelKey: "settings" as const, path: "/settings", icon: SettingsIcon },
+  ];
+
+  const mobileNavItems = navItems.filter((item) => item.labelKey !== "recipes");
 
   const initials = (user?.name || user?.email || "U")
     .split(" ")
@@ -32,12 +34,12 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <aside className="hidden w-64 shrink-0 flex-col border-r border-[#1C1714]/10 bg-[#F2EDE7] md:flex">
           <div className="flex h-full flex-col px-4 py-6">
             <header className="ml-2 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#3c3a40] text-white">
-                <Leaf className="h-4 w-4" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden bg-[#3c3a40]">
+                <img src="/logo.png" alt="CalorieFlow" className="h-full w-full object-cover" />
               </div>
               <div className="flex flex-col">
                 <h1 className="text-lg font-bold leading-tight tracking-tight text-[#1C1714]">CalorieFlow</h1>
-                <p className="text-[10px] uppercase tracking-[1.5px] text-[#6B6560]">Mindful Nutrition</p>
+                <p className="text-[10px] uppercase tracking-[1.5px] text-[#6B6560]">{t("mindfulNutrition")}</p>
               </div>
             </header>
             <nav className="mt-10" aria-label="Sidebar navigation">
@@ -46,11 +48,11 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                   const active = location === item.path || (item.path === "/recipes" && location.startsWith("/recipes"));
                   const Icon = item.icon;
                   return (
-                    <li key={item.label}>
+                    <li key={item.labelKey}>
                       <Link href={item.path}>
                         <button
                           type="button"
-                          data-testid={`link-nav-${item.label.toLowerCase()}`}
+                          data-testid={`link-nav-${item.labelKey}`}
                           className={`flex h-10 w-full items-center gap-3 px-3 text-left transition-colors ${
                             active
                               ? "border-l-2 border-[#1C1714] bg-[#1C1714]/8 text-[#1C1714]"
@@ -58,7 +60,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                           }`}
                         >
                           <Icon className="h-4 w-4 shrink-0" />
-                          <span className="text-sm font-medium">{item.label}</span>
+                          <span className="text-sm font-medium">{t(item.labelKey)}</span>
                         </button>
                       </Link>
                     </li>
@@ -75,7 +77,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                   <p className="truncate text-sm font-medium text-[#1C1714]" data-testid="text-user-name">
                     {user?.name || user?.email}
                   </p>
-                  <p className="text-[10px] uppercase tracking-wider text-[#6B6560]">Member</p>
+                  <p className="text-[10px] uppercase tracking-wider text-[#6B6560]">{t("member")}</p>
                 </div>
               </div>
             </div>
@@ -83,11 +85,11 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
-          {/* Top header — page title left, logout right */}
+          {/* Top header */}
           <header className="flex items-center justify-between border-b border-[#D4CFC8] bg-[#F2EDE7] px-4 py-4 md:px-10 md:py-5">
             <div className="flex items-center gap-2 md:hidden">
-              <div className="flex h-8 w-8 items-center justify-center bg-[#3c3a40] text-white">
-                <Leaf className="h-4 w-4" />
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden bg-[#3c3a40]">
+                <img src="/logo.png" alt="CalorieFlow" className="h-full w-full object-cover" />
               </div>
               <span className="text-base font-bold text-[#1C1714]">CalorieFlow</span>
             </div>
@@ -96,11 +98,11 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               data-testid="button-logout"
               variant="ghost"
               onClick={() => logout.mutate()}
-              title="Log out"
+              title={t("logOut")}
               className="flex items-center gap-1.5 text-xs font-medium text-[#6B6560] hover:text-[#1C1714] px-2 py-1.5 h-auto uppercase tracking-widest"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Log out</span>
+              <span className="hidden sm:inline">{t("logOut")}</span>
             </Button>
           </header>
           <h2 className="px-4 pt-5 text-xl font-bold text-[#1C1714] md:hidden">{title}</h2>
@@ -108,7 +110,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         </div>
       </div>
 
-      {/* Mobile bottom nav — Dashboard, Progress, Settings */}
+      {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#1C1714]/10 bg-[#F2EDE7] py-1.5 md:hidden">
         {mobileNavItems.map((item) => {
           const active = location === item.path || (item.path === "/recipes" && location.startsWith("/recipes"));
@@ -117,13 +119,13 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <Link key={item.path} href={item.path}>
               <button
                 type="button"
-                data-testid={`link-mobile-nav-${item.label.toLowerCase()}`}
+                data-testid={`link-mobile-nav-${item.labelKey}`}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 ${
                   active ? "text-[#3c3a40]" : "text-[#6B6560]"
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
               </button>
             </Link>
           );

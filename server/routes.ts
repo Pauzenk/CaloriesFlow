@@ -35,6 +35,17 @@ const photoAnalysisSchema = z.object({
   fats: z.number().min(0).max(2000),
 });
 
+const imageCache = new Map<string, string>();
+
+const CUISINE_THEMES = [
+  "Mediterranean", "Asian fusion", "Mexican", "Middle Eastern", "Japanese",
+  "Italian", "French bistro", "Indian", "Nordic", "American comfort food",
+  "Thai", "Greek", "Turkish", "Peruvian", "Moroccan",
+];
+function randomCuisine(): string {
+  return CUISINE_THEMES[Math.floor(Math.random() * CUISINE_THEMES.length)];
+}
+
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   setupAuth(app);
 
@@ -314,6 +325,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         typeof req.body.message === "string" ? req.body.message.slice(0, 1000) : "";
 
       let contextNote = "";
+      let chatLanguage = "en";
       try {
         const rawCtx = typeof req.body.context === "string" ? req.body.context : null;
         if (rawCtx) {
@@ -321,6 +333,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const goal = typeof ctx.calorieGoal === "number" ? ctx.calorieGoal : null;
           const logged = typeof ctx.caloriesLogged === "number" ? ctx.caloriesLogged : null;
           const rem = typeof ctx.remainingCalories === "number" ? ctx.remainingCalories : null;
+          if (typeof ctx.language === "string") chatLanguage = ctx.language;
           if (goal !== null && logged !== null && rem !== null) {
             contextNote = `\n\nUSER'S DAY CONTEXT: Daily calorie goal = ${goal} kcal | Already logged = ${logged} kcal | Remaining = ${rem} kcal.`;
           }
@@ -330,9 +343,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       try {
         const openai = new OpenAI({ apiKey } as ClientOptions);
 
+        const langInstruction = chatLanguage === "ru"
+          ? "\n\nIMPORTANT: Respond entirely in Russian."
+          : "";
+
         const systemMessage: ChatCompletionMessageParam = {
           role: "system",
-          content: `You are a nutrition and fitness assistant inside a calorie-tracking app.${contextNote}
+          content: `You are a nutrition and fitness assistant inside a calorie-tracking app.${contextNote}${langInstruction}
 
 You handle four types of input:
 
@@ -424,7 +441,7 @@ For multiple recipe suggestions (TYPE D):
 
         const completion = await openai.chat.completions.create({
           model: "gpt-4o",
-          max_tokens: 500,
+          max_tokens: 1500,
           messages: [systemMessage, ...historyMessages, { role: "user", content: userContent }],
         });
 
@@ -489,6 +506,7 @@ For multiple recipe suggestions (TYPE D):
 
     const bodySchema = z.object({
       calorieGoal: z.number().int().min(500).max(10000),
+      language: z.string().max(10).optional(),
       regenerateMeal: z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
       currentPlan: z.array(z.object({
         mealType: z.string(),
@@ -505,7 +523,10 @@ For multiple recipe suggestions (TYPE D):
     const parsed = bodySchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid request" });
 
-    const { calorieGoal, regenerateMeal, currentPlan } = parsed.data;
+    const { calorieGoal, regenerateMeal, currentPlan, language: recipeLang } = parsed.data;
+    const recipeLangInstruction = recipeLang === "ru"
+      ? "\nIMPORTANT: Write all meal names, ingredient names, and instruction steps in Russian."
+      : "";
     const bk = Math.round(calorieGoal * 0.25);
     const ln = Math.round(calorieGoal * 0.35);
     const dn = Math.round(calorieGoal * 0.30);
@@ -513,18 +534,20 @@ For multiple recipe suggestions (TYPE D):
 
     let prompt: string;
 
+    const cuisine = randomCuisine();
+
     if (regenerateMeal && currentPlan && currentPlan.length > 0) {
       const targets: Record<string, number> = { breakfast: bk, lunch: ln, dinner: dn, snack: sn };
       const targetCal = targets[regenerateMeal] ?? bk;
       prompt = `I have this daily meal plan (JSON):
 ${JSON.stringify(currentPlan, null, 2)}
 
-Regenerate ONLY the "${regenerateMeal}" entry. Replace it with a completely different recipe around ${targetCal} kcal. Keep all other meals exactly as-is (same name, calories, ingredients, instructions).
+Regenerate ONLY the "${regenerateMeal}" entry. Replace it with a completely different recipe (${cuisine} cuisine style) around ${targetCal} kcal. Keep all other meals exactly as-is (same name, calories, ingredients, instructions).${recipeLangInstruction}
 
 Return the complete updated plan as a JSON object with this structure:
 {"meals":[{"mealType":"breakfast|lunch|dinner|snack","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...",...]},...]}`; 
     } else {
-      prompt = `Generate a balanced daily meal plan with exactly 4 meals: breakfast, lunch, dinner, snack.
+      prompt = `Generate a balanced daily meal plan with exactly 4 meals: breakfast, lunch, dinner, snack. Use ${cuisine} cuisine as the theme/inspiration.
 Total target: ${calorieGoal} kcal. Distribution: breakfast ~${bk} kcal, lunch ~${ln} kcal, dinner ~${dn} kcal, snack ~${sn} kcal.
 
 Rules:
@@ -532,7 +555,7 @@ Rules:
 - Each meal: 3–6 ingredients with specific quantities (e.g. "80g oats", "1 medium egg")
 - Each meal: 3–5 clear numbered instruction steps
 - calories = integer; proteins, carbs, fats = one decimal place
-- Varied ingredients; no repeated main protein source
+- Varied ingredients; no repeated main protein source${recipeLangInstruction}
 
 Return ONLY a JSON object with this exact structure:
 {"meals":[{"mealType":"breakfast","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...",...]},{"mealType":"lunch",...},{"mealType":"dinner",...},{"mealType":"snack",...}]}`;
@@ -575,6 +598,12 @@ Return ONLY a JSON object with this exact structure:
     if (!apiKey) return res.status(503).json({ message: "AI not configured" });
     const name = typeof req.query.name === "string" ? req.query.name.trim().slice(0, 200) : "";
     if (!name) return res.status(400).json({ message: "name is required" });
+
+    const cacheKey = name.toLowerCase();
+    if (imageCache.has(cacheKey)) {
+      return res.json({ imageUrl: imageCache.get(cacheKey) });
+    }
+
     try {
       const openai = new OpenAI({ apiKey } as ClientOptions);
       const img = await openai.images.generate({
@@ -586,7 +615,9 @@ Return ONLY a JSON object with this exact structure:
       } as Parameters<typeof openai.images.generate>[0]);
       const b64 = img.data[0]?.b64_json;
       if (!b64) return res.status(502).json({ message: "Image generation failed" });
-      res.json({ imageUrl: `data:image/png;base64,${b64}` });
+      const imageUrl = `data:image/png;base64,${b64}`;
+      imageCache.set(cacheKey, imageUrl);
+      res.json({ imageUrl });
     } catch (err) {
       next(err);
     }

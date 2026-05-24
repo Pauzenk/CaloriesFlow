@@ -11,6 +11,7 @@ import LogMeal from "@/pages/LogMeal";
 import RecipesPage from "@/pages/Recipes";
 import SettingsPage from "@/pages/Settings";
 import { useAuth } from "@/hooks/use-auth";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import type { Settings } from "@shared/schema";
 
 function Protected({ component: Component }: { component: React.ComponentType }) {
@@ -65,7 +66,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <LanguageProvider>
+          <Router />
+        </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

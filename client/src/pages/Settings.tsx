@@ -13,33 +13,42 @@ import {
   type Settings,
   type UpsertSettings,
   ACTIVITY_LEVELS,
-  ACTIVITY_LEVEL_LABELS,
   ACTIVITY_MULTIPLIERS,
   type ActivityLevel,
 } from "@shared/schema";
 import { computeBMR, computeTDEE } from "@/lib/calorieflow";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { Lang } from "@/lib/i18n";
 
 const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40";
 
-const ACTIVITY_DESCRIPTIONS: Record<ActivityLevel, string> = {
-  sedentary: "Desk job, little or no exercise",
-  lightly_active: "Light exercise 1–3 days/week",
-  moderately_active: "Moderate exercise 3–5 days/week",
-  very_active: "Hard exercise 6–7 days/week",
-};
-
 const DURATION_MONTHS = [1, 2, 3, 4, 5] as const;
 
-function calcGoalDateFromMonths(months: number): string {
+function calcGoalDateFromMonths(months: number, lang: Lang): string {
   const d = new Date();
   d.setMonth(d.getMonth() + months);
-  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", year: "numeric" });
 }
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { t, lang, setLang } = useLanguage();
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+
+  const activityLabelMap: Record<ActivityLevel, string> = {
+    sedentary: t("actSedentary"),
+    lightly_active: t("actLightlyActive"),
+    moderately_active: t("actModeratelyActive"),
+    very_active: t("actVeryActive"),
+  };
+
+  const activityDescMap: Record<ActivityLevel, string> = {
+    sedentary: t("actDescSedentary"),
+    lightly_active: t("actDescLightlyActive"),
+    moderately_active: t("actDescModeratelyActive"),
+    very_active: t("actDescVeryActive"),
+  };
 
   const form = useForm<UpsertSettings>({
     resolver: zodResolver(upsertSettingsSchema),
@@ -116,11 +125,11 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "Settings saved" });
+      toast({ title: t("saveChanges") });
     },
     onError: (err: unknown) =>
       toast({
-        title: "Failed to save",
+        title: lang === "ru" ? "Ошибка сохранения" : "Failed to save",
         description: err instanceof Error ? err.message : "Something went wrong",
         variant: "destructive",
       }),
@@ -129,17 +138,42 @@ export default function SettingsPage() {
   const canComputeTarget = !!(estimatedTDEE && watchedGoalWeight && watchedStartWeight);
 
   return (
-    <AppShell title="Settings">
+    <AppShell title={t("settingsTitle")}>
       <div className="w-full font-['Space_Mono'] text-[#1C1714] max-w-2xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => save.mutate(data))} className="space-y-10">
 
+            {/* ── Language toggle ── */}
+            <div>
+              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
+                {t("language")}
+              </div>
+              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("languageHint")}</p>
+              <div className="flex gap-2">
+                {(["en", "ru"] as const).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    data-testid={`button-lang-${l}`}
+                    onClick={() => setLang(l)}
+                    className={`px-5 py-2.5 text-xs uppercase tracking-widest border transition-colors ${
+                      lang === l
+                        ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
+                        : "border-[#1C1714]/30 hover:border-[#1C1714]"
+                    }`}
+                  >
+                    {l === "en" ? "English" : "Русский"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* ── 1. Body Metrics ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
-                Body Metrics
+                {t("bodyMetrics")}
               </div>
-              <p className="text-[10px] opacity-50 mb-4 mt-2">Used to calculate maintenance calories and goal date — never shared.</p>
+              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("bodyMetricsHint")}</p>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -147,7 +181,7 @@ export default function SettingsPage() {
                     name="startingWeightKg"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Start weight (kg)</FormLabel>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("startWeight")}</FormLabel>
                         <FormControl>
                           <Input
                             type="number" step="0.1"
@@ -166,7 +200,7 @@ export default function SettingsPage() {
                     name="goalWeightKg"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Goal weight (kg)</FormLabel>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("goalWeight")}</FormLabel>
                         <FormControl>
                           <Input
                             type="number" step="0.1" placeholder="e.g. 68.0"
@@ -187,7 +221,7 @@ export default function SettingsPage() {
                     name="heightCm"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Height (cm)</FormLabel>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("height")}</FormLabel>
                         <FormControl>
                           <Input
                             type="number" placeholder="175"
@@ -206,7 +240,7 @@ export default function SettingsPage() {
                     name="ageYears"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Age</FormLabel>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("age")}</FormLabel>
                         <FormControl>
                           <Input
                             type="number" placeholder="30"
@@ -225,7 +259,7 @@ export default function SettingsPage() {
                     name="sexAtBirth"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Sex</FormLabel>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("sex")}</FormLabel>
                         <Select
                           value={field.value ?? ""}
                           onValueChange={(v) => field.onChange(v === "" ? null : v)}
@@ -239,8 +273,8 @@ export default function SettingsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="male" className="font-['Space_Mono']">Male</SelectItem>
-                            <SelectItem value="female" className="font-['Space_Mono']">Female</SelectItem>
+                            <SelectItem value="male" className="font-['Space_Mono']">{t("male")}</SelectItem>
+                            <SelectItem value="female" className="font-['Space_Mono']">{t("female")}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -253,7 +287,7 @@ export default function SettingsPage() {
                   name="journeyStartDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">Journey start date</FormLabel>
+                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("journeyStartDate")}</FormLabel>
                       <FormControl>
                         <Input
                           type="date"
@@ -272,9 +306,9 @@ export default function SettingsPage() {
             {/* ── 2. Activity Level ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
-                Activity Level
+                {t("activityLevel")}
               </div>
-              <p className="text-[10px] opacity-50 mb-4 mt-2">Affects calorie burn estimate and projected goal date.</p>
+              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("activityLevelHint")}</p>
               <FormField
                 control={form.control}
                 name="activityLevel"
@@ -296,10 +330,10 @@ export default function SettingsPage() {
                             }`}
                           >
                             <span className="text-xs uppercase tracking-wider font-bold">
-                              {ACTIVITY_LEVEL_LABELS[level]}
+                              {activityLabelMap[level]}
                             </span>
                             <span className={`text-[10px] leading-snug ${active ? "opacity-70" : "opacity-50"}`}>
-                              {ACTIVITY_DESCRIPTIONS[level]}
+                              {activityDescMap[level]}
                             </span>
                           </button>
                         );
@@ -311,13 +345,13 @@ export default function SettingsPage() {
               />
             </div>
 
-            {/* ── 3. Daily Target (duration picker) ── */}
+            {/* ── 3. Daily Target ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
-                Daily Target
+                {t("dailyTarget")}
               </div>
               <p className="text-[10px] opacity-50 mb-5 mt-2 leading-relaxed">
-                Choose your timeline — the calorie target adjusts automatically based on your goal weight.
+                {t("dailyTargetHint")}
               </p>
               {canComputeTarget ? (
                 <div>
@@ -339,10 +373,10 @@ export default function SettingsPage() {
                         >
                           <div className="flex flex-col gap-0.5">
                             <span className="text-sm uppercase tracking-widest font-bold">
-                              {m} month{m !== 1 ? "s" : ""}
+                              {m} {m === 1 ? t("month") : t("months")}
                             </span>
                             <span className={`text-[10px] ${isSelected ? "opacity-55" : "opacity-40"}`}>
-                              Goal by {calcGoalDateFromMonths(m)}
+                              {t("goalBy")} {calcGoalDateFromMonths(m, lang)}
                             </span>
                           </div>
                           {suggested !== null && (
@@ -350,7 +384,7 @@ export default function SettingsPage() {
                               <span className={`text-lg tabular-nums font-medium ${isSelected ? "opacity-90" : "opacity-70"}`}>
                                 {suggested.toLocaleString()}
                               </span>
-                              <span className={`text-[10px] ml-1 ${isSelected ? "opacity-50" : "opacity-40"}`}>kcal/day</span>
+                              <span className={`text-[10px] ml-1 ${isSelected ? "opacity-50" : "opacity-40"}`}>{t("kcalPerDay")}</span>
                             </div>
                           )}
                         </button>
@@ -359,27 +393,27 @@ export default function SettingsPage() {
                   </div>
                   {selectedDuration !== null && (
                     <div className="border border-[#1C1714]/20 px-4 py-3 text-[10px] opacity-60">
-                      Target set to{" "}
+                      {t("targetSetTo")}{" "}
                       <span className="opacity-100 font-bold text-[#1C1714]">
-                        {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} kcal/day
+                        {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} {t("kcalPerDay")}
                       </span>
-                      {" "}· save below to apply.
+                      {" "}{t("saveBelow")}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="border border-dashed border-[#1C1714]/20 px-5 py-6 text-center">
                   <p className="text-[10px] opacity-40 leading-relaxed">
-                    Fill in Body Metrics and goal weight above to enable automatic target calculation.
+                    {t("fillMetricsHint")}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* ── 4. Calorie Target (manual override) ── */}
+            {/* ── 4. Calorie Target ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
-                Calorie Target
+                {t("calorieTarget")}
               </div>
               <FormField
                 control={form.control}
@@ -387,7 +421,7 @@ export default function SettingsPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">
-                      Daily goal (kcal) — override or set manually
+                      {t("calorieTargetLabel")}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -408,23 +442,23 @@ export default function SettingsPage() {
             {estimatedTDEE !== null && (
               <div>
                 <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
-                  Calculated Estimates
+                  {t("calculatedEstimates")}
                 </div>
                 <div className="border border-[#1C1714] p-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div data-testid="panel-tdee">
-                      <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">Maintenance</div>
+                      <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("maintenance")}</div>
                       <div className="text-2xl tabular-nums" data-testid="text-tdee">
                         {estimatedTDEE.toLocaleString()}
                       </div>
-                      <div className="text-[10px] opacity-40 mt-0.5">kcal / day</div>
+                      <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
                     </div>
                     <div data-testid="panel-suggested-goal">
-                      <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">500 kcal deficit</div>
+                      <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
                       <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">
                         {(estimatedTDEE - 500).toLocaleString()}
                       </div>
-                      <div className="text-[10px] opacity-40 mt-0.5">kcal / day</div>
+                      <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
                     </div>
                   </div>
                 </div>
@@ -439,9 +473,9 @@ export default function SettingsPage() {
                 data-testid="button-save-settings"
                 className="border-2 border-[#1C1714] px-12 py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors disabled:opacity-40 w-full sm:w-auto"
               >
-                {save.isPending ? "Saving…" : "Save changes"}
+                {save.isPending ? t("saving") : t("saveChanges")}
               </button>
-              <div className="text-[10px] opacity-30 tracking-widest uppercase">— End of Record —</div>
+              <div className="text-[10px] opacity-30 tracking-widest uppercase">{t("endOfRecord")}</div>
             </div>
 
           </form>

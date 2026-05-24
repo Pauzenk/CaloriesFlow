@@ -9,6 +9,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { MEAL_TYPES, type Meal } from "@shared/schema";
 import { mealsForDate, todayStr } from "@/lib/calorieflow";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ function InlineChat({
   caloriesLogged: number;
 }) {
   const { toast } = useToast();
+  const { lang } = useLanguage();
   const remaining = Math.max(0, calorieGoal - caloriesLogged);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -144,7 +146,7 @@ function InlineChat({
       const fd = new FormData();
       fd.append("messages", JSON.stringify(history));
       fd.append("message", userText);
-      fd.append("context", JSON.stringify({ calorieGoal, caloriesLogged, remainingCalories: remaining, logDate }));
+      fd.append("context", JSON.stringify({ calorieGoal, caloriesLogged, remainingCalories: remaining, logDate, language: lang }));
       if (photo) fd.append("photo", photo);
       const res = await fetch("/api/meals/chat", { method: "POST", credentials: "include", body: fd });
       if (!res.ok) {

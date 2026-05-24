@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { AppShell } from "@/components/AppShell";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Meal, Settings, Weight } from "@shared/schema";
@@ -68,6 +69,7 @@ function journeyTimeframeLabel(days: number): string {
 }
 
 export default function ProgressPage() {
+  const { lang } = useLanguage();
   const [period, setPeriod] = useState<Period>("week");
   const [weightInput, setWeightInput] = useState("");
   const [selectedWeekKey, setSelectedWeekKey] = useState<number | null>(null);
@@ -157,6 +159,17 @@ export default function ProgressPage() {
     const multiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
     return Math.round(computeTDEE(bmr, multiplier));
   }, [settings]);
+
+  const weightGapAnalysis = useMemo(() => {
+    if (!mostRecentActualWeight || currentEstimatedWeight === null || !estimatedTDEE || !settings) return null;
+    const gap = mostRecentActualWeight.weightKg - currentEstimatedWeight;
+    if (Math.abs(gap) < 0.05) return null;
+    const dailyDeficit = estimatedTDEE - (settings.dailyCalorieGoal || 2000);
+    if (dailyDeficit <= 0) return null;
+    const extraDays = Math.round(Math.abs(gap) * 7700 / dailyDeficit);
+    const isAhead = gap < 0;
+    return { gap: +gap.toFixed(2), extraDays, isAhead, dailyDeficit };
+  }, [mostRecentActualWeight, currentEstimatedWeight, estimatedTDEE, settings]);
 
   const weightProgressPct = useMemo(() => {
     if (!settings?.startingWeightKg || !settings?.goalWeightKg || displayWeight === null) return 0;
@@ -334,6 +347,98 @@ export default function ProgressPage() {
             </div>
           )}
         </div>
+
+        {/* ══ Optimal Timeline ══ */}
+        {weightGapAnalysis && (
+          <div className="border-2 border-[#1C1714] p-5" data-testid="panel-weight-gap">
+            <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
+              {lang === "ru" ? "Оптимальное время" : "Optimal Timeline"}
+            </p>
+            <p className="text-2xl tracking-tighter leading-none mb-4">
+              {weightGapAnalysis.isAhead
+                ? lang === "ru" ? "Вы опережаете план" : "Ahead of schedule"
+                : lang === "ru" ? "Вы отстаёте от плана" : "Behind schedule"}
+            </p>
+
+            <div className="grid grid-cols-2 gap-4 mb-5 sm:grid-cols-4">
+              <div>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                  {lang === "ru" ? "Ожидаемый вес" : "Expected weight"}
+                </p>
+                <p className="text-base tabular-nums" data-testid="text-expected-weight">
+                  {currentEstimatedWeight?.toFixed(1)} kg
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                  {lang === "ru" ? "Фактический вес" : "Actual weight"}
+                </p>
+                <p className="text-base tabular-nums" data-testid="text-actual-weight-gap">
+                  {mostRecentActualWeight?.weightKg.toFixed(1)} kg
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                  {lang === "ru" ? "Разница" : "Gap"}
+                </p>
+                <p
+                  className={`text-base tabular-nums ${weightGapAnalysis.isAhead ? "text-[#4a8c4a]" : "text-[#9B4A2E]"}`}
+                  data-testid="text-weight-gap"
+                >
+                  {weightGapAnalysis.isAhead ? "−" : "+"}{Math.abs(weightGapAnalysis.gap).toFixed(2)} kg
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                  {lang === "ru" ? "Дефицит/день" : "Deficit/day"}
+                </p>
+                <p className="text-base tabular-nums opacity-70">
+                  {weightGapAnalysis.dailyDeficit.toLocaleString()} kcal
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-[#1C1714]/20 pt-4">
+              {weightGapAnalysis.isAhead ? (
+                <p className="text-sm leading-relaxed" data-testid="text-gap-recommendation">
+                  {lang === "ru"
+                    ? `Вы на ${Math.abs(weightGapAnalysis.gap).toFixed(2)} кг впереди расчётного веса. При текущем дефиците вы достигнете цели примерно на ${weightGapAnalysis.extraDays} дней раньше срока. Отличная работа — можно немного увеличить калории, чтобы не потерять мышечную массу.`
+                    : `You're ${Math.abs(weightGapAnalysis.gap).toFixed(2)} kg ahead of projected weight. At your current deficit you'll reach your goal ~${weightGapAnalysis.extraDays} day${weightGapAnalysis.extraDays !== 1 ? "s" : ""} early. Consider eating slightly more to preserve muscle.`}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm leading-relaxed" data-testid="text-gap-recommendation">
+                    {lang === "ru"
+                      ? `Ваш фактический вес на ${Math.abs(weightGapAnalysis.gap).toFixed(2)} кг выше ожидаемого. При текущем дефиците ${weightGapAnalysis.dailyDeficit.toLocaleString()} ккал/день потребуется ещё ~${weightGapAnalysis.extraDays} дней, чтобы наверстать разницу.`
+                      : `Your actual weight is ${Math.abs(weightGapAnalysis.gap).toFixed(2)} kg above the projected curve. At your current deficit of ${weightGapAnalysis.dailyDeficit.toLocaleString()} kcal/day, it will take ~${weightGapAnalysis.extraDays} additional day${weightGapAnalysis.extraDays !== 1 ? "s" : ""} to close the gap.`}
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-[10px]">
+                    <div className="border border-[#1C1714]/20 px-4 py-3">
+                      <p className="uppercase tracking-widest opacity-50 mb-1">
+                        {lang === "ru" ? "Вариант A — больше времени" : "Option A — extend timeline"}
+                      </p>
+                      <p className="opacity-80">
+                        {lang === "ru"
+                          ? `Оставьте цель ${settings?.dailyCalorieGoal?.toLocaleString()} ккал — добавьте ~${weightGapAnalysis.extraDays} дней к плану.`
+                          : `Keep ${settings?.dailyCalorieGoal?.toLocaleString()} kcal goal — add ~${weightGapAnalysis.extraDays} days to your plan.`}
+                      </p>
+                    </div>
+                    <div className="border border-[#1C1714]/20 px-4 py-3">
+                      <p className="uppercase tracking-widest opacity-50 mb-1">
+                        {lang === "ru" ? "Вариант B — больше дефицит" : "Option B — increase deficit"}
+                      </p>
+                      <p className="opacity-80">
+                        {lang === "ru"
+                          ? `Снизьте цель на 100–200 ккал/день, чтобы наверстать разницу за ${Math.round(weightGapAnalysis.extraDays * 0.6)} дней.`
+                          : `Reduce goal by 100–200 kcal/day to close the gap in ~${Math.round(weightGapAnalysis.extraDays * 0.6)} days instead.`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ══ Weight Projection ══ */}
         <div>

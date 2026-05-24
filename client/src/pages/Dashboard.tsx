@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Leaf, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays, Sparkles } from "lucide-react";
+import { Plus, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Meal, Settings } from "@shared/schema";
@@ -14,6 +14,7 @@ import {
   todayStr,
   daysSince,
 } from "@/lib/calorieflow";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function offsetDate(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00");
@@ -24,17 +25,18 @@ function offsetDate(dateStr: string, days: number): string {
   return `${y}-${m}-${day}`;
 }
 
-function formatDisplayDate(dateStr: string): string {
+function formatDisplayDate(dateStr: string, todayLabel: string, yesterdayLabel: string, lang: string): string {
   const today = todayStr();
-  if (dateStr === today) return "Today";
-  if (dateStr === offsetDate(today, -1)) return "Yesterday";
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+  if (dateStr === today) return todayLabel;
+  if (dateStr === offsetDate(today, -1)) return yesterdayLabel;
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", {
     weekday: "short", month: "short", day: "numeric",
   });
 }
 
 type EditState = {
   id: string;
+  date: string;
   name: string;
   calories: string;
   proteins: string;
@@ -47,6 +49,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [editState, setEditState] = useState<EditState>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const { t, lang } = useLanguage();
 
   const { data: settings, isLoading: sLoading } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const { data: meals = [], isLoading: mLoading } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
@@ -81,7 +84,7 @@ export default function Dashboard() {
 
   if (sLoading || mLoading) {
     return (
-      <AppShell title="Overview">
+      <AppShell title={t("overview")}>
         <div className="mx-auto max-w-md space-y-4 font-['Space_Mono']">
           <Skeleton className="h-28 w-full" />
           <Skeleton className="h-36 w-full" />
@@ -103,8 +106,15 @@ export default function Dashboard() {
   const remaining = Math.max(0, goal - netCalories);
   const dayNum = settings ? daysSince(settings.journeyStartDate, selectedDate) : null;
 
+  const MEAL_LABELS: Record<string, string> = {
+    breakfast: t("breakfast"),
+    lunch: t("lunch"),
+    dinner: t("dinner"),
+    snack: t("snack"),
+  };
+
   const mealsByType = new Map<string, Meal[]>();
-  for (const t of MEAL_TYPES) mealsByType.set(t, []);
+  for (const type of MEAL_TYPES) mealsByType.set(type, []);
   for (const m of dayMeals) {
     if (!mealsByType.has(m.mealType)) mealsByType.set(m.mealType, []);
     mealsByType.get(m.mealType)!.push(m);
@@ -115,6 +125,7 @@ export default function Dashboard() {
   function startEdit(m: Meal) {
     setEditState({
       id: m.id,
+      date: m.date,
       name: m.name,
       calories: String(m.calories),
       proteins: String(m.proteins),
@@ -129,6 +140,7 @@ export default function Dashboard() {
     updateMeal.mutate({
       id: editState.id,
       data: {
+        date: editState.date,
         name: editState.name,
         calories: parseFloat(editState.calories) || 0,
         proteins: parseFloat(editState.proteins) || 0,
@@ -142,7 +154,7 @@ export default function Dashboard() {
   const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714]";
 
   return (
-    <AppShell title="Overview">
+    <AppShell title={t("overview")}>
       <div className="w-full font-['Space_Mono'] text-[#1C1714]" data-testid="card-dashboard-feed">
 
         {/* ── Day navigator ── */}
@@ -161,7 +173,7 @@ export default function Dashboard() {
             <div className="relative cursor-pointer hover:opacity-70 transition-opacity">
               <div className="flex items-center gap-1.5 text-sm tracking-tight pointer-events-none">
                 <CalendarDays className="h-3.5 w-3.5 opacity-50" />
-                <span data-testid="text-dashboard-date">{formatDisplayDate(selectedDate)}</span>
+                <span data-testid="text-dashboard-date">{formatDisplayDate(selectedDate, t("today"), t("yesterday"), lang)}</span>
               </div>
               <input
                 ref={dateInputRef}
@@ -174,7 +186,7 @@ export default function Dashboard() {
               />
             </div>
             {dayNum !== null && (
-              <div className="text-[10px] uppercase tracking-widest opacity-50">Day {dayNum}</div>
+              <div className="text-[10px] uppercase tracking-widest opacity-50">{t("day")} {dayNum}</div>
             )}
             {!isToday && (
               <button
@@ -183,7 +195,7 @@ export default function Dashboard() {
                 onClick={() => { setSelectedDate(todayStr()); setEditState(null); }}
                 className="text-[9px] uppercase tracking-widest opacity-50 hover:opacity-100 underline transition-opacity mt-0.5"
               >
-                → Today
+                → {t("today")}
               </button>
             )}
           </div>
@@ -205,7 +217,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-end">
             <div>
               <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
-                {isToday ? "Today's Tally" : "Day's Tally"}
+                {isToday ? t("todaysTally") : t("daysTally")}
               </p>
               <div className="text-5xl tracking-tighter leading-none" data-testid="text-today-calories">
                 {netCalories}
@@ -213,7 +225,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">Remaining</p>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{t("remaining")}</p>
               <div
                 className={`text-3xl tracking-tighter leading-none ${netCalories > goal ? "text-[#9B4A2E]" : ""}`}
                 data-testid="text-remaining-calories"
@@ -258,7 +270,7 @@ export default function Dashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4 border-b border-[#1C1714]/20 pb-2">
             <div className="text-xs uppercase tracking-widest opacity-60">
-              {isToday ? "Daily Food Log" : `Food Log — ${formatDisplayDate(selectedDate)}`}
+              {isToday ? t("dailyFoodLog") : `${t("foodLog")} — ${formatDisplayDate(selectedDate, t("today"), t("yesterday"), lang)}`}
             </div>
           </div>
 
@@ -266,18 +278,18 @@ export default function Dashboard() {
             <div className="py-8 text-center">
               <div className="flex justify-center mb-4">
                 <div className="flex h-12 w-12 items-center justify-center border border-[#1C1714]/20">
-                  <Leaf className="h-5 w-5 opacity-40" />
+                  <Activity className="h-5 w-5 opacity-40" />
                 </div>
               </div>
-              <p className="text-xs uppercase tracking-widest opacity-60 mb-2">No entries yet</p>
-              <p className="text-sm opacity-60 mb-6">Log your first meal to start your record.</p>
+              <p className="text-xs uppercase tracking-widest opacity-60 mb-2">{t("noEntriesYet")}</p>
+              <p className="text-sm opacity-60 mb-6">{t("logFirstMeal")}</p>
               <Link href={`/log?date=${selectedDate}`}>
                 <button
                   type="button"
                   data-testid="button-onboarding-log"
                   className="inline-flex items-center gap-2 border border-[#1C1714] px-6 py-2.5 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors"
                 >
-                  <Plus className="h-3 w-3" /> Log Meal
+                  <Plus className="h-3 w-3" /> {t("logMeal")}
                 </button>
               </Link>
             </div>
@@ -289,7 +301,7 @@ export default function Dashboard() {
                 return (
                   <div key={type} className="mb-3">
                     <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1 pt-1">
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                      {MEAL_LABELS[type] ?? type}
                     </div>
                     {typeMeals.map((m) => (
                       <div key={m.id} data-testid={`row-meal-${m.id}`}>
@@ -312,8 +324,8 @@ export default function Dashboard() {
                                 className={IN + " h-8 text-xs w-full px-2 border"}
                                 data-testid="select-edit-type"
                               >
-                                {MEAL_TYPES.map((t) => (
-                                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                                {MEAL_TYPES.map((tp) => (
+                                  <option key={tp} value={tp}>{MEAL_LABELS[tp] ?? tp}</option>
                                 ))}
                               </select>
                               <div className="grid grid-cols-4 gap-1">
@@ -341,7 +353,7 @@ export default function Dashboard() {
                                 data-testid="button-confirm-edit"
                                 className="flex items-center gap-1 bg-[#1C1714] text-[#F2EDE7] px-3 py-1 text-[10px] uppercase tracking-widest hover:bg-[#1C1714]/80 disabled:opacity-40"
                               >
-                                <Check className="h-3 w-3" /> Save
+                                <Check className="h-3 w-3" /> {t("save")}
                               </button>
                               <button
                                 type="button"
@@ -349,7 +361,7 @@ export default function Dashboard() {
                                 data-testid="button-cancel-edit"
                                 className="flex items-center gap-1 border border-[#1C1714]/30 px-3 py-1 text-[10px] uppercase tracking-widest hover:border-[#1C1714]"
                               >
-                                <X className="h-3 w-3" /> Cancel
+                                <X className="h-3 w-3" /> {t("cancel")}
                               </button>
                             </div>
                           </div>
@@ -389,7 +401,7 @@ export default function Dashboard() {
 
               {dayActivities.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1 pt-1">Activity</div>
+                  <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1 pt-1">{t("activity")}</div>
                   {dayActivities.map((a) => (
                     <div
                       key={a.id}
@@ -420,12 +432,12 @@ export default function Dashboard() {
 
               {dayMeals.length === 0 && dayActivities.length === 0 && (
                 <div className="py-6 text-center border border-dashed border-[#1C1714]/20">
-                  <p className="text-xs opacity-50">No entries for {formatDisplayDate(selectedDate)}.</p>
+                  <p className="text-xs opacity-50">{t("noEntriesFor")} {formatDisplayDate(selectedDate, t("today"), t("yesterday"), lang)}.</p>
                 </div>
               )}
 
               <div className="flex justify-between items-center py-4 border-b-2 border-[#1C1714]">
-                <div className="uppercase tracking-widest text-xs opacity-60">Net Calories</div>
+                <div className="uppercase tracking-widest text-xs opacity-60">{t("netCalories")}</div>
                 <div className="tabular-nums" data-testid="text-subtotal">{netCalories}</div>
               </div>
 
@@ -437,7 +449,7 @@ export default function Dashboard() {
                     data-testid="button-add-meal"
                     className="w-full bg-[#1C1714] text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Add entry
+                    <Plus className="h-3.5 w-3.5" /> {t("addEntry")}
                   </button>
                 </Link>
                 {isToday && remaining > 0 && (
@@ -448,7 +460,7 @@ export default function Dashboard() {
                       className="border border-[#1C1714]/40 text-[#1C1714] py-3 px-4 text-xs uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors flex items-center justify-center gap-2"
                       title={`${remaining} kcal remaining — get recipe ideas`}
                     >
-                      <Sparkles className="h-3.5 w-3.5 opacity-60" /> Recipes
+                      <Sparkles className="h-3.5 w-3.5 opacity-60" /> {t("recipes")}
                     </button>
                   </Link>
                 )}
@@ -456,7 +468,6 @@ export default function Dashboard() {
             </>
           )}
         </div>
-
 
       </div>
     </AppShell>

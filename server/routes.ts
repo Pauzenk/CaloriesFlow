@@ -20,7 +20,7 @@ const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/gi
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_IMAGE_BYTES },
+  limits: { fileSize: MAX_IMAGE_BYTES, fieldSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (ALLOWED_MIME.has(file.mimetype)) cb(null, true);
     else cb(new Error("Only JPEG, PNG, WebP, or GIF images are accepted"));

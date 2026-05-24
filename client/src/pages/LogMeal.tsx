@@ -238,7 +238,7 @@ function InlineChat({
     // Truncate content to 1800 chars to stay under server's 2000-char limit per message
     return msgs
       .filter((m) => m.text && !m.error)
-      .slice(-12)
+      .slice(-8)
       .map((m) => ({
         role: m.role,
         content: m.text.length > 1800 ? m.text.slice(0, 1800) + "…" : m.text,

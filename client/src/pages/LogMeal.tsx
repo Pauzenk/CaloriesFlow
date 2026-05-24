@@ -153,19 +153,46 @@ function InlineChat({
         const err = await res.json().catch(() => ({ message: "Request failed" }));
         throw new Error(err.message || "Request failed");
       }
-      return (await res.json()) as ChatResponse;
+
+      // Add streaming placeholder message
+      const streamId = nextId();
+      setMessages((prev) => [...prev, { id: streamId, role: "assistant", text: "" }]);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamText = "";
+      let finalData: ChatResponse | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+        for (const part of parts) {
+          if (!part.startsWith("data: ")) continue;
+          try {
+            const json = JSON.parse(part.slice(6)) as Record<string, unknown>;
+            if (typeof json.delta === "string") {
+              streamText += json.delta;
+              setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
+            } else if (json.done) {
+              finalData = json as unknown as ChatResponse;
+              setMessages((prev) => prev.map((m) =>
+                m.id === streamId
+                  ? { ...m, text: (json.reply as string) || streamText, estimate: json.estimate as NutritionEstimate | undefined, estimates: json.estimates as NutritionEstimate[] | undefined, activityEstimate: json.activityEstimate as ActivityEstimate | undefined }
+                  : m
+              ));
+            }
+          } catch { /* ignore parse errors */ }
+        }
+      }
+
+      return finalData ?? ({ reply: streamText } as ChatResponse);
     },
     onSuccess: (data) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: nextId(), role: "assistant", text: data.reply,
-          estimate: data.estimate,
-          estimates: data.estimates,
-          activityEstimate: data.activityEstimate,
-        },
-      ]);
-      if (data.activityEstimate) {
+      if (data?.activityEstimate) {
         logActivity.mutate(data.activityEstimate);
         toast({ title: t("activityLogged") });
       }

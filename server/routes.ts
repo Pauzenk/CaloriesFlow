@@ -244,7 +244,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
 
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o",
+          model: "gpt-4o-mini",
           max_tokens: 300,
           messages: [
             {
@@ -445,14 +445,6 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
           userContent = userText || "What can you tell me?";
         }
 
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o",
-          max_tokens: 1500,
-          messages: [systemMessage, ...historyMessages, { role: "user", content: userContent }],
-        });
-
-        const rawReply = completion.choices[0]?.message?.content?.trim() ?? "";
-
         const activityEstimateSchema = z.object({
           name: z.string().min(1).max(120),
           durationMinutes: z.number().int().min(0).max(1440),
@@ -464,6 +456,29 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
           mealType: z.string().optional(),
         });
 
+        // Stream the response for immediate perceived speed
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.flushHeaders();
+
+        const stream = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          max_tokens: 900,
+          messages: [systemMessage, ...historyMessages, { role: "user", content: userContent }],
+          stream: true,
+        });
+
+        let fullContent = "";
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content ?? "";
+          if (delta) {
+            fullContent += delta;
+            res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+          }
+        }
+
+        const rawReply = fullContent.trim();
         const jsonBlockMatch = rawReply.match(/```json\s*(\{[\s\S]*?\})\s*```/);
         let estimate: z.infer<typeof photoAnalysisSchema> | undefined;
         let estimates: z.infer<typeof recipeEstimateSchema>[] | undefined;
@@ -498,7 +513,9 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
           reply = rawReply.slice(0, rawReply.lastIndexOf("```json")).trim();
         }
 
-        res.json({ reply: reply || "Here is the estimate.", estimate, estimates, activityEstimate });
+        res.write(`data: ${JSON.stringify({ done: true, reply: reply || "Here is the estimate.", estimate, estimates, activityEstimate })}\n\n`);
+        res.end();
+        return;
       } catch (err: unknown) {
         next(new Error(err instanceof Error ? err.message : "AI chat failed"));
       }

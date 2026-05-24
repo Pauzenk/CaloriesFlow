@@ -187,20 +187,14 @@ export function weightProjectionSeries(
   const actualWeightMap = new Map<string, number>();
   for (const w of weights) actualWeightMap.set(w.date, w.weightKg);
 
-  // Average calorie intake over the most recent 7 logged dates
   const today = todayStr();
-  const recent7LoggedDates = Array.from(calByDate.keys())
-    .filter((d) => d <= today)
-    .sort()
-    .reverse()
-    .slice(0, 7);
-  const avgActual =
-    recent7LoggedDates.length > 0
-      ? recent7LoggedDates.reduce((sum, d) => sum + (calByDate.get(d) ?? 0), 0) / recent7LoggedDates.length
-      : dailyCalorieGoal;
 
-  // For maintenance: future daily deficit = 0 (flat projection)
-  const projectedDailyDeficit = effectiveMode === "maintenance" ? 0 : tdee - avgActual;
+  // Future projection uses dailyCalorieGoal so the line reflects the plan:
+  // weight_loss → TDEE-500 → positive deficit → weight falls
+  // weight_gain → TDEE+350 → negative deficit → weight rises
+  // maintenance → 0
+  const projectedDailyDeficit =
+    effectiveMode === "maintenance" ? 0 : tdee - (dailyCalorieGoal ?? tdee);
 
   const isLosingWeight = goalWeightKg ? goalWeightKg < startingWeightKg : false;
   const startDateObj = new Date(journeyStartDate + "T00:00:00");

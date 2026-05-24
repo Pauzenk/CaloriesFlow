@@ -271,12 +271,14 @@ export default function RecipesPage() {
       });
       const data = (await res.json()) as { meals: RecipeMeal[] };
       if (!data.meals || !Array.isArray(data.meals)) throw new Error("Invalid response");
-      setMeals(data.meals);
       const regenerated = data.meals.find((m) => m.mealType === mealType);
-      if (regenerated) {
-        trackRecentMeals([regenerated]);
-        fetchImages([regenerated]);
-      }
+      if (!regenerated) throw new Error("Regenerated meal missing");
+      // Only replace the one meal — keep other meals' imageUrls intact
+      setMeals((prev) =>
+        prev?.map((m) => m.mealType === mealType ? { ...regenerated, imageUrl: null } : m) ?? null
+      );
+      trackRecentMeals([regenerated]);
+      fetchImages([regenerated]);
     } catch (err) {
       console.error("[Recipes] regenerateSingleMeal:", err instanceof Error ? err.message : String(err));
       toast({ title: lang === "ru" ? "Не удалось заменить блюдо" : "Failed to regenerate", variant: "destructive" });

@@ -265,7 +265,8 @@ export default function RecipesPage() {
       const res = await apiRequest("POST", "/api/recipes/generate", {
         calorieGoal,
         regenerateMeal: mealType,
-        currentPlan: meals,
+        // Strip imageUrl — base64 strings bloat the body and aren't needed server-side
+        currentPlan: meals.map(({ imageUrl: _img, ...m }) => m),
         language: lang,
         recentMeals: recentMealsRef.current.slice(-MAX_RECENT),
       });

@@ -479,15 +479,26 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
         }
 
         const rawReply = fullContent.trim();
-        const jsonBlockMatch = rawReply.match(/```json\s*(\{[\s\S]*?\})\s*```/);
         let estimate: z.infer<typeof photoAnalysisSchema> | undefined;
         let estimates: z.infer<typeof recipeEstimateSchema>[] | undefined;
         let activityEstimate: z.infer<typeof activityEstimateSchema> | undefined;
-        let reply = rawReply;
+        let reply = "";
 
-        if (jsonBlockMatch) {
+        // Extract JSON: try fenced block first, then raw JSON object
+        function extractJsonStr(text: string): string | null {
+          const fenced = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+          if (fenced) return fenced[1];
+          // Raw JSON — find outermost { }
+          const start = text.indexOf("{");
+          const end = text.lastIndexOf("}");
+          if (start !== -1 && end > start) return text.slice(start, end + 1);
+          return null;
+        }
+
+        const jsonStr = extractJsonStr(rawReply);
+        if (jsonStr) {
           try {
-            const parsed: unknown = JSON.parse(jsonBlockMatch[1]);
+            const parsed: unknown = JSON.parse(jsonStr);
             if (typeof parsed === "object" && parsed !== null) {
               const p = parsed as Record<string, unknown>;
               if ("estimate" in p && typeof p.estimate === "object" && p.estimate !== null) {
@@ -510,10 +521,9 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
           } catch {
             // leave estimates undefined
           }
-          reply = rawReply.slice(0, rawReply.lastIndexOf("```json")).trim();
         }
 
-        res.write(`data: ${JSON.stringify({ done: true, reply: reply || "Here is the estimate.", estimate, estimates, activityEstimate })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true, reply, estimate, estimates, activityEstimate })}\n\n`);
         res.end();
         return;
       } catch (err: unknown) {

@@ -183,12 +183,18 @@ function InlineChat({
                 sseError = json.error;
               } else if (typeof json.delta === "string") {
                 streamText += json.delta;
-                setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
+                // Don't stream raw JSON text into the bubble — card will appear on done
+                const looksLikeJson = streamText.trimStart().startsWith("{");
+                if (!looksLikeJson) {
+                  setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: streamText } : m));
+                }
               } else if (json.done) {
                 finalData = json as unknown as ChatResponse;
+                const hasCard = json.estimate || json.estimates || json.activityEstimate;
+                const replyText = hasCard ? "" : ((json.reply as string) || streamText);
                 setMessages((prev) => prev.map((m) =>
                   m.id === streamId
-                    ? { ...m, text: (json.reply as string) || streamText, estimate: json.estimate as NutritionEstimate | undefined, estimates: json.estimates as NutritionEstimate[] | undefined, activityEstimate: json.activityEstimate as ActivityEstimate | undefined }
+                    ? { ...m, text: replyText, estimate: json.estimate as NutritionEstimate | undefined, estimates: json.estimates as NutritionEstimate[] | undefined, activityEstimate: json.activityEstimate as ActivityEstimate | undefined }
                     : m
                 ));
               }

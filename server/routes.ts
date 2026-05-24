@@ -584,13 +584,11 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
     if (regenerateMeal && currentPlan && currentPlan.length > 0) {
       const targets: Record<string, number> = { breakfast: bk, lunch: ln, dinner: dn, snack: sn };
       const targetCal = targets[regenerateMeal] ?? bk;
-      prompt = `I have this daily meal plan (JSON):
-${JSON.stringify(currentPlan, null, 2)}
+      const otherMealNames = currentPlan.filter((m) => m.mealType !== regenerateMeal).map((m) => m.name).join(", ");
+      prompt = `Generate a single "${regenerateMeal}" recipe (${cuisine} cuisine style) around ${targetCal} kcal. It must be completely different from these meals already in the day's plan: ${otherMealNames || "none"}.${avoidList}${recipeLangInstruction}
 
-Regenerate ONLY the "${regenerateMeal}" entry. Replace it with a completely different recipe (${cuisine} cuisine style) around ${targetCal} kcal. Keep all other meals exactly as-is (same name, calories, ingredients, instructions).${avoidList}${recipeLangInstruction}
-
-Return the complete updated plan as a JSON object with this structure:
-{"meals":[{"mealType":"breakfast|lunch|dinner|snack","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...",...]},...]}`; 
+Return ONLY a JSON object with this structure (one meal, not an array):
+{"meal":{"mealType":"${regenerateMeal}","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...","Step 2: ...","Step 3: ..."]}}`;
     } else {
       prompt = `Generate a balanced daily meal plan with exactly 4 meals: breakfast, lunch, dinner, snack. Use ${cuisine} cuisine as the theme/inspiration.
 Total target: ${calorieGoal} kcal. Distribution: breakfast ~${bk} kcal, lunch ~${ln} kcal, dinner ~${dn} kcal, snack ~${sn} kcal.
@@ -610,13 +608,13 @@ Return ONLY a JSON object with this exact structure:
       const openai = new OpenAI({ apiKey } as ClientOptions);
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
-        max_tokens: 1500,
+        max_tokens: 2000,
         response_format: { type: "json_object" },
         messages: [{ role: "user", content: prompt }],
       });
 
       const raw = completion.choices[0]?.message?.content ?? "{}";
-      const result = JSON.parse(raw) as { meals?: unknown };
+      const result = JSON.parse(raw) as { meals?: unknown; meal?: unknown };
 
       const mealSchema = z.object({
         mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]),
@@ -628,6 +626,19 @@ Return ONLY a JSON object with this exact structure:
         ingredients: z.array(z.string().max(200)).min(1).max(15),
         instructions: z.array(z.string().max(500)).min(1).max(15),
       });
+
+      // Single-meal regen path: AI returns { meal: {...} }
+      if (regenerateMeal && result.meal) {
+        const single = mealSchema.safeParse(result.meal);
+        if (!single.success) return res.status(502).json({ message: "AI returned invalid meal" });
+        // Merge into currentPlan and return full plan so client stays in sync
+        const merged = (currentPlan ?? []).map((m) =>
+          m.mealType === regenerateMeal ? single.data : m
+        );
+        // If somehow not in plan yet, append
+        if (!merged.find((m) => m.mealType === regenerateMeal)) merged.push(single.data);
+        return res.json({ meals: merged });
+      }
 
       const meals = z.array(mealSchema).safeParse(result.meals);
       if (!meals.success) return res.status(502).json({ message: "AI returned invalid meal plan" });

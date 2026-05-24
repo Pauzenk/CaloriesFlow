@@ -24,7 +24,6 @@ import {
   computeBMI,
   getBMICategory,
   getHealthyWeightRange,
-  suggestGoalMode,
 } from "@/lib/calorieflow";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Lang } from "@/lib/i18n";
@@ -143,9 +142,21 @@ export default function SettingsPage() {
     const bmi = computeBMI(weightForCalc, watchedHeight);
     const category = getBMICategory(bmi);
     const range = getHealthyWeightRange(watchedHeight);
-    const suggested = suggestGoalMode(category);
-    return { bmi: +bmi.toFixed(1), category, range, suggested };
+    return { bmi: +bmi.toFixed(1), category, range };
   }, [watchedHeight, weightForCalc]);
+
+  // Auto-select goal mode based on goal weight vs starting weight
+  useEffect(() => {
+    if (!watchedGoalWeight || !watchedStartWeight) return;
+    const diff = watchedGoalWeight - watchedStartWeight;
+    if (Math.abs(diff) < 0.1) {
+      form.setValue("goalMode", "maintenance");
+    } else if (diff > 0) {
+      form.setValue("goalMode", "weight_gain");
+    } else {
+      form.setValue("goalMode", "weight_loss");
+    }
+  }, [watchedGoalWeight, watchedStartWeight]);
 
   // ── Optimal plan — mode-aware ────────────────────────────────────────────────
   const optimalPlan = useMemo(() => {
@@ -160,8 +171,8 @@ export default function SettingsPage() {
     if (weightDiff <= 0) return null;
 
     if (watchedMode === "weight_gain") {
-      const optimalDays = Math.round((weightDiff * 7700) / 300);
-      return { calorie: estimatedTDEE + 300, days: optimalDays };
+      const optimalDays = Math.round((weightDiff * 7700) / 350);
+      return { calorie: estimatedTDEE + 350, days: optimalDays };
     }
 
     // weight_loss default
@@ -232,12 +243,6 @@ export default function SettingsPage() {
     normal: t("bmiNormal"),
     overweight: t("bmiOverweight"),
     obese: t("bmiObese"),
-  };
-
-  const modeLabel: Record<GoalMode, string> = {
-    weight_loss: t("modeLoss"),
-    maintenance: t("modeMaintenance"),
-    weight_gain: t("modeGain"),
   };
 
   return (
@@ -392,22 +397,6 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    {bmiData.suggested !== watchedMode && (
-                      <div className="border-t border-[#1C1714]/10 pt-3 flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("suggestedMode")}</div>
-                          <div className="text-xs opacity-70">{modeLabel[bmiData.suggested]}</div>
-                        </div>
-                        <button
-                          type="button"
-                          data-testid="button-apply-bmi-suggestion"
-                          onClick={() => form.setValue("goalMode", bmiData.suggested)}
-                          className="text-[9px] uppercase tracking-widest border border-[#1C1714]/30 px-3 py-1.5 hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors whitespace-nowrap shrink-0"
-                        >
-                          {lang === "ru" ? "Применить" : "Apply"}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -568,7 +557,7 @@ export default function SettingsPage() {
                         <div data-testid="panel-suggested-goal">
                           <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("surplus300")}</div>
                           <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">
-                            {((estimatedTDEE ?? 0) + 300).toLocaleString()}
+                            {((estimatedTDEE ?? 0) + 350).toLocaleString()}
                           </div>
                           <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
                         </div>

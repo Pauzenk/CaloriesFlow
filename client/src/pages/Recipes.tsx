@@ -23,6 +23,7 @@ type RecipeMeal = {
 const MEAL_ORDER: RecipeMeal["mealType"][] = ["breakfast", "lunch", "dinner", "snack"];
 
 const RECENT_MEALS_KEY = "cf-recent-recipe-meals";
+const SAVED_PLAN_KEY = "cf-recipe-plan";
 const MAX_RECENT = 28;
 
 function loadRecentMeals(): string[] {
@@ -31,6 +32,24 @@ function loadRecentMeals(): string[] {
 
 function saveRecentMeals(names: string[]) {
   try { sessionStorage.setItem(RECENT_MEALS_KEY, JSON.stringify(names)); } catch {}
+}
+
+function loadSavedPlan(): RecipeMeal[] | null {
+  try {
+    const raw = localStorage.getItem(SAVED_PLAN_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as RecipeMeal[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+function savePlan(meals: RecipeMeal[]) {
+  try {
+    // Don't persist base64 image data — re-fetched on load
+    const slim = meals.map(({ imageUrl: _img, ...m }) => m);
+    localStorage.setItem(SAVED_PLAN_KEY, JSON.stringify(slim));
+  } catch {}
 }
 
 function MealSkeleton() {
@@ -244,6 +263,7 @@ export default function RecipesPage() {
       const data = (await res.json()) as { meals: RecipeMeal[] };
       if (!data.meals || !Array.isArray(data.meals) || data.meals.length === 0) throw new Error("Empty meal plan");
       setMeals(data.meals);
+      savePlan(data.meals);
       trackRecentMeals(data.meals);
       fetchImages(data.meals);
     } catch (err) {
@@ -275,9 +295,11 @@ export default function RecipesPage() {
       const regenerated = data.meals.find((m) => m.mealType === mealType);
       if (!regenerated) throw new Error("Regenerated meal missing");
       // Only replace the one meal — keep other meals' imageUrls intact
-      setMeals((prev) =>
-        prev?.map((m) => m.mealType === mealType ? { ...regenerated, imageUrl: null } : m) ?? null
-      );
+      setMeals((prev) => {
+        const updated = prev?.map((m) => m.mealType === mealType ? { ...regenerated, imageUrl: null } : m) ?? null;
+        if (updated) savePlan(updated);
+        return updated;
+      });
       trackRecentMeals([regenerated]);
       fetchImages([regenerated]);
     } catch (err) {
@@ -334,7 +356,13 @@ export default function RecipesPage() {
   useEffect(() => {
     if (!settingsLoaded || hasFetched.current) return;
     hasFetched.current = true;
-    generateFullDay(calorieGoal);
+    const saved = loadSavedPlan();
+    if (saved) {
+      setMeals(saved);
+      fetchImages(saved);
+    } else {
+      generateFullDay(calorieGoal);
+    }
   }, [settingsLoaded]);
 
   if (detailMeal) {

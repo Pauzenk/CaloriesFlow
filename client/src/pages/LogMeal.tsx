@@ -631,19 +631,19 @@ function EstimateCard({
         </button>
         {showMealTypeOpen && (
           <div className="absolute bottom-full left-0 right-0 mb-1 bg-[#1C1714] border border-[#F2EDE7]/20 z-10">
-            {MEAL_TYPES.map((t) => (
+            {MEAL_TYPES.map((mt) => (
               <button
-                key={t}
+                key={mt}
                 type="button"
-                data-testid={`option-meal-type-${t}-${msgId}`}
-                onClick={() => onMealTypeChange(t)}
+                data-testid={`option-meal-type-${mt}-${msgId}`}
+                onClick={() => onMealTypeChange(mt)}
                 className={`w-full text-left px-3 py-2 text-[10px] uppercase tracking-widest transition-colors ${
-                  t === mealType
+                  mt === mealType
                     ? "bg-[#F2EDE7]/10 text-[#F2EDE7]"
                     : "text-[#F2EDE7]/60 hover:bg-[#F2EDE7]/5 hover:text-[#F2EDE7]"
                 }`}
               >
-                {t}
+                {mt}
               </button>
             ))}
           </div>
@@ -666,6 +666,7 @@ function EstimateCard({
 // ── Main LogMeal Page ────────────────────────────────────────────────────────
 
 export default function LogMeal() {
+  const { lang: _lang, t } = useLanguage();
   const logDate = (() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("date");

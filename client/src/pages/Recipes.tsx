@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw, Plus, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -187,6 +187,7 @@ export default function RecipesPage() {
     return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : todayStr();
   })();
 
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t, lang } = useLanguage();
   const { data: settings, isSuccess: settingsLoaded } = useQuery<Settings>({ queryKey: ["/api/settings"] });
@@ -320,14 +321,9 @@ export default function RecipesPage() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
-      const total = meals.reduce((s, m) => s + m.calories, 0);
-      toast({
-        title: lang === "ru" ? "Весь день добавлен в журнал" : "Full day added to log",
-        description: `${meals.length} ${lang === "ru" ? "блюд" : "meals"} · ${total} kcal`,
-      });
+      setLocation("/");
     } catch {
       toast({ title: lang === "ru" ? "Ошибка добавления" : "Failed to log all meals", variant: "destructive" });
-    } finally {
       setLoggingAll(false);
     }
   }

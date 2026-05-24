@@ -387,7 +387,8 @@ When the user asks for meal ideas or a full-day plan:
 ━━━ RESPONSE RULES ━━━
 - Write 1–3 sentences of context or reasoning first.
 - NEVER output 300 kcal as a default without reasoning.
-- If you need clarification, ask one focused question and omit JSON entirely.
+- NEVER ask clarifying questions about portion size, ingredients, or meal details. If the portion is unspecified, use a realistic standard portion. If the food is ambiguous, pick the most common interpretation. Always include a JSON block — no exceptions for food/activity/recipe input.
+- If the user says "add it", "log it", "log this", "yes", "save it", "add to lunch", or any short affirmative/action phrase referring to food or an activity you already estimated in this conversation: re-emit the same estimate in JSON so it can be added to the log. Re-read your previous message to reconstruct the numbers.
 - Numbers: calories = integer, proteins/carbs/fats = 1 decimal place, caloriesBurned = integer.
 
 ━━━ MANDATORY JSON OUTPUT ━━━
@@ -602,7 +603,7 @@ Return ONLY a JSON object with this exact structure:
       const openai = new OpenAI({ apiKey } as ClientOptions);
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
-        max_tokens: 2500,
+        max_tokens: 1500,
         response_format: { type: "json_object" },
         messages: [{ role: "user", content: prompt }],
       });

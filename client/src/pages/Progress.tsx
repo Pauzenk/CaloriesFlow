@@ -18,7 +18,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Meal, Settings, Weight } from "@shared/schema";
-import { ACTIVITY_MULTIPLIERS, ACTIVITY_LEVEL_LABELS, type ActivityLevel } from "@shared/schema";
+import { ACTIVITY_MULTIPLIERS, ACTIVITY_LEVEL_LABELS, type ActivityLevel, type GoalMode } from "@shared/schema";
 import {
   computeBMR,
   computeTDEE,
@@ -123,6 +123,7 @@ export default function ProgressPage() {
 
   const goal = settings?.dailyCalorieGoal || 2000;
   const dayNum = settings ? daysSince(settings.journeyStartDate) : 1;
+  const goalMode = ((settings?.goalMode ?? "weight_loss") as GoalMode);
 
   const n = period === "day" ? 1 : period === "week" ? 7 : 30;
   const dates = lastNDates(n);
@@ -140,16 +141,16 @@ export default function ProgressPage() {
     settings?.heightCm &&
     settings?.ageYears &&
     settings?.sexAtBirth &&
-    settings?.goalWeightKg &&
-    settings?.startingWeightKg
+    settings?.startingWeightKg &&
+    (goalMode === "maintenance" || settings?.goalWeightKg)
   );
 
   const { points: projectionPoints, projectedGoalDate } = useMemo(
     () =>
       settings
-        ? weightProjectionSeries(settings, meals, weights)
+        ? weightProjectionSeries(settings, meals, weights, goalMode)
         : { points: [], projectedGoalDate: null },
-    [settings, meals, weights],
+    [settings, meals, weights, goalMode],
   );
 
   const currentEstimatedWeight = useMemo(() => {
@@ -189,6 +190,8 @@ export default function ProgressPage() {
   }, [settings]);
 
   const weightGapAnalysis = useMemo(() => {
+    // Gap analysis only makes sense for weight loss mode
+    if (goalMode !== "weight_loss") return null;
     if (!mostRecentActualWeight || currentEstimatedWeight === null || !estimatedTDEE || !settings) return null;
     const gap = mostRecentActualWeight.weightKg - currentEstimatedWeight;
     if (Math.abs(gap) < 0.05) return null;
@@ -197,7 +200,7 @@ export default function ProgressPage() {
     const extraDays = Math.round(Math.abs(gap) * 7700 / dailyDeficit);
     const isAhead = gap < 0;
     return { gap: +gap.toFixed(2), extraDays, isAhead, dailyDeficit };
-  }, [mostRecentActualWeight, currentEstimatedWeight, estimatedTDEE, settings]);
+  }, [goalMode, mostRecentActualWeight, currentEstimatedWeight, estimatedTDEE, settings]);
 
   const weightProgressPct = useMemo(() => {
     if (!settings?.startingWeightKg || !settings?.goalWeightKg || displayWeight === null) return 0;
@@ -745,9 +748,15 @@ export default function ProgressPage() {
                 <p className="text-[10px] opacity-40 mt-0.5">kcal</p>
               </div>
               <div className="px-3 py-4 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("estLost")}</p>
+                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">
+                  {goalMode === "weight_gain" ? t("estGained") : goalMode === "maintenance" ? t("estStable") : t("estLost")}
+                </p>
                 <p className="text-base tabular-nums font-medium" data-testid="text-period-kg-lost">
-                  {estimatedKgLost >= 0 ? estimatedKgLost.toFixed(2) : `+${Math.abs(estimatedKgLost).toFixed(2)}`}
+                  {goalMode === "maintenance"
+                    ? `±${Math.abs(estimatedKgLost).toFixed(2)}`
+                    : estimatedKgLost >= 0
+                    ? estimatedKgLost.toFixed(2)
+                    : `+${Math.abs(estimatedKgLost).toFixed(2)}`}
                 </p>
                 <p className="text-[10px] opacity-40 mt-0.5">kg</p>
               </div>

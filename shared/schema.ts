@@ -37,6 +37,9 @@ const nullableNumber = (min: number, max: number) =>
 export const ACTIVITY_LEVELS = ["sedentary", "lightly_active", "moderately_active", "very_active"] as const;
 export type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
 
+export const GOAL_MODES = ["weight_loss", "maintenance", "weight_gain"] as const;
+export type GoalMode = (typeof GOAL_MODES)[number];
+
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   sedentary: 1.2,
   lightly_active: 1.375,
@@ -63,6 +66,7 @@ export const settings = pgTable("settings", {
   goalWeightKg: real("goal_weight_kg"),
   activityLevel: text("activity_level").notNull().default("sedentary"),
   goalDurationMonths: integer("goal_duration_months"),
+  goalMode: text("goal_mode").notNull().default("weight_loss"),
 });
 
 export const upsertSettingsSchema = createInsertSchema(settings)
@@ -82,6 +86,7 @@ export const upsertSettingsSchema = createInsertSchema(settings)
         (v) => (v === null || v === undefined || v === "" ? null : Number(v)),
         z.number().int().min(1).max(24).nullable().optional(),
       ),
+    goalMode: z.enum(GOAL_MODES).default("weight_loss"),
   });
 
 export type Settings = typeof settings.$inferSelect;

@@ -111,6 +111,40 @@ export function computeTDEE(bmr: number, multiplier = 1.2): number {
   return bmr * multiplier;
 }
 
+// ─── BMI ────────────────────────────────────────────────────────────────────────
+
+export function computeBMI(weightKg: number, heightCm: number): number {
+  const hm = heightCm / 100;
+  return weightKg / (hm * hm);
+}
+
+export type BMICategory = "underweight" | "normal" | "overweight" | "obese";
+
+export function getBMICategory(bmi: number): BMICategory {
+  if (bmi < 18.5) return "underweight";
+  if (bmi < 25) return "normal";
+  if (bmi < 30) return "overweight";
+  return "obese";
+}
+
+/** Healthy weight range for the given height (BMI 20–25). */
+export function getHealthyWeightRange(heightCm: number): { minKg: number; maxKg: number } {
+  const hm = heightCm / 100;
+  return {
+    minKg: +(20 * hm * hm).toFixed(1),
+    maxKg: +(25 * hm * hm).toFixed(1),
+  };
+}
+
+/** Suggest a goal mode based on BMI category. */
+export function suggestGoalMode(
+  category: BMICategory,
+): "weight_loss" | "maintenance" | "weight_gain" {
+  if (category === "underweight") return "weight_gain";
+  if (category === "normal") return "maintenance";
+  return "weight_loss";
+}
+
 // ─── Weight Projection Engine ──────────────────────────────────────────────────
 
 export type WeightProjectionPoint = {
@@ -122,11 +156,19 @@ export function weightProjectionSeries(
   settings: Settings,
   meals: Meal[],
   weights: Weight[] = [],
+  goalMode?: string,
 ): { points: WeightProjectionPoint[]; projectedGoalDate: string | null } {
   const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate, dailyCalorieGoal } =
     settings;
 
-  if (!heightCm || !ageYears || !sexAtBirth || !goalWeightKg || !startingWeightKg) {
+  const effectiveMode = goalMode ?? settings.goalMode ?? "weight_loss";
+
+  // For maintenance, only need height/age/sex/startingWeight
+  const needsGoalWeight = effectiveMode !== "maintenance";
+  if (!heightCm || !ageYears || !sexAtBirth || !startingWeightKg) {
+    return { points: [], projectedGoalDate: null };
+  }
+  if (needsGoalWeight && !goalWeightKg) {
     return { points: [], projectedGoalDate: null };
   }
 
@@ -141,11 +183,11 @@ export function weightProjectionSeries(
     calByDate.set(meal.date, (calByDate.get(meal.date) || 0) + meal.calories);
   }
 
-  // Build actual weight map — used to anchor the projection at each logged date
+  // Build actual weight map
   const actualWeightMap = new Map<string, number>();
   for (const w of weights) actualWeightMap.set(w.date, w.weightKg);
 
-  // Average calorie intake over the most recent 7 logged dates globally
+  // Average calorie intake over the most recent 7 logged dates
   const today = todayStr();
   const recent7LoggedDates = Array.from(calByDate.keys())
     .filter((d) => d <= today)
@@ -156,9 +198,11 @@ export function weightProjectionSeries(
     recent7LoggedDates.length > 0
       ? recent7LoggedDates.reduce((sum, d) => sum + (calByDate.get(d) ?? 0), 0) / recent7LoggedDates.length
       : dailyCalorieGoal;
-  const projectedDailyDeficit = tdee - avgActual;
 
-  const isLosingWeight = goalWeightKg < startingWeightKg;
+  // For maintenance: future daily deficit = 0 (flat projection)
+  const projectedDailyDeficit = effectiveMode === "maintenance" ? 0 : tdee - avgActual;
+
+  const isLosingWeight = goalWeightKg ? goalWeightKg < startingWeightKg : false;
   const startDateObj = new Date(journeyStartDate + "T00:00:00");
   const todayDateObj = new Date(today + "T00:00:00");
 
@@ -172,7 +216,6 @@ export function weightProjectionSeries(
     const dateStr = localDateStr(d);
 
     if (i === 0) {
-      // Anchor day-0 to actual weight if logged on journey start
       currentWeight = actualWeightMap.get(dateStr) ?? startingWeightKg;
       points.push({ date: dateStr, estimatedWeightKg: currentWeight });
       continue;
@@ -190,13 +233,13 @@ export function weightProjectionSeries(
 
     currentWeight = currentWeight - dailyDeficit / 7700;
 
-    // Anchor to actual logged weight for this date — overrides calorie-derived estimate
+    // Anchor to actual logged weight
     const loggedWeight = actualWeightMap.get(dateStr);
     if (loggedWeight !== undefined) currentWeight = loggedWeight;
 
     points.push({ date: dateStr, estimatedWeightKg: +currentWeight.toFixed(2) });
 
-    if (!projectedGoalDate) {
+    if (!projectedGoalDate && goalWeightKg) {
       if (isLosingWeight && currentWeight <= goalWeightKg) {
         projectedGoalDate = dateStr;
         break;

@@ -15,14 +15,31 @@ import {
   ACTIVITY_LEVELS,
   ACTIVITY_MULTIPLIERS,
   type ActivityLevel,
+  GOAL_MODES,
+  type GoalMode,
 } from "@shared/schema";
-import { computeBMR, computeTDEE } from "@/lib/calorieflow";
+import {
+  computeBMR,
+  computeTDEE,
+  computeBMI,
+  getBMICategory,
+  getHealthyWeightRange,
+  suggestGoalMode,
+} from "@/lib/calorieflow";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Lang } from "@/lib/i18n";
 
-const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40";
+const IN =
+  "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40";
 
 const DURATION_MONTHS = [1, 2, 3, 4, 5, 6] as const;
+
+const BMI_COLORS: Record<string, string> = {
+  underweight: "text-blue-600",
+  normal: "text-emerald-700",
+  overweight: "text-amber-600",
+  obese: "text-red-600",
+};
 
 function calcGoalDateFromMonths(months: number, lang: Lang): string {
   const d = new Date();
@@ -73,6 +90,7 @@ export default function SettingsPage() {
       goalWeightKg: null,
       activityLevel: "sedentary",
       goalDurationMonths: null,
+      goalMode: "weight_loss",
     },
   });
 
@@ -89,6 +107,7 @@ export default function SettingsPage() {
         goalWeightKg: settings.goalWeightKg ?? null,
         activityLevel: (settings.activityLevel as ActivityLevel) ?? "sedentary",
         goalDurationMonths: settings.goalDurationMonths ?? null,
+        goalMode: (settings.goalMode as GoalMode) ?? "weight_loss",
       });
       if (settings.goalDurationMonths) setSelectedDuration(settings.goalDurationMonths);
     }
@@ -98,41 +117,78 @@ export default function SettingsPage() {
   const watchedAge = form.watch("ageYears");
   const watchedSex = form.watch("sexAtBirth");
   const watchedStartWeight = form.watch("startingWeightKg");
+  const watchedCurrentWeight = form.watch("currentWeightKg");
   const watchedGoalWeight = form.watch("goalWeightKg");
   const watchedActivityLevel = form.watch("activityLevel");
+  const watchedMode = (form.watch("goalMode") ?? "weight_loss") as GoalMode;
+
+  // Use current weight for calculations when available, fall back to starting weight
+  const weightForCalc =
+    watchedCurrentWeight && watchedCurrentWeight > 0
+      ? watchedCurrentWeight
+      : watchedStartWeight && watchedStartWeight > 0
+      ? watchedStartWeight
+      : 0;
 
   const estimatedTDEE = useMemo(() => {
-    if (!watchedHeight || !watchedAge || !watchedSex || !watchedStartWeight) return null;
-    const bmr = computeBMR(watchedStartWeight, watchedHeight, watchedAge, watchedSex as "male" | "female");
+    if (!watchedHeight || !watchedAge || !watchedSex || !weightForCalc) return null;
+    const bmr = computeBMR(weightForCalc, watchedHeight, watchedAge, watchedSex as "male" | "female");
     const multiplier = ACTIVITY_MULTIPLIERS[(watchedActivityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
     return Math.round(computeTDEE(bmr, multiplier));
-  }, [watchedHeight, watchedAge, watchedSex, watchedStartWeight, watchedActivityLevel]);
+  }, [watchedHeight, watchedAge, watchedSex, weightForCalc, watchedActivityLevel]);
 
-  // ── Optimal Time calculation (500 kcal/day deficit) ──────────────────────
+  // BMI panel — computed from height + current/start weight
+  const bmiData = useMemo(() => {
+    if (!watchedHeight || !weightForCalc) return null;
+    const bmi = computeBMI(weightForCalc, watchedHeight);
+    const category = getBMICategory(bmi);
+    const range = getHealthyWeightRange(watchedHeight);
+    const suggested = suggestGoalMode(category);
+    return { bmi: +bmi.toFixed(1), category, range, suggested };
+  }, [watchedHeight, weightForCalc]);
+
+  // ── Optimal plan — mode-aware ────────────────────────────────────────────────
   const optimalPlan = useMemo(() => {
-    if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return null;
+    if (!estimatedTDEE) return null;
+
+    if (watchedMode === "maintenance") {
+      return { calorie: estimatedTDEE, days: null };
+    }
+
+    if (!watchedStartWeight || !watchedGoalWeight) return null;
     const weightDiff = Math.abs(watchedStartWeight - watchedGoalWeight);
     if (weightDiff <= 0) return null;
-    const optimalDays = Math.round(weightDiff * 7700 / 500);
-    const optimalCalorie = estimatedTDEE - 500;
-    return { days: optimalDays, calorie: Math.max(1200, optimalCalorie) };
-  }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight]);
+
+    if (watchedMode === "weight_gain") {
+      const optimalDays = Math.round((weightDiff * 7700) / 300);
+      return { calorie: estimatedTDEE + 300, days: optimalDays };
+    }
+
+    // weight_loss default
+    const optimalDays = Math.round((weightDiff * 7700) / 500);
+    return { calorie: Math.max(1200, estimatedTDEE - 500), days: optimalDays };
+  }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode]);
 
   function calcGoalForDuration(months: number): number | null {
-    if (!estimatedTDEE || !watchedGoalWeight || !watchedStartWeight) return null;
+    if (!estimatedTDEE) return null;
+    if (watchedMode === "maintenance") return estimatedTDEE;
+    if (!watchedGoalWeight || !watchedStartWeight) return null;
     const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
     if (remaining <= 0) return estimatedTDEE;
     const totalDays = months * 30.44;
-    const dailyDeficit = (remaining * 7700) / totalDays;
-    return Math.max(1200, Math.round(estimatedTDEE - dailyDeficit));
+    const dailyChange = (remaining * 7700) / totalDays;
+    if (watchedMode === "weight_gain") return Math.round(estimatedTDEE + dailyChange);
+    return Math.max(1200, Math.round(estimatedTDEE - dailyChange));
   }
 
   function handleSelectOptimal() {
     if (!optimalPlan) return;
     form.setValue("dailyCalorieGoal", optimalPlan.calorie);
-    const approxMonths = Math.round(optimalPlan.days / 30.44);
-    const clampedMonths = Math.max(1, Math.min(6, approxMonths));
-    form.setValue("goalDurationMonths", clampedMonths);
+    if (optimalPlan.days !== null) {
+      const approxMonths = Math.round(optimalPlan.days / 30.44);
+      const clampedMonths = Math.max(1, Math.min(6, approxMonths));
+      form.setValue("goalDurationMonths", clampedMonths);
+    }
     setSelectedDuration(null);
   }
 
@@ -142,6 +198,11 @@ export default function SettingsPage() {
     if (newGoal !== null) form.setValue("dailyCalorieGoal", newGoal);
     form.setValue("goalDurationMonths", months);
   }
+
+  const canComputeTarget =
+    watchedMode === "maintenance"
+      ? !!estimatedTDEE
+      : !!(estimatedTDEE && watchedGoalWeight && watchedStartWeight);
 
   const save = useMutation({
     mutationFn: async (data: UpsertSettings) => {
@@ -160,7 +221,24 @@ export default function SettingsPage() {
       }),
   });
 
-  const canComputeTarget = !!(estimatedTDEE && watchedGoalWeight && watchedStartWeight);
+  const modeConfig: Record<GoalMode, { label: string; desc: string }> = {
+    weight_loss: { label: t("modeLoss"), desc: t("modeLossDesc") },
+    maintenance: { label: t("modeMaintenance"), desc: t("modeMaintenanceDesc") },
+    weight_gain: { label: t("modeGain"), desc: t("modeGainDesc") },
+  };
+
+  const bmiCategoryLabel: Record<string, string> = {
+    underweight: t("bmiUnderweight"),
+    normal: t("bmiNormal"),
+    overweight: t("bmiOverweight"),
+    obese: t("bmiObese"),
+  };
+
+  const modeLabel: Record<GoalMode, string> = {
+    weight_loss: t("modeLoss"),
+    maintenance: t("modeMaintenance"),
+    weight_gain: t("modeGain"),
+  };
 
   return (
     <AppShell title={t("settingsTitle")}>
@@ -214,9 +292,13 @@ export default function SettingsPage() {
                   )} />
                   <FormField control={form.control} name="goalWeightKg" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("goalWeight")}</FormLabel>
+                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">
+                        {watchedMode === "maintenance" ? t("goalOptional") : t("goalWeight")}
+                      </FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.1" placeholder="e.g. 68.0" data-testid="input-goal-weight"
+                        <Input type="number" step="0.1"
+                          placeholder={watchedMode === "maintenance" ? "—" : "e.g. 68.0"}
+                          data-testid="input-goal-weight"
                           className={IN + " tabular-nums"} value={field.value ?? ""}
                           onChange={(e) => field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)} />
                       </FormControl>
@@ -276,7 +358,97 @@ export default function SettingsPage() {
                     <FormMessage />
                   </FormItem>
                 )} />
+
+                {/* ── BMI Panel ── */}
+                {bmiData && (
+                  <div className="border border-[#1C1714]/20 p-4 space-y-3" data-testid="panel-bmi">
+                    <div className="text-[9px] uppercase tracking-widest opacity-50">{t("bmiPanel")}</div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("bmi")}</div>
+                        <div
+                          className={`text-2xl tabular-nums tracking-tighter font-bold ${BMI_COLORS[bmiData.category]}`}
+                          data-testid="text-bmi"
+                        >
+                          {bmiData.bmi}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">
+                          {lang === "ru" ? "Категория" : "Category"}
+                        </div>
+                        <div
+                          className={`text-xs font-bold uppercase tracking-wider mt-1 ${BMI_COLORS[bmiData.category]}`}
+                          data-testid="text-bmi-category"
+                        >
+                          {bmiCategoryLabel[bmiData.category]}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("healthyRange")}</div>
+                        <div className="text-sm tabular-nums opacity-70 mt-1">
+                          {bmiData.range.minKg}–{bmiData.range.maxKg} kg
+                        </div>
+                      </div>
+                    </div>
+
+                    {bmiData.suggested !== watchedMode && (
+                      <div className="border-t border-[#1C1714]/10 pt-3 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("suggestedMode")}</div>
+                          <div className="text-xs opacity-70">{modeLabel[bmiData.suggested]}</div>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid="button-apply-bmi-suggestion"
+                          onClick={() => form.setValue("goalMode", bmiData.suggested)}
+                          className="text-[9px] uppercase tracking-widest border border-[#1C1714]/30 px-3 py-1.5 hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors whitespace-nowrap shrink-0"
+                        >
+                          {lang === "ru" ? "Применить" : "Apply"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
+            </div>
+
+            {/* ── Goal Mode ── */}
+            <div>
+              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
+                {t("goalMode")}
+              </div>
+              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("goalModeHint")}</p>
+              <FormField control={form.control} name="goalMode" render={({ field }) => (
+                <FormItem>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {(GOAL_MODES as readonly GoalMode[]).map((mode) => {
+                      const active = field.value === mode;
+                      return (
+                        <button
+                          key={mode}
+                          type="button"
+                          data-testid={`radio-mode-${mode}`}
+                          onClick={() => field.onChange(mode)}
+                          className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
+                            active
+                              ? "border-[#1C1714] bg-[#1C1714] text-[#F2EDE7]"
+                              : "border-[#1C1714]/30 text-[#1C1714] hover:border-[#1C1714]"
+                          }`}
+                        >
+                          <span className="text-xs uppercase tracking-wider font-bold">
+                            {modeConfig[mode].label}
+                          </span>
+                          <span className={`text-[10px] leading-snug ${active ? "opacity-70" : "opacity-50"}`}>
+                            {modeConfig[mode].desc}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
 
             {/* ── Activity Level ── */}
@@ -316,25 +488,41 @@ export default function SettingsPage() {
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("dailyTarget")}
               </div>
-              <p className="text-[10px] opacity-50 mb-5 mt-2 leading-relaxed">{t("dailyTargetHint")}</p>
+              <p className="text-[10px] opacity-50 mb-5 mt-2 leading-relaxed">
+                {watchedMode === "weight_loss"
+                  ? t("lossGoalHint")
+                  : watchedMode === "maintenance"
+                  ? t("maintenanceTargetHint")
+                  : t("gainGoalHint")}
+              </p>
 
               {canComputeTarget ? (
                 <div className="space-y-5">
 
-                  {/* ① Optimal Time — always first */}
+                  {/* ① Primary recommendation card */}
                   {optimalPlan && (
                     <div className="border-2 border-[#1C1714] p-5" data-testid="panel-optimal-time">
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("optimalTime")}</p>
-                          <p className="text-xs opacity-50 leading-snug">{t("optimalTimeSubtitle")}</p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-3xl tabular-nums tracking-tighter leading-none" data-testid="text-optimal-days">
-                            {daysToReadable(optimalPlan.days, lang)}
+                          <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">
+                            {watchedMode === "maintenance" ? t("maintenanceOnly") : t("optimalTime")}
                           </p>
-                          <p className="text-[9px] uppercase tracking-widest opacity-40 mt-0.5">{t("withDeficit500")}</p>
+                          <p className="text-xs opacity-50 leading-snug">
+                            {watchedMode === "maintenance"
+                              ? t("maintenanceTargetHint")
+                              : t("optimalTimeSubtitle")}
+                          </p>
                         </div>
+                        {optimalPlan.days !== null && (
+                          <div className="shrink-0 text-right">
+                            <p className="text-3xl tabular-nums tracking-tighter leading-none" data-testid="text-optimal-days">
+                              {daysToReadable(optimalPlan.days, lang)}
+                            </p>
+                            <p className="text-[9px] uppercase tracking-widest opacity-40 mt-0.5">
+                              {watchedMode === "weight_gain" ? t("withSurplus300") : t("withDeficit500")}
+                            </p>
+                          </div>
+                        )}
                       </div>
                       <div className="border-t border-[#1C1714]/15 pt-4 flex items-center justify-between gap-4">
                         <div>
@@ -356,7 +544,7 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  {/* ② Calculated Estimates — second */}
+                  {/* ② Calculated Estimates — Maintenance + Mode-specific */}
                   <div data-testid="panel-estimates">
                     <div className="text-[9px] uppercase tracking-widest opacity-50 mb-3">{t("calculatedEstimates")}</div>
                     <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4">
@@ -367,65 +555,86 @@ export default function SettingsPage() {
                         </div>
                         <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
                       </div>
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
-                        <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">
-                          {((estimatedTDEE ?? 0) - 500).toLocaleString()}
+
+                      {watchedMode === "maintenance" ? (
+                        <div data-testid="panel-suggested-goal">
+                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("modeMaintenance")}</div>
+                          <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">
+                            {estimatedTDEE?.toLocaleString()}
+                          </div>
+                          <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
                         </div>
-                        <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                      </div>
+                      ) : watchedMode === "weight_gain" ? (
+                        <div data-testid="panel-suggested-goal">
+                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("surplus300")}</div>
+                          <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">
+                            {((estimatedTDEE ?? 0) + 300).toLocaleString()}
+                          </div>
+                          <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                        </div>
+                      ) : (
+                        <div data-testid="panel-suggested-goal">
+                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
+                          <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">
+                            {((estimatedTDEE ?? 0) - 500).toLocaleString()}
+                          </div>
+                          <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* ③ Other timeframe propositions — third */}
-                  <div>
-                    <div className="text-[9px] uppercase tracking-widest opacity-50 mb-3">{t("moreOptions")}</div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {DURATION_MONTHS.map((m) => {
-                        const suggested = calcGoalForDuration(m);
-                        const isSelected = selectedDuration === m;
-                        return (
-                          <button
-                            key={m}
-                            type="button"
-                            data-testid={`button-duration-${m}`}
-                            onClick={() => handleDurationSelect(m)}
-                            className={`flex items-center justify-between px-5 py-4 border transition-colors text-left ${
-                              isSelected
-                                ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
-                                : "border-[#1C1714]/30 hover:border-[#1C1714] hover:bg-[#1C1714]/5"
-                            }`}
-                          >
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-sm uppercase tracking-widest font-bold">
-                                {m} {m === 1 ? t("month") : t("months")}
-                              </span>
-                              <span className={`text-[10px] ${isSelected ? "opacity-55" : "opacity-40"}`}>
-                                {t("goalBy")} {calcGoalDateFromMonths(m, lang)}
-                              </span>
-                            </div>
-                            {suggested !== null && (
-                              <div className="text-right">
-                                <span className={`text-lg tabular-nums font-medium ${isSelected ? "opacity-90" : "opacity-70"}`}>
-                                  {suggested.toLocaleString()}
+                  {/* ③ Duration picker — only for loss / gain */}
+                  {watchedMode !== "maintenance" && (
+                    <div>
+                      <div className="text-[9px] uppercase tracking-widest opacity-50 mb-3">{t("moreOptions")}</div>
+                      <div className="grid grid-cols-1 gap-2">
+                        {DURATION_MONTHS.map((m) => {
+                          const suggested = calcGoalForDuration(m);
+                          const isSelected = selectedDuration === m;
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              data-testid={`button-duration-${m}`}
+                              onClick={() => handleDurationSelect(m)}
+                              className={`flex items-center justify-between px-5 py-4 border transition-colors text-left ${
+                                isSelected
+                                  ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
+                                  : "border-[#1C1714]/30 hover:border-[#1C1714] hover:bg-[#1C1714]/5"
+                              }`}
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-sm uppercase tracking-widest font-bold">
+                                  {m} {m === 1 ? t("month") : t("months")}
                                 </span>
-                                <span className={`text-[10px] ml-1 ${isSelected ? "opacity-50" : "opacity-40"}`}>{t("kcalPerDay")}</span>
+                                <span className={`text-[10px] ${isSelected ? "opacity-55" : "opacity-40"}`}>
+                                  {t("goalBy")} {calcGoalDateFromMonths(m, lang)}
+                                </span>
                               </div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {selectedDuration !== null && (
-                      <div className="border border-[#1C1714]/20 px-4 py-3 text-[10px] opacity-60 mt-2">
-                        {t("targetSetTo")}{" "}
-                        <span className="opacity-100 font-bold text-[#1C1714]">
-                          {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} {t("kcalPerDay")}
-                        </span>
-                        {" "}{t("saveBelow")}
+                              {suggested !== null && (
+                                <div className="text-right">
+                                  <span className={`text-lg tabular-nums font-medium ${isSelected ? "opacity-90" : "opacity-70"}`}>
+                                    {suggested.toLocaleString()}
+                                  </span>
+                                  <span className={`text-[10px] ml-1 ${isSelected ? "opacity-50" : "opacity-40"}`}>{t("kcalPerDay")}</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
-                  </div>
+                      {selectedDuration !== null && (
+                        <div className="border border-[#1C1714]/20 px-4 py-3 text-[10px] opacity-60 mt-2">
+                          {t("targetSetTo")}{" "}
+                          <span className="opacity-100 font-bold text-[#1C1714]">
+                            {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} {t("kcalPerDay")}
+                          </span>
+                          {" "}{t("saveBelow")}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="border border-dashed border-[#1C1714]/20 px-5 py-6 text-center">

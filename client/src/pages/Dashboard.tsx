@@ -225,9 +225,11 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">{t("remaining")}</p>
+              <p className={`text-[10px] uppercase tracking-widest mb-1 ${netCalories > goal ? "text-red-500 opacity-80" : "opacity-60"}`}>
+                {netCalories > goal ? t("surplusLabel") : t("deficitLabel")}
+              </p>
               <div
-                className={`text-3xl tracking-tighter leading-none ${netCalories > goal ? "text-[#9B4A2E]" : ""}`}
+                className={`text-3xl tracking-tighter leading-none ${netCalories > goal ? "text-red-500" : ""}`}
                 data-testid="text-remaining-calories"
               >
                 {netCalories > goal ? `+${netCalories - goal}` : remaining}

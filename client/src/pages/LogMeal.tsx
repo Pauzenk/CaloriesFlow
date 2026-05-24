@@ -82,7 +82,7 @@ function InlineChat({
   caloriesLogged: number;
 }) {
   const { toast } = useToast();
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const remaining = Math.max(0, calorieGoal - caloriesLogged);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -167,11 +167,11 @@ function InlineChat({
       ]);
       if (data.activityEstimate) {
         logActivity.mutate(data.activityEstimate);
-        toast({ title: "Activity logged" });
+        toast({ title: t("activityLogged") });
       }
     },
     onError: (err: unknown) => {
-      toast({ title: "Chat failed", description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
+      toast({ title: t("chatFailed"), description: err instanceof Error ? err.message : "Something went wrong", variant: "destructive" });
     },
   });
 
@@ -226,11 +226,11 @@ function InlineChat({
       );
       setMessages((prev) => [...prev, {
         id: nextId(), role: "assistant",
-        text: `Added to log — ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}: ${estimate.name} (${estimate.calories} kcal)`,
+        text: `${t("addedToLog")} — ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}: ${estimate.name} (${estimate.calories} kcal)`,
         confirmed: true,
       }]);
     } catch {
-      toast({ title: "Failed to log meal", variant: "destructive" });
+      toast({ title: t("chatFailedToLog"), variant: "destructive" });
     } finally {
       setLoggingId(null);
     }
@@ -251,11 +251,11 @@ function InlineChat({
       );
       setMessages((prev) => [...prev, {
         id: nextId(), role: "assistant",
-        text: `Full day logged — ${estimates.length} meals added (${totalCal} kcal total)`,
+        text: `${t("fullDayLogged")} — ${estimates.length} ${lang === "ru" ? "блюд добавлено" : "meals added"} (${totalCal} kcal)`,
         confirmed: true,
       }]);
     } catch {
-      toast({ title: "Failed to log meals", variant: "destructive" });
+      toast({ title: t("failedToLogMeals"), variant: "destructive" });
     } finally {
       setLoggingAll(null);
     }
@@ -263,24 +263,37 @@ function InlineChat({
 
   const canSend = (input.trim().length > 0 || pendingPhoto !== null) && !chat.isPending;
 
-  const suggestions = [
-    ...(remaining > 0
-      ? [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack — ${remaining} kcal remaining`]
-      : [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack`]),
-    "Regenerate only the breakfast",
-    "Regenerate only the lunch",
-    "Regenerate only the dinner",
-    "Suggest a snack recipe",
-    "I had oatmeal with banana for breakfast",
-    "Chicken breast with rice and broccoli",
-    "Cardio 25 minutes",
-  ];
+  const suggestions = lang === "ru"
+    ? [
+        ...(remaining > 0
+          ? [`Составь план на день — завтрак, обед, ужин и перекус — ещё ${remaining} ккал`]
+          : [`Составь план на день — завтрак, обед, ужин и перекус`]),
+        "Предложи рецепт только для завтрака",
+        "Предложи рецепт только для обеда",
+        "Предложи рецепт только для ужина",
+        "Предложи рецепт для перекуса",
+        "Я ел овсянку с бананом на завтрак",
+        "Куриная грудка с рисом и брокколи",
+        "Кардио 25 минут",
+      ]
+    : [
+        ...(remaining > 0
+          ? [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack — ${remaining} kcal remaining`]
+          : [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack`]),
+        "Suggest only a breakfast recipe",
+        "Suggest only a lunch recipe",
+        "Suggest only a dinner recipe",
+        "Suggest a snack recipe",
+        "I had oatmeal with banana for breakfast",
+        "Chicken breast with rice and broccoli",
+        "Cardio 25 minutes",
+      ];
 
   if (!hasApiKey) {
     return (
       <div className="p-4 text-center border border-[#F2EDE7]/15">
-        <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/50 mb-2">AI Not Configured</div>
-        <p className="text-sm text-[#F2EDE7]/60">An OpenAI API key is required for AI chat.</p>
+        <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/50 mb-2">{t("aiNotConfigured")}</div>
+        <p className="text-sm text-[#F2EDE7]/60">{t("aiNotConfiguredDesc")}</p>
       </div>
     );
   }
@@ -292,9 +305,9 @@ function InlineChat({
       {messages.length === 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-xs mb-3 leading-relaxed text-[#F2EDE7]/60">
-            Tell me what you ate, describe an activity, or ask for meal ideas and recipes.
+            {t("chatEmptyHint")}
           </p>
-          <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/40 mb-1">Quick actions</div>
+          <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/40 mb-1">{t("quickActions")}</div>
           {suggestions.map((s) => (
             <button
               key={s}
@@ -396,25 +409,44 @@ function InlineChat({
                           disabled={loggingAll === msg.id}
                           className="w-full flex items-center justify-center gap-1.5 bg-[#F2EDE7] text-[#1C1714] py-2.5 text-[10px] uppercase tracking-widest hover:bg-[#F2EDE7]/90 transition-colors disabled:opacity-40"
                         >
-                          {loggingAll === msg.id ? "Logging…" : <><ArrowRight className="h-3 w-3" /> Add full day to log</>}
+                          {loggingAll === msg.id ? t("adding") : <><ArrowRight className="h-3 w-3" /> {t("addFullDayChat")}</>}
                         </button>
                         <div>
-                          <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/30 mb-1.5">Regenerate</div>
+                          <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/30 mb-1.5">{t("regenSection")}</div>
                           <div className="flex flex-wrap gap-1.5">
-                            {(["full plan", "breakfast", "lunch", "dinner", "snack"] as const).map((meal) => (
+                            {(lang === "ru"
+                              ? [
+                                  { key: "full plan", label: "весь план" },
+                                  { key: "breakfast", label: "завтрак" },
+                                  { key: "lunch", label: "обед" },
+                                  { key: "dinner", label: "ужин" },
+                                  { key: "snack", label: "перекус" },
+                                ]
+                              : [
+                                  { key: "full plan", label: "full plan" },
+                                  { key: "breakfast", label: "breakfast" },
+                                  { key: "lunch", label: "lunch" },
+                                  { key: "dinner", label: "dinner" },
+                                  { key: "snack", label: "snack" },
+                                ]
+                            ).map(({ key, label }) => (
                               <button
-                                key={meal}
+                                key={key}
                                 type="button"
-                                data-testid={`button-regen-${meal.replace(" ", "-")}-${msg.id}`}
+                                data-testid={`button-regen-${key.replace(" ", "-")}-${msg.id}`}
                                 onClick={() => {
-                                  setInput(meal === "full plan"
-                                    ? `Regenerate the full day plan totaling ${calorieGoal} kcal`
-                                    : `Regenerate only the ${meal}`);
+                                  setInput(lang === "ru"
+                                    ? key === "full plan"
+                                      ? `Перегенерируй весь план на ${calorieGoal} ккал`
+                                      : `Замени только ${label}`
+                                    : key === "full plan"
+                                      ? `Regenerate the full day plan totaling ${calorieGoal} kcal`
+                                      : `Regenerate only the ${key}`);
                                   textareaRef.current?.focus();
                                 }}
                                 className="border border-[#F2EDE7]/15 px-2.5 py-1 text-[9px] uppercase tracking-widest text-[#F2EDE7]/50 hover:border-[#F2EDE7]/40 hover:text-[#F2EDE7]/80 transition-colors"
                               >
-                                ↻ {meal}
+                                ↻ {label}
                               </button>
                             ))}
                           </div>
@@ -431,14 +463,14 @@ function InlineChat({
                     className="w-full border border-[#F2EDE7]/20 p-3"
                   >
                     <div className="text-[9px] uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 flex items-center gap-1.5 opacity-50">
-                      <Activity className="h-3 w-3" /> Activity Logged
+                      <Activity className="h-3 w-3" /> {t("activityLogged2")}
                     </div>
                     <div className="text-xs mb-2 text-[#F2EDE7]/85">{msg.activityEstimate.name}</div>
                     <div className="grid grid-cols-3 gap-1.5 text-center">
                       {[
-                        { label: "Type", value: msg.activityEstimate.activityType },
-                        { label: "Duration", value: `${msg.activityEstimate.durationMinutes}min` },
-                        { label: "Burned", value: `${msg.activityEstimate.caloriesBurned} kcal` },
+                        { label: t("typeLabel"), value: msg.activityEstimate.activityType },
+                        { label: t("durationLabel"), value: `${msg.activityEstimate.durationMinutes}min` },
+                        { label: t("burnedLabel"), value: `${msg.activityEstimate.caloriesBurned} kcal` },
                       ].map(({ label, value }) => (
                         <div key={label} className="border border-[#F2EDE7]/10 py-1.5">
                           <div className="text-[8px] uppercase tracking-widest opacity-50">{label}</div>
@@ -498,7 +530,7 @@ function InlineChat({
             rows={2}
             disabled={chat.isPending}
             data-testid="input-chat-message"
-            placeholder={messages.length === 0 ? "Describe what you ate, or ask for meal ideas…" : "Ask a follow-up…"}
+            placeholder={messages.length === 0 ? t("chatPlaceholderEmpty") : t("chatPlaceholderFollowUp")}
             className="flex-1 resize-none border border-[#F2EDE7]/20 bg-[#F2EDE7]/5 text-[#F2EDE7] px-3 py-2 text-xs font-['Space_Mono'] placeholder:opacity-40 focus:outline-none focus:border-[#F2EDE7]/50"
           />
           <div className="flex shrink-0 flex-col gap-1">
@@ -530,7 +562,7 @@ function InlineChat({
           </div>
         </div>
         <p className="mt-1.5 text-[9px] uppercase tracking-widest text-[#F2EDE7]/25">
-          Enter to send · Shift+Enter for new line
+          {t("sendHint")}
         </p>
       </div>
     </div>
@@ -557,9 +589,10 @@ function EstimateCard({
   showMealTypeOpen: boolean;
   onToggleMealType: () => void;
   mealTypeOverride?: string;
-  onMealTypeChange: (t: string) => void;
+  onMealTypeChange: (type: string) => void;
   onLog: (mealType: string) => void;
 }) {
+  const { t } = useLanguage();
   const mealType = mealTypeOverride || defaultMealType;
 
   return (
@@ -624,7 +657,7 @@ function EstimateCard({
         disabled={isLogging}
         className="w-full flex items-center justify-center gap-1.5 border border-[#F2EDE7]/40 text-[#F2EDE7] py-2 text-[10px] uppercase tracking-widest hover:bg-[#F2EDE7] hover:text-[#1C1714] transition-colors disabled:opacity-40"
       >
-        {isLogging ? "Saving…" : <><ArrowRight className="h-3 w-3" /> Log this meal</>}
+        {isLogging ? t("adding") : <><ArrowRight className="h-3 w-3" /> {t("logThisMeal")}</>}
       </button>
     </div>
   );
@@ -686,27 +719,27 @@ export default function LogMeal() {
               data-testid="button-back-to-dashboard"
               className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#F2EDE7]/50 hover:text-[#F2EDE7] transition-colors"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Back
+              <ArrowLeft className="h-3.5 w-3.5" /> {t("back")}
             </button>
           </Link>
           <div className="h-4 w-px bg-[#F2EDE7]/15" />
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 leading-none mb-0.5">AI Nutrition Chat</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 leading-none mb-0.5">{t("aiChatTitle")}</p>
             <p className="text-base tracking-tighter text-[#F2EDE7] leading-none">
-              {isToday ? "Today" : dateLabel}
+              {isToday ? t("today") : dateLabel}
             </p>
           </div>
         </div>
 
         {/* Day summary */}
         <div className="text-right">
-          <div className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/40 leading-none mb-0.5">Logged</div>
+          <div className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/40 leading-none mb-0.5">{t("loggedLabel")}</div>
           <div className="text-sm tabular-nums text-[#F2EDE7]">
             {caloriesLogged}
             <span className="opacity-40 text-xs ml-1">/ {calorieGoal}</span>
           </div>
           {remaining > 0 && (
-            <div className="text-[10px] text-[#F2EDE7]/40 tabular-nums">{remaining} remaining</div>
+            <div className="text-[10px] text-[#F2EDE7]/40 tabular-nums">{remaining} {t("remainingLabel")}</div>
           )}
         </div>
       </div>

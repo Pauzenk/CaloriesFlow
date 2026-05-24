@@ -390,8 +390,14 @@ When the user asks for meal ideas or a full-day plan:
 - If you need clarification, ask one focused question and omit JSON entirely.
 - Numbers: calories = integer, proteins/carbs/fats = 1 decimal place, caloriesBurned = integer.
 
-━━━ RESPONSE FORMAT ━━━
-End your reply with exactly ONE JSON block (no text after it). Include only the keys that apply:
+━━━ MANDATORY JSON OUTPUT ━━━
+YOU MUST ALWAYS end your response with exactly ONE JSON block. No exceptions.
+- TYPE A/C (food): use "estimate" key
+- TYPE B (activity): use "activityEstimate" key
+- TYPE D (recipes/meal ideas/plans/suggestions): ALWAYS use "estimates" array — NEVER skip this
+- The JSON block MUST be the last thing in your response
+- NEVER end with plain text after the JSON block
+- If you are suggesting any meals, recipes, or a plan, the "estimates" array is REQUIRED
 
 For single food:
 \`\`\`json
@@ -408,7 +414,7 @@ For both food and activity:
 {"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>},"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other"}}
 \`\`\`
 
-For multiple recipe suggestions (TYPE D):
+For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
 \`\`\`json
 {"estimates":[{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"breakfast|lunch|dinner|snack"},{"name":"...","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"..."}]}
 \`\`\``,
@@ -458,7 +464,7 @@ For multiple recipe suggestions (TYPE D):
           mealType: z.string().optional(),
         });
 
-        const jsonBlockMatch = rawReply.match(/```json\s*(\{[\s\S]*?\})\s*```\s*$/);
+        const jsonBlockMatch = rawReply.match(/```json\s*(\{[\s\S]*?\})\s*```/);
         let estimate: z.infer<typeof photoAnalysisSchema> | undefined;
         let estimates: z.infer<typeof recipeEstimateSchema>[] | undefined;
         let activityEstimate: z.infer<typeof activityEstimateSchema> | undefined;
@@ -507,6 +513,7 @@ For multiple recipe suggestions (TYPE D):
     const bodySchema = z.object({
       calorieGoal: z.number().int().min(500).max(10000),
       language: z.string().max(10).optional(),
+      recentMeals: z.array(z.string().max(200)).max(40).optional(),
       regenerateMeal: z.enum(["breakfast", "lunch", "dinner", "snack"]).optional(),
       currentPlan: z.array(z.object({
         mealType: z.string(),
@@ -523,7 +530,10 @@ For multiple recipe suggestions (TYPE D):
     const parsed = bodySchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid request" });
 
-    const { calorieGoal, regenerateMeal, currentPlan, language: recipeLang } = parsed.data;
+    const { calorieGoal, regenerateMeal, currentPlan, language: recipeLang, recentMeals } = parsed.data;
+    const avoidList = recentMeals && recentMeals.length > 0
+      ? `\n\nDO NOT use any of these recently shown meals (must be completely new dishes): ${recentMeals.slice(-20).join(", ")}`
+      : "";
     const recipeLangInstruction = recipeLang === "ru"
       ? "\nIMPORTANT: Write all meal names, ingredient names, and instruction steps in Russian."
       : "";
@@ -542,7 +552,7 @@ For multiple recipe suggestions (TYPE D):
       prompt = `I have this daily meal plan (JSON):
 ${JSON.stringify(currentPlan, null, 2)}
 
-Regenerate ONLY the "${regenerateMeal}" entry. Replace it with a completely different recipe (${cuisine} cuisine style) around ${targetCal} kcal. Keep all other meals exactly as-is (same name, calories, ingredients, instructions).${recipeLangInstruction}
+Regenerate ONLY the "${regenerateMeal}" entry. Replace it with a completely different recipe (${cuisine} cuisine style) around ${targetCal} kcal. Keep all other meals exactly as-is (same name, calories, ingredients, instructions).${avoidList}${recipeLangInstruction}
 
 Return the complete updated plan as a JSON object with this structure:
 {"meals":[{"mealType":"breakfast|lunch|dinner|snack","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...",...]},...]}`; 
@@ -555,7 +565,7 @@ Rules:
 - Each meal: 3–6 ingredients with specific quantities (e.g. "80g oats", "1 medium egg")
 - Each meal: 3–5 clear numbered instruction steps
 - calories = integer; proteins, carbs, fats = one decimal place
-- Varied ingredients; no repeated main protein source${recipeLangInstruction}
+- Varied ingredients; no repeated main protein source${avoidList}${recipeLangInstruction}
 
 Return ONLY a JSON object with this exact structure:
 {"meals":[{"mealType":"breakfast","name":"...","calories":int,"proteins":float,"carbs":float,"fats":float,"ingredients":["quantity ingredient",...],"instructions":["Step 1: ...",...]},{"mealType":"lunch",...},{"mealType":"dinner",...},{"mealType":"snack",...}]}`;
@@ -564,8 +574,8 @@ Return ONLY a JSON object with this exact structure:
     try {
       const openai = new OpenAI({ apiKey } as ClientOptions);
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        max_tokens: 1200,
+        model: "gpt-4o-mini",
+        max_tokens: 2500,
         response_format: { type: "json_object" },
         messages: [{ role: "user", content: prompt }],
       });

@@ -22,6 +22,17 @@ type RecipeMeal = {
 
 const MEAL_ORDER: RecipeMeal["mealType"][] = ["breakfast", "lunch", "dinner", "snack"];
 
+const RECENT_MEALS_KEY = "cf-recent-recipe-meals";
+const MAX_RECENT = 28;
+
+function loadRecentMeals(): string[] {
+  try { return JSON.parse(sessionStorage.getItem(RECENT_MEALS_KEY) ?? "[]"); } catch { return []; }
+}
+
+function saveRecentMeals(names: string[]) {
+  try { sessionStorage.setItem(RECENT_MEALS_KEY, JSON.stringify(names)); } catch {}
+}
+
 function MealSkeleton() {
   return (
     <div className="border border-[#1C1714]/15 p-5 animate-pulse">
@@ -58,7 +69,6 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
         <div className="h-4 w-px bg-[#1C1714]/15" />
         <span className="text-[10px] uppercase tracking-widest opacity-40">{mealLabel}</span>
       </div>
-
       <div className="flex-1 overflow-y-auto">
         {meal.imageUrl && (
           <img
@@ -66,6 +76,7 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
             alt={meal.name}
             data-testid="img-recipe-detail"
             className="w-full h-52 object-cover border-b border-[#1C1714]/15"
+            loading="lazy"
           />
         )}
         <div className="px-5 py-7 max-w-2xl w-full mx-auto">
@@ -78,7 +89,6 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
             <span><span className="opacity-50">CRB</span> <span className="tabular-nums">{meal.carbs}g</span></span>
             <span><span className="opacity-50">FAT</span> <span className="tabular-nums">{meal.fats}g</span></span>
           </div>
-
           <section className="mb-8">
             <h2 className="text-[10px] uppercase tracking-widest opacity-50 mb-3">{ingredientsLabel}</h2>
             <ul className="space-y-2">
@@ -90,7 +100,6 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
               ))}
             </ul>
           </section>
-
           <section>
             <h2 className="text-[10px] uppercase tracking-widest opacity-50 mb-3">{preparationLabel}</h2>
             <ol className="space-y-4">
@@ -111,29 +120,15 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
 }
 
 function MealCard({
-  meal,
-  mealLabel,
-  isRegenerating,
-  isLogging,
-  onRegenerate,
-  onLog,
-  onDetail,
-  regenLabel,
-  regenningLabel,
-  addToLogLabel,
-  addingLabel,
+  meal, mealLabel, isRegenerating, isLogging,
+  onRegenerate, onLog, onDetail,
+  regenLabel, regenningLabel, addToLogLabel, addingLabel,
 }: {
-  meal: RecipeMeal;
-  mealLabel: string;
-  isRegenerating: boolean;
-  isLogging: boolean;
-  onRegenerate: () => void;
-  onLog: () => void;
-  onDetail: () => void;
-  regenLabel: string;
-  regenningLabel: string;
-  addToLogLabel: string;
-  addingLabel: string;
+  meal: RecipeMeal; mealLabel: string;
+  isRegenerating: boolean; isLogging: boolean;
+  onRegenerate: () => void; onLog: () => void; onDetail: () => void;
+  regenLabel: string; regenningLabel: string;
+  addToLogLabel: string; addingLabel: string;
 }) {
   const BTN = "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] uppercase tracking-widest border transition-colors disabled:opacity-40";
   return (
@@ -142,12 +137,8 @@ function MealCard({
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <div className="text-[9px] uppercase tracking-widest opacity-40 mb-1">{mealLabel}</div>
-            <button
-              type="button"
-              onClick={onDetail}
-              data-testid={`button-recipe-detail-${meal.mealType}`}
-              className="group flex items-center gap-1.5 w-full text-left hover:opacity-70 transition-opacity"
-            >
+            <button type="button" onClick={onDetail} data-testid={`button-recipe-detail-${meal.mealType}`}
+              className="group flex items-center gap-1.5 w-full text-left hover:opacity-70 transition-opacity">
               <span className="text-base tracking-tight leading-snug">{meal.name}</span>
               <ChevronRight className="h-3.5 w-3.5 opacity-30 group-hover:opacity-70 shrink-0 transition-opacity" />
             </button>
@@ -158,39 +149,29 @@ function MealCard({
               <span>F {meal.fats}g</span>
             </div>
           </div>
-          <div className="h-[72px] w-[72px] shrink-0 border border-[#1C1714]/10 overflow-hidden">
+          <div className="h-[72px] w-[72px] shrink-0 border border-[#1C1714]/10 overflow-hidden bg-[#1C1714]/5">
             {meal.imageUrl ? (
-              <img
-                src={meal.imageUrl}
-                alt={meal.name}
+              <img src={meal.imageUrl} alt={meal.name}
                 data-testid={`img-recipe-${meal.mealType}`}
                 className="h-full w-full object-cover"
+                loading="lazy"
               />
             ) : (
-              <div className="h-full w-full bg-[#1C1714]/5 animate-pulse" />
+              <div className="h-full w-full animate-pulse bg-[#1C1714]/8" />
             )}
           </div>
         </div>
       </div>
-
       <div className="flex border-t border-[#1C1714]/10">
-        <button
-          type="button"
-          onClick={onRegenerate}
-          disabled={isRegenerating}
+        <button type="button" onClick={onRegenerate} disabled={isRegenerating}
           data-testid={`button-regen-${meal.mealType}`}
-          className={`${BTN} border-r border-[#1C1714]/10 border-l-0 border-b-0 border-t-0 text-[#1C1714]/60 hover:text-[#1C1714] hover:bg-[#1C1714]/5`}
-        >
+          className={`${BTN} border-r border-[#1C1714]/10 border-l-0 border-b-0 border-t-0 text-[#1C1714]/60 hover:text-[#1C1714] hover:bg-[#1C1714]/5`}>
           <RefreshCw className={`h-3 w-3 ${isRegenerating ? "animate-spin" : ""}`} />
           {isRegenerating ? regenningLabel : regenLabel}
         </button>
-        <button
-          type="button"
-          onClick={onLog}
-          disabled={isLogging}
+        <button type="button" onClick={onLog} disabled={isLogging}
           data-testid={`button-log-${meal.mealType}`}
-          className={`${BTN} border-l border-[#1C1714]/10 border-r-0 border-b-0 border-t-0 bg-[#1C1714]/3 text-[#1C1714]/70 hover:bg-[#1C1714] hover:text-[#F2EDE7]`}
-        >
+          className={`${BTN} border-l border-[#1C1714]/10 border-r-0 border-b-0 border-t-0 bg-[#1C1714]/3 text-[#1C1714]/70 hover:bg-[#1C1714] hover:text-[#F2EDE7]`}>
           <Plus className="h-3 w-3" />
           {isLogging ? addingLabel : addToLogLabel}
         </button>
@@ -219,6 +200,7 @@ export default function RecipesPage() {
   const [detailMealType, setDetailMealType] = useState<string | null>(null);
   const detailMeal = detailMealType ? (meals?.find((m) => m.mealType === detailMealType) ?? null) : null;
 
+  const recentMealsRef = useRef<string[]>(loadRecentMeals());
   const hasFetched = useRef(false);
 
   const MEAL_LABELS: Record<string, string> = {
@@ -227,6 +209,13 @@ export default function RecipesPage() {
     dinner: t("dinner"),
     snack: t("snack"),
   };
+
+  function trackRecentMeals(newMeals: RecipeMeal[]) {
+    const names = newMeals.map((m) => m.name);
+    const updated = [...recentMealsRef.current, ...names].slice(-MAX_RECENT);
+    recentMealsRef.current = updated;
+    saveRecentMeals(updated);
+  }
 
   function fetchImages(newMeals: RecipeMeal[]) {
     newMeals.forEach(async (meal) => {
@@ -238,9 +227,7 @@ export default function RecipesPage() {
             prev?.map((m) => m.mealType === meal.mealType ? { ...m, imageUrl: data.imageUrl } : m) ?? null
           );
         }
-      } catch {
-        // silently fail
-      }
+      } catch { /* silently fail */ }
     });
   }
 
@@ -248,16 +235,23 @@ export default function RecipesPage() {
     const targetGoal = goal ?? calorieGoal;
     setIsGenerating(true);
     try {
-      const res = await apiRequest("POST", "/api/recipes/generate", { calorieGoal: targetGoal, language: lang });
+      const res = await apiRequest("POST", "/api/recipes/generate", {
+        calorieGoal: targetGoal,
+        language: lang,
+        recentMeals: recentMealsRef.current.slice(-MAX_RECENT),
+      });
       const data = (await res.json()) as { meals: RecipeMeal[] };
-      if (!data.meals || !Array.isArray(data.meals) || data.meals.length === 0) {
-        throw new Error("Empty meal plan returned");
-      }
+      if (!data.meals || !Array.isArray(data.meals) || data.meals.length === 0) throw new Error("Empty meal plan");
       setMeals(data.meals);
+      trackRecentMeals(data.meals);
       fetchImages(data.meals);
     } catch (err) {
-      console.error("[Recipes] generateFullDay failed:", err instanceof Error ? err.message : String(err));
-      toast({ title: lang === "ru" ? "Не удалось создать план" : "Failed to generate plan", description: lang === "ru" ? "Попробуйте ещё раз." : "Please try again.", variant: "destructive" });
+      console.error("[Recipes] generateFullDay:", err instanceof Error ? err.message : String(err));
+      toast({
+        title: lang === "ru" ? "Не удалось создать план" : "Failed to generate plan",
+        description: lang === "ru" ? "Попробуйте ещё раз." : "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -272,14 +266,18 @@ export default function RecipesPage() {
         regenerateMeal: mealType,
         currentPlan: meals,
         language: lang,
+        recentMeals: recentMealsRef.current.slice(-MAX_RECENT),
       });
       const data = (await res.json()) as { meals: RecipeMeal[] };
       if (!data.meals || !Array.isArray(data.meals)) throw new Error("Invalid response");
       setMeals(data.meals);
       const regenerated = data.meals.find((m) => m.mealType === mealType);
-      if (regenerated) fetchImages([regenerated]);
+      if (regenerated) {
+        trackRecentMeals([regenerated]);
+        fetchImages([regenerated]);
+      }
     } catch (err) {
-      console.error("[Recipes] regenerateSingleMeal failed:", err instanceof Error ? err.message : String(err));
+      console.error("[Recipes] regenerateSingleMeal:", err instanceof Error ? err.message : String(err));
       toast({ title: lang === "ru" ? "Не удалось заменить блюдо" : "Failed to regenerate", variant: "destructive" });
     } finally {
       setRegeneratingMeal(null);
@@ -299,9 +297,11 @@ export default function RecipesPage() {
         fats: meal.fats,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
-      toast({ title: `${MEAL_LABELS[meal.mealType]} ${lang === "ru" ? "добавлен в журнал" : "added to log"}`, description: `${meal.name} · ${meal.calories} kcal` });
-    } catch (err) {
-      console.error("[Recipes] logSingleMeal failed:", err);
+      toast({
+        title: `${MEAL_LABELS[meal.mealType]} ${lang === "ru" ? "добавлен в журнал" : "added to log"}`,
+        description: `${meal.name} · ${meal.calories} kcal`,
+      });
+    } catch {
       toast({ title: lang === "ru" ? "Не удалось добавить" : "Failed to add to log", variant: "destructive" });
     } finally {
       setLoggingMeal(null);
@@ -314,20 +314,18 @@ export default function RecipesPage() {
     try {
       for (const meal of meals) {
         await apiRequest("POST", "/api/meals", {
-          date: logDate,
-          mealType: meal.mealType,
-          name: meal.name,
-          calories: meal.calories,
-          proteins: meal.proteins,
-          carbs: meal.carbs,
-          fats: meal.fats,
+          date: logDate, mealType: meal.mealType, name: meal.name,
+          calories: meal.calories, proteins: meal.proteins,
+          carbs: meal.carbs, fats: meal.fats,
         });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
       const total = meals.reduce((s, m) => s + m.calories, 0);
-      toast({ title: lang === "ru" ? "Весь день добавлен в журнал" : "Full day added to log", description: `${meals.length} ${lang === "ru" ? "блюд" : "meals"} · ${total} kcal` });
-    } catch (err) {
-      console.error("[Recipes] logAllMeals failed:", err);
+      toast({
+        title: lang === "ru" ? "Весь день добавлен в журнал" : "Full day added to log",
+        description: `${meals.length} ${lang === "ru" ? "блюд" : "meals"} · ${total} kcal`,
+      });
+    } catch {
       toast({ title: lang === "ru" ? "Ошибка добавления" : "Failed to log all meals", variant: "destructive" });
     } finally {
       setLoggingAll(false);
@@ -335,8 +333,7 @@ export default function RecipesPage() {
   }
 
   useEffect(() => {
-    if (!settingsLoaded) return;
-    if (hasFetched.current) return;
+    if (!settingsLoaded || hasFetched.current) return;
     hasFetched.current = true;
     generateFullDay(calorieGoal);
   }, [settingsLoaded]);
@@ -361,25 +358,17 @@ export default function RecipesPage() {
       <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[#1C1714]/15 bg-[#F2EDE7] shrink-0">
         <div className="flex items-center gap-3">
           <Link href="/">
-            <button
-              type="button"
-              data-testid="button-recipes-back"
-              className="flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
-            >
+            <button type="button" data-testid="button-recipes-back"
+              className="flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">
               <ArrowLeft className="h-3.5 w-3.5" /> {t("back")}
             </button>
           </Link>
           <div className="h-4 w-px bg-[#1C1714]/15" />
           <span className="text-sm tracking-tight">{t("dailyRecipePlan")}</span>
         </div>
-
-        <button
-          type="button"
-          onClick={() => generateFullDay()}
-          disabled={isGenerating}
+        <button type="button" onClick={() => generateFullDay()} disabled={isGenerating}
           data-testid="button-regenerate-all"
-          className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40"
-        >
+          className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40">
           <RefreshCw className={`h-3 w-3 ${isGenerating ? "animate-spin" : ""}`} />
           {isGenerating ? t("generating") : t("newPlan")}
         </button>
@@ -423,21 +412,15 @@ export default function RecipesPage() {
         </div>
 
         {meals && !isGenerating && (
-          <button
-            type="button"
-            onClick={logAllMeals}
-            disabled={loggingAll}
+          <button type="button" onClick={logAllMeals} disabled={loggingAll}
             data-testid="button-log-full-day"
-            className="w-full mt-5 bg-[#1C1714] text-[#F2EDE7] py-3.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-          >
+            className="w-full mt-5 bg-[#1C1714] text-[#F2EDE7] py-3.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
             <Plus className="h-3.5 w-3.5" />
             {loggingAll ? t("addingFullDay") : t("addFullDayToLog")}
           </button>
         )}
 
-        <p className="text-center text-[9px] uppercase tracking-widest opacity-25 mt-6">
-          {t("tapMealHint")}
-        </p>
+        <p className="text-center text-[9px] uppercase tracking-widest opacity-25 mt-6">{t("tapMealHint")}</p>
       </div>
     </div>
   );

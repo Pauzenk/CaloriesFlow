@@ -7,7 +7,9 @@ import {
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { MEAL_TYPES, type Meal } from "@shared/schema";
+import { MEAL_TYPES, type Meal, type Settings } from "@shared/schema";
+import { AppShell } from "@/components/AppShell";
+import { SetupPrompt } from "@/components/SetupPrompt";
 import { mealsForDate, todayStr } from "@/lib/calorieflow";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -759,9 +761,10 @@ export default function LogMeal() {
   const chatStorageKey = `calorieflow-chat-${logDate}`;
 
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
-  const { data: settingsData } = useQuery<{ dailyCalorieGoal: number }>({ queryKey: ["/api/settings"] });
+  const { data: settingsData, isSuccess: settingsLoaded } = useQuery<Settings>({ queryKey: ["/api/settings"] });
 
   const calorieGoal = settingsData?.dailyCalorieGoal || 2000;
+  const hasProfile = !!(settingsData?.heightCm && settingsData?.ageYears && settingsData?.startingWeightKg);
   const dayMeals = mealsForDate(meals, logDate);
   const caloriesLogged = dayMeals.reduce((s, m) => s + m.calories, 0);
   const remaining = Math.max(0, calorieGoal - caloriesLogged);
@@ -789,6 +792,14 @@ export default function LogMeal() {
 
   async function onLogMeal(estimate: NutritionEstimate, mealType: string): Promise<void> {
     await logMealDirect.mutateAsync({ estimate, mealType });
+  }
+
+  if (settingsLoaded && !hasProfile) {
+    return (
+      <AppShell title={t("aiChatTitle")}>
+        <SetupPrompt message={t("setupToUseFeature")} />
+      </AppShell>
+    );
   }
 
   return (

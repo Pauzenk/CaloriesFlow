@@ -196,6 +196,10 @@ export const translations = {
     estGained: "Est. Gained",
     estStable: "Est. Stable",
     goalOptional: "Target weight (optional)",
+    setupRequired: "Setup required",
+    setupToUseFeature: "Fill in your parameters to access this feature.",
+    fillInParameters: "Fill in parameters",
+    setupForPersonalized: "Fill in your profile to unlock personalized calorie goals, projections, and recipes.",
   },
   ru: {
     dashboard: "Обзор",
@@ -392,6 +396,10 @@ export const translations = {
     estGained: "Расч. набор",
     estStable: "Стабильность",
     goalOptional: "Целевой вес (необязательно)",
+    setupRequired: "Требуется настройка",
+    setupToUseFeature: "Заполните параметры, чтобы получить доступ к этой функции.",
+    fillInParameters: "Заполнить параметры",
+    setupForPersonalized: "Заполните профиль, чтобы разблокировать персональные расчёты калорий, прогноз и рецепты.",
   },
 } as const;
 

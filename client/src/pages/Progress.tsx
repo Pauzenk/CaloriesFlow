@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { AppShell } from "@/components/AppShell";
+import { SetupPrompt } from "@/components/SetupPrompt";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -642,9 +643,7 @@ export default function ProgressPage() {
                 })()}
               </>
             ) : (
-              <div className="flex items-center justify-center h-40 border border-dashed border-[#1C1714]/20 text-xs opacity-40">
-                {t("fillMetricsForProjection")}
-              </div>
+              <SetupPrompt message={t("setupToUseFeature")} />
             )}
           </div>
         </div>

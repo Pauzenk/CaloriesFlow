@@ -581,10 +581,10 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
 
     const cuisine = randomCuisine();
 
-    if (regenerateMeal && currentPlan && currentPlan.length > 0) {
+    if (regenerateMeal) {
       const targets: Record<string, number> = { breakfast: bk, lunch: ln, dinner: dn, snack: sn };
       const targetCal = targets[regenerateMeal] ?? bk;
-      const otherMealNames = currentPlan.filter((m) => m.mealType !== regenerateMeal).map((m) => m.name).join(", ");
+      const otherMealNames = (currentPlan ?? []).filter((m) => m.mealType !== regenerateMeal).map((m) => m.name).join(", ");
       prompt = `Generate a single "${regenerateMeal}" recipe (${cuisine} cuisine style) around ${targetCal} kcal. It must be completely different from these meals already in the day's plan: ${otherMealNames || "none"}.${avoidList}${recipeLangInstruction}
 
 Return ONLY a JSON object with this structure (one meal, not an array):
@@ -619,7 +619,7 @@ Return ONLY a JSON object with this exact structure:
       const mealSchema = z.object({
         mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]),
         name: z.string().min(1).max(200),
-        calories: z.number().int().min(0).max(3000),
+        calories: z.number().min(0).max(3000).transform(Math.round),
         proteins: z.number().min(0).max(300),
         carbs: z.number().min(0).max(500),
         fats: z.number().min(0).max(200),
@@ -627,15 +627,20 @@ Return ONLY a JSON object with this exact structure:
         instructions: z.array(z.string().max(500)).min(1).max(15),
       });
 
-      // Single-meal regen path: AI returns { meal: {...} }
-      if (regenerateMeal && result.meal) {
-        const single = mealSchema.safeParse(result.meal);
+      // Single-meal regen: handle both { meal: {...} } and { meals: [...] } formats
+      if (regenerateMeal) {
+        const rawMeal = result.meal ??
+          (Array.isArray(result.meals)
+            ? (result.meals as unknown[]).find(
+                (m) => typeof m === "object" && m !== null &&
+                  (m as Record<string, unknown>).mealType === regenerateMeal
+              )
+            : undefined);
+        const single = mealSchema.safeParse(rawMeal);
         if (!single.success) return res.status(502).json({ message: "AI returned invalid meal" });
-        // Merge into currentPlan and return full plan so client stays in sync
         const merged = (currentPlan ?? []).map((m) =>
           m.mealType === regenerateMeal ? single.data : m
         );
-        // If somehow not in plan yet, append
         if (!merged.find((m) => m.mealType === regenerateMeal)) merged.push(single.data);
         return res.json({ meals: merged });
       }

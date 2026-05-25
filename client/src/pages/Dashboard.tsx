@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { SetupPrompt } from "@/components/SetupPrompt";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Meal, Settings } from "@shared/schema";
 import { MEAL_TYPES } from "@shared/schema";
@@ -153,9 +154,27 @@ export default function Dashboard() {
 
   const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714]";
 
+  const profileIncomplete = !!settings && (!settings.heightCm || !settings.ageYears || !settings.startingWeightKg);
+
   return (
     <AppShell title={t("overview")}>
       <div className="w-full font-['Space_Mono'] text-[#1C1714]" data-testid="card-dashboard-feed">
+
+        {/* ── Setup banner (non-blocking) ── */}
+        {profileIncomplete && (
+          <div className="mb-6 flex items-center justify-between gap-4 border border-[#1C1714]/20 px-4 py-3 text-xs">
+            <span className="opacity-60">{t("setupForPersonalized")}</span>
+            <Link href="/settings" className="shrink-0">
+              <button
+                type="button"
+                data-testid="button-dashboard-setup"
+                className="border border-[#1C1714]/40 px-3 py-1.5 uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors whitespace-nowrap"
+              >
+                {t("fillInParameters")}
+              </button>
+            </Link>
+          </div>
+        )}
 
         {/* ── Day navigator ── */}
         <div className="flex items-center justify-between mb-6 border-b border-[#1C1714]/20 pb-4">

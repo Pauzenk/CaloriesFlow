@@ -8,6 +8,7 @@ import { todayStr } from "@/lib/calorieflow";
 import type { Settings } from "@shared/schema";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AppShell } from "@/components/AppShell";
+import { SetupPrompt } from "@/components/SetupPrompt";
 
 type RecipeMeal = {
   mealType: "breakfast" | "lunch" | "dinner" | "snack";
@@ -234,6 +235,7 @@ export default function RecipesPage() {
     staleTime: 5 * 60 * 1000,
   });
   const calorieGoal = settings?.dailyCalorieGoal ?? 2000;
+  const hasProfile = !!(settings?.heightCm && settings?.ageYears && settings?.startingWeightKg);
 
   const [meals, setMeals] = useState<RecipeMeal[] | null>(() => loadSavedPlan());
   const [isGenerating, setIsGenerating] = useState(false);
@@ -387,13 +389,14 @@ export default function RecipesPage() {
   useEffect(() => {
     if (!settingsLoaded || hasFetched.current) return;
     hasFetched.current = true;
+    if (!hasProfile) return;
     if (meals && meals.length > 0) {
       fetchImages(meals);
     } else {
       generateFullDay(calorieGoal);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsLoaded]);
+  }, [settingsLoaded, hasProfile]);
 
   const totalPlanned = meals?.reduce((s, m) => s + m.calories, 0) ?? 0;
 
@@ -412,69 +415,79 @@ export default function RecipesPage() {
       )}
 
       <div className="max-w-2xl w-full mx-auto">
-        {/* Action bar */}
-        <div className="flex items-center justify-between mb-5">
-          {meals && !isGenerating ? (
-            <div className="text-[10px] tabular-nums opacity-50">
-              {totalPlanned} <span className="opacity-60">/ {calorieGoal} kcal</span>
+        {!settingsLoaded ? (
+          <div className="space-y-3">
+            {MEAL_ORDER.map((tp) => <MealSkeleton key={tp} />)}
+          </div>
+        ) : !hasProfile ? (
+          <SetupPrompt message={t("setupToUseFeature")} />
+        ) : (
+          <>
+            {/* Action bar */}
+            <div className="flex items-center justify-between mb-5">
+              {meals && !isGenerating ? (
+                <div className="text-[10px] tabular-nums opacity-50">
+                  {totalPlanned} <span className="opacity-60">/ {calorieGoal} kcal</span>
+                </div>
+              ) : (
+                <div />
+              )}
+              <button
+                type="button"
+                onClick={() => generateFullDay()}
+                disabled={isGenerating}
+                data-testid="button-regenerate-all"
+                className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40"
+              >
+                <RefreshCw className={`h-3 w-3 ${isGenerating ? "animate-spin" : ""}`} />
+                {isGenerating ? t("generating") : t("newPlan")}
+              </button>
             </div>
-          ) : (
-            <div />
-          )}
-          <button
-            type="button"
-            onClick={() => generateFullDay()}
-            disabled={isGenerating}
-            data-testid="button-regenerate-all"
-            className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40"
-          >
-            <RefreshCw className={`h-3 w-3 ${isGenerating ? "animate-spin" : ""}`} />
-            {isGenerating ? t("generating") : t("newPlan")}
-          </button>
-        </div>
 
-        {/* Meal cards */}
-        <div className="space-y-3">
-          {isGenerating
-            ? MEAL_ORDER.map((tp) => <MealSkeleton key={tp} />)
-            : meals
-              ? MEAL_ORDER.map((type) => {
-                  const meal = meals.find((m) => m.mealType === type);
-                  if (!meal) return null;
-                  return (
-                    <MealCard
-                      key={type}
-                      meal={meal}
-                      mealLabel={MEAL_LABELS[type] ?? type}
-                      isRegenerating={regeneratingMeal === type}
-                      isLogging={loggingMeal === type}
-                      onRegenerate={() => regenerateSingleMeal(type)}
-                      onLog={() => logSingleMeal(meal)}
-                      onDetail={() => setDetailMealType(meal.mealType)}
-                      regenLabel={t("regenerate")}
-                      regenningLabel={t("regenerating")}
-                      addToLogLabel={t("addToLog")}
-                      addingLabel={t("adding")}
-                    />
-                  );
-                })
-              : null}
-        </div>
+            {/* Meal cards */}
+            <div className="space-y-3">
+              {isGenerating
+                ? MEAL_ORDER.map((tp) => <MealSkeleton key={tp} />)
+                : meals
+                  ? MEAL_ORDER.map((type) => {
+                      const meal = meals.find((m) => m.mealType === type);
+                      if (!meal) return null;
+                      return (
+                        <MealCard
+                          key={type}
+                          meal={meal}
+                          mealLabel={MEAL_LABELS[type] ?? type}
+                          isRegenerating={regeneratingMeal === type}
+                          isLogging={loggingMeal === type}
+                          onRegenerate={() => regenerateSingleMeal(type)}
+                          onLog={() => logSingleMeal(meal)}
+                          onDetail={() => setDetailMealType(meal.mealType)}
+                          regenLabel={t("regenerate")}
+                          regenningLabel={t("regenerating")}
+                          addToLogLabel={t("addToLog")}
+                          addingLabel={t("adding")}
+                        />
+                      );
+                    })
+                  : null}
+            </div>
 
-        {meals && !isGenerating && (
-          <button
-            type="button"
-            onClick={logAllMeals}
-            disabled={loggingAll}
-            data-testid="button-log-full-day"
-            className="w-full mt-5 bg-[#1C1714] text-[#F2EDE7] py-3.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {loggingAll ? t("addingFullDay") : t("addFullDayToLog")}
-          </button>
+            {meals && !isGenerating && (
+              <button
+                type="button"
+                onClick={logAllMeals}
+                disabled={loggingAll}
+                data-testid="button-log-full-day"
+                className="w-full mt-5 bg-[#1C1714] text-[#F2EDE7] py-3.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {loggingAll ? t("addingFullDay") : t("addFullDayToLog")}
+              </button>
+            )}
+
+            <p className="text-center text-[9px] uppercase tracking-widest opacity-25 mt-6">{t("tapMealHint")}</p>
+          </>
         )}
-
-        <p className="text-center text-[9px] uppercase tracking-widest opacity-25 mt-6">{t("tapMealHint")}</p>
       </div>
     </AppShell>
   );

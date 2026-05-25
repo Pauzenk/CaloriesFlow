@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, RefreshCw, Plus, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { todayStr } from "@/lib/calorieflow";
 import type { Settings } from "@shared/schema";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { AppShell } from "@/components/AppShell";
 
 type RecipeMeal = {
   mealType: "breakfast" | "lunch" | "dinner" | "snack";
@@ -24,12 +25,14 @@ const MEAL_ORDER: RecipeMeal["mealType"][] = ["breakfast", "lunch", "dinner", "s
 
 const RECENT_MEALS_KEY = "cf-recent-recipe-meals";
 const SAVED_PLAN_KEY = "cf-recipe-plan";
+const IMAGE_SESSION_KEY = "cf-recipe-images";
 const MAX_RECENT = 28;
+
+// ── Persistence helpers ────────────────────────────────────────────────────
 
 function loadRecentMeals(): string[] {
   try { return JSON.parse(sessionStorage.getItem(RECENT_MEALS_KEY) ?? "[]"); } catch { return []; }
 }
-
 function saveRecentMeals(names: string[]) {
   try { sessionStorage.setItem(RECENT_MEALS_KEY, JSON.stringify(names)); } catch {}
 }
@@ -39,18 +42,33 @@ function loadSavedPlan(): RecipeMeal[] | null {
     const raw = localStorage.getItem(SAVED_PLAN_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as RecipeMeal[];
-    if (!Array.isArray(parsed) || parsed.length === 0) return null;
-    return parsed;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
   } catch { return null; }
 }
-
 function savePlan(meals: RecipeMeal[]) {
   try {
-    // Don't persist base64 image data — re-fetched on load
+    // Strip base64 images — they are cached separately in sessionStorage
     const slim = meals.map(({ imageUrl: _img, ...m }) => m);
     localStorage.setItem(SAVED_PLAN_KEY, JSON.stringify(slim));
   } catch {}
 }
+
+// ── Image session cache (avoids re-fetching images on same-session reload) ─
+
+function loadImageCache(): Record<string, string> {
+  try { return JSON.parse(sessionStorage.getItem(IMAGE_SESSION_KEY) ?? "{}"); } catch { return {}; }
+}
+function saveImageToCache(name: string, url: string) {
+  try {
+    const cache = loadImageCache();
+    cache[name.toLowerCase()] = url;
+    // Keep only last 12 entries to stay within sessionStorage limits
+    const trimmed = Object.fromEntries(Object.entries(cache).slice(-12));
+    sessionStorage.setItem(IMAGE_SESSION_KEY, JSON.stringify(trimmed));
+  } catch {}
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────
 
 function MealSkeleton() {
   return (
@@ -75,7 +93,7 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
   backLabel: string;
 }) {
   return (
-    <div className="h-dvh bg-[#F2EDE7] flex flex-col font-['Space_Mono'] text-[#1C1714] overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-[#F2EDE7] flex flex-col font-['Space_Mono'] text-[#1C1714] overflow-hidden">
       <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-4 border-b border-[#1C1714]/15 bg-[#F2EDE7] shrink-0">
         <button
           type="button"
@@ -88,7 +106,7 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
         <div className="h-4 w-px bg-[#1C1714]/15" />
         <span className="text-[10px] uppercase tracking-widest opacity-40">{mealLabel}</span>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {meal.imageUrl && (
           <img
             src={meal.imageUrl}
@@ -199,6 +217,8 @@ function MealCard({
   );
 }
 
+// ── Main page ──────────────────────────────────────────────────────────────
+
 export default function RecipesPage() {
   const logDate = (() => {
     const params = new URLSearchParams(window.location.search);
@@ -209,18 +229,20 @@ export default function RecipesPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t, lang } = useLanguage();
-  const { data: settings, isSuccess: settingsLoaded } = useQuery<Settings>({ queryKey: ["/api/settings"] });
+  const { data: settings, isSuccess: settingsLoaded } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    staleTime: 5 * 60 * 1000,
+  });
   const calorieGoal = settings?.dailyCalorieGoal ?? 2000;
 
-  // Initialize immediately from localStorage — no flicker, no unnecessary API call
   const [meals, setMeals] = useState<RecipeMeal[] | null>(() => loadSavedPlan());
   const [isGenerating, setIsGenerating] = useState(false);
   const [regeneratingMeal, setRegeneratingMeal] = useState<string | null>(null);
   const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
   const [loggingAll, setLoggingAll] = useState(false);
   const [detailMealType, setDetailMealType] = useState<string | null>(null);
-  const detailMeal = detailMealType ? (meals?.find((m) => m.mealType === detailMealType) ?? null) : null;
 
+  const detailMeal = detailMealType ? (meals?.find((m) => m.mealType === detailMealType) ?? null) : null;
   const recentMealsRef = useRef<string[]>(loadRecentMeals());
   const hasFetched = useRef(false);
 
@@ -239,7 +261,16 @@ export default function RecipesPage() {
   }
 
   function fetchImages(newMeals: RecipeMeal[]) {
+    const imageCache = loadImageCache();
     newMeals.forEach(async (meal) => {
+      // Serve from session cache instantly — no network request needed
+      const cached = imageCache[meal.name.toLowerCase()];
+      if (cached) {
+        setMeals((prev) =>
+          prev?.map((m) => m.mealType === meal.mealType ? { ...m, imageUrl: cached } : m) ?? null
+        );
+        return;
+      }
       try {
         const res = await apiRequest("GET", `/api/recipes/image?name=${encodeURIComponent(meal.name)}`);
         const data = (await res.json()) as { imageUrl: string };
@@ -247,8 +278,9 @@ export default function RecipesPage() {
           setMeals((prev) =>
             prev?.map((m) => m.mealType === meal.mealType ? { ...m, imageUrl: data.imageUrl } : m) ?? null
           );
+          saveImageToCache(meal.name, data.imageUrl);
         }
-      } catch { /* silently fail */ }
+      } catch { /* silently fail — image placeholder stays */ }
     });
   }
 
@@ -286,7 +318,6 @@ export default function RecipesPage() {
       const res = await apiRequest("POST", "/api/recipes/generate", {
         calorieGoal,
         regenerateMeal: mealType,
-        // Strip imageUrl — base64 strings bloat the body and aren't needed server-side
         currentPlan: meals.map(({ imageUrl: _img, ...m }) => m),
         language: lang,
         recentMeals: recentMealsRef.current.slice(-MAX_RECENT),
@@ -295,7 +326,6 @@ export default function RecipesPage() {
       if (!data.meals || !Array.isArray(data.meals)) throw new Error("Invalid response");
       const regenerated = data.meals.find((m) => m.mealType === mealType);
       if (!regenerated) throw new Error("Regenerated meal missing");
-      // Only replace the one meal — keep other meals' imageUrls intact
       setMeals((prev) => {
         const updated = prev?.map((m) => m.mealType === mealType ? { ...regenerated, imageUrl: null } : m) ?? null;
         if (updated) savePlan(updated);
@@ -358,7 +388,6 @@ export default function RecipesPage() {
     if (!settingsLoaded || hasFetched.current) return;
     hasFetched.current = true;
     if (meals && meals.length > 0) {
-      // Restored from localStorage — just re-fetch images (they aren't persisted)
       fetchImages(meals);
     } else {
       generateFullDay(calorieGoal);
@@ -366,52 +395,45 @@ export default function RecipesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settingsLoaded]);
 
-  if (detailMeal) {
-    return (
-      <RecipeDetail
-        meal={detailMeal}
-        onBack={() => setDetailMealType(null)}
-        mealLabel={MEAL_LABELS[detailMeal.mealType] ?? detailMeal.mealType}
-        ingredientsLabel={t("ingredients")}
-        preparationLabel={t("preparation")}
-        backLabel={t("back")}
-      />
-    );
-  }
-
   const totalPlanned = meals?.reduce((s, m) => s + m.calories, 0) ?? 0;
 
   return (
-    <div className="h-dvh bg-[#F2EDE7] flex flex-col font-['Space_Mono'] text-[#1C1714] overflow-hidden">
-      <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[#1C1714]/15 bg-[#F2EDE7] shrink-0">
-        <div className="flex items-center gap-3">
-          <Link href="/">
-            <button type="button" data-testid="button-recipes-back"
-              className="flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity">
-              <ArrowLeft className="h-3.5 w-3.5" /> {t("back")}
-            </button>
-          </Link>
-          <div className="h-4 w-px bg-[#1C1714]/15" />
-          <span className="text-sm tracking-tight">{t("dailyRecipePlan")}</span>
-        </div>
-        <button type="button" onClick={() => generateFullDay()} disabled={isGenerating}
-          data-testid="button-regenerate-all"
-          className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40">
-          <RefreshCw className={`h-3 w-3 ${isGenerating ? "animate-spin" : ""}`} />
-          {isGenerating ? t("generating") : t("newPlan")}
-        </button>
-      </div>
+    <AppShell title={t("recipes")}>
+      {/* Full-screen detail overlay — sits above tab bar (z-50 vs z-40) */}
+      {detailMeal && (
+        <RecipeDetail
+          meal={detailMeal}
+          onBack={() => setDetailMealType(null)}
+          mealLabel={MEAL_LABELS[detailMeal.mealType] ?? detailMeal.mealType}
+          ingredientsLabel={t("ingredients")}
+          preparationLabel={t("preparation")}
+          backLabel={t("back")}
+        />
+      )}
 
-      <div className="flex-1 overflow-y-auto px-5 py-6 max-w-2xl w-full mx-auto">
-        {meals && !isGenerating && (
-          <div className="flex items-baseline justify-between mb-5 pb-4 border-b border-[#1C1714]/10">
-            <div className="text-[10px] uppercase tracking-widest opacity-50">{t("goal")}</div>
+      <div className="max-w-2xl w-full mx-auto">
+        {/* Action bar */}
+        <div className="flex items-center justify-between mb-5">
+          {meals && !isGenerating ? (
             <div className="text-[10px] tabular-nums opacity-50">
               {totalPlanned} <span className="opacity-60">/ {calorieGoal} kcal</span>
             </div>
-          </div>
-        )}
+          ) : (
+            <div />
+          )}
+          <button
+            type="button"
+            onClick={() => generateFullDay()}
+            disabled={isGenerating}
+            data-testid="button-regenerate-all"
+            className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40"
+          >
+            <RefreshCw className={`h-3 w-3 ${isGenerating ? "animate-spin" : ""}`} />
+            {isGenerating ? t("generating") : t("newPlan")}
+          </button>
+        </div>
 
+        {/* Meal cards */}
         <div className="space-y-3">
           {isGenerating
             ? MEAL_ORDER.map((tp) => <MealSkeleton key={tp} />)
@@ -440,9 +462,13 @@ export default function RecipesPage() {
         </div>
 
         {meals && !isGenerating && (
-          <button type="button" onClick={logAllMeals} disabled={loggingAll}
+          <button
+            type="button"
+            onClick={logAllMeals}
+            disabled={loggingAll}
             data-testid="button-log-full-day"
-            className="w-full mt-5 bg-[#1C1714] text-[#F2EDE7] py-3.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+            className="w-full mt-5 bg-[#1C1714] text-[#F2EDE7] py-3.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+          >
             <Plus className="h-3.5 w-3.5" />
             {loggingAll ? t("addingFullDay") : t("addFullDayToLog")}
           </button>
@@ -450,6 +476,6 @@ export default function RecipesPage() {
 
         <p className="text-center text-[9px] uppercase tracking-widest opacity-25 mt-6">{t("tapMealHint")}</p>
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -18,8 +18,6 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     { labelKey: "settings" as const, path: "/settings", icon: SettingsIcon },
   ];
 
-  const mobileNavItems = navItems;
-
   const initials = (user?.name || user?.email || "U")
     .split(" ")
     .map((s) => s[0])
@@ -112,7 +110,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-[#1C1714]/10 bg-[#F2EDE7] py-1.5 md:hidden">
-        {mobileNavItems.map((item) => {
+        {navItems.map((item) => {
           const active = location === item.path || (item.path === "/recipes" && location.startsWith("/recipes"));
           const Icon = item.icon;
           return (

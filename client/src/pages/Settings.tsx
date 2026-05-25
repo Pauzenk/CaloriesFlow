@@ -238,9 +238,20 @@ export default function SettingsPage() {
     obese: t("bmiObese"),
   };
 
+  const profileEmpty = !!settings && !settings.heightCm && !settings.ageYears && !settings.startingWeightKg;
+
   return (
     <AppShell title={t("settingsTitle")}>
       <div className="w-full font-['Space_Mono'] text-[#1C1714] max-w-2xl">
+
+        {/* ── Welcome banner for new users ── */}
+        {profileEmpty && (
+          <div className="mb-8 border border-[#1C1714] px-5 py-4">
+            <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">{t("setupRequired")}</p>
+            <p className="text-sm leading-relaxed opacity-75">{t("welcomeSetup")}</p>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => save.mutate(data))} className="space-y-10">
 

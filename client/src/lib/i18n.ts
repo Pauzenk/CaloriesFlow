@@ -200,6 +200,7 @@ export const translations = {
     setupToUseFeature: "Fill in your parameters to access this feature.",
     fillInParameters: "Fill in parameters",
     setupForPersonalized: "Fill in your profile to unlock personalized calorie goals, projections, and recipes.",
+    welcomeSetup: "Fill in your parameters below to see personalized content.",
   },
   ru: {
     dashboard: "Обзор",
@@ -400,6 +401,7 @@ export const translations = {
     setupToUseFeature: "Заполните параметры, чтобы получить доступ к этой функции.",
     fillInParameters: "Заполнить параметры",
     setupForPersonalized: "Заполните профиль, чтобы разблокировать персональные расчёты калорий, прогноз и рецепты.",
+    welcomeSetup: "Заполните параметры ниже, чтобы увидеть персонализированный контент.",
   },
 } as const;
 

@@ -171,8 +171,13 @@ export default function ProgressPage() {
     return sorted[0];
   }, [weights]);
 
-  const displayWeight = mostRecentActualWeight?.weightKg ?? currentEstimatedWeight;
-  const isActualWeight = !!mostRecentActualWeight;
+  // Use today's projected weight as the primary display value.
+  // weightProjectionSeries already anchors to actual logged weights and continues
+  // projecting forward, so currentEstimatedWeight is always the best estimate of
+  // where the user is right now — even after actual weights have been logged.
+  // Only fall back to the raw last-logged weight when no projection is available.
+  const displayWeight = currentEstimatedWeight ?? mostRecentActualWeight?.weightKg;
+  const isActualWeight = !canProject && !!mostRecentActualWeight;
 
   const actualWeightMap = useMemo(() => {
     const map = new Map<string, number>();

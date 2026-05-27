@@ -216,6 +216,38 @@ export default function SettingsPage() {
     setUseManualCalories(false);
   }
 
+  // Auto-sync calorie goal whenever body parameters change and user is in auto mode
+  useEffect(() => {
+    if (useManualCalories) return;
+    if (!estimatedTDEE) return;
+
+    let newGoal: number;
+    if (selectedDuration !== null) {
+      if (!watchedStartWeight || !watchedGoalWeight) return;
+      const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+      if (remaining <= 0) {
+        newGoal = estimatedTDEE;
+      } else {
+        const totalDays = selectedDuration * 30.44;
+        const dailyChange = (remaining * 7700) / totalDays;
+        newGoal = watchedMode === "weight_gain"
+          ? Math.round(estimatedTDEE + dailyChange)
+          : Math.max(1200, Math.round(estimatedTDEE - dailyChange));
+      }
+    } else if (watchedMode === "maintenance") {
+      newGoal = estimatedTDEE;
+    } else {
+      if (!watchedStartWeight || !watchedGoalWeight) return;
+      const weightDiff = Math.abs(watchedStartWeight - watchedGoalWeight);
+      if (weightDiff <= 0) return;
+      newGoal = watchedMode === "weight_gain"
+        ? estimatedTDEE + 350
+        : Math.max(1200, estimatedTDEE - 500);
+    }
+
+    form.setValue("dailyCalorieGoal", newGoal);
+  }, [useManualCalories, estimatedTDEE, selectedDuration, watchedStartWeight, watchedGoalWeight, watchedMode]);
+
   const canComputeTarget =
     watchedMode === "maintenance"
       ? !!estimatedTDEE

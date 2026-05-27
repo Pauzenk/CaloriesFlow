@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,8 +30,6 @@ import type { Lang } from "@/lib/i18n";
 const IN =
   "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40";
 
-const DURATION_MONTHS = [1, 2, 3, 4, 5, 6] as const;
-
 const BMI_COLORS: Record<string, string> = {
   underweight: "text-blue-600",
   normal: "text-emerald-700",
@@ -39,28 +37,13 @@ const BMI_COLORS: Record<string, string> = {
   obese: "text-red-600",
 };
 
-function calcGoalDateFromMonths(months: number, lang: Lang): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() + months);
-  return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", year: "numeric" });
-}
-
-function daysToReadable(days: number, lang: Lang): string {
-  if (days < 14) return lang === "ru" ? `${days} дн.` : `${days} days`;
-  if (days < 60) {
-    const wks = Math.round(days / 7);
-    return lang === "ru" ? `${wks} нед.` : `${wks} wks`;
-  }
-  const months = (days / 30.44).toFixed(1);
-  return lang === "ru" ? `${months} мес.` : `${months} mo`;
-}
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const { t, lang, setLang } = useLanguage();
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
-  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
-  const [useManualCalories, setUseManualCalories] = useState(false);
+  const [planMonths, setPlanMonths] = useState<number | null>(null);
+  const planInitialized = useRef(false);
 
   const activityLabelMap: Record<ActivityLevel, string> = {
     sedentary: t("actSedentary"),
@@ -108,7 +91,7 @@ export default function SettingsPage() {
         goalDurationMonths: settings.goalDurationMonths ?? null,
         goalMode: (settings.goalMode as GoalMode) ?? "weight_loss",
       });
-      if (settings.goalDurationMonths) setSelectedDuration(settings.goalDurationMonths);
+      if (settings.goalDurationMonths) setPlanMonths(settings.goalDurationMonths);
     }
   }, [settings]);
 
@@ -120,6 +103,7 @@ export default function SettingsPage() {
   const watchedGoalWeight = form.watch("goalWeightKg");
   const watchedActivityLevel = form.watch("activityLevel");
   const watchedMode = (form.watch("goalMode") ?? "weight_loss") as GoalMode;
+  const watchedCalorieGoal = form.watch("dailyCalorieGoal");
 
   // Use starting weight for all calculations — currentWeightKg is legacy and not user-facing
   const weightForCalc = watchedStartWeight && watchedStartWeight > 0 ? watchedStartWeight : 0;
@@ -175,78 +159,72 @@ export default function SettingsPage() {
     return { calorie: Math.max(1200, estimatedTDEE - 500), days: optimalDays };
   }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode]);
 
-  function calcGoalForDuration(months: number): number | null {
-    if (!estimatedTDEE) return null;
-    if (watchedMode === "maintenance") return estimatedTDEE;
-    if (!watchedGoalWeight || !watchedStartWeight) return null;
-    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-    if (remaining <= 0) return estimatedTDEE;
-    const totalDays = months * 30.44;
-    const dailyChange = (remaining * 7700) / totalDays;
-    if (watchedMode === "weight_gain") return Math.round(estimatedTDEE + dailyChange);
-    return Math.max(1200, Math.round(estimatedTDEE - dailyChange));
-  }
-
-  function isFlooredCalorie(months: number): boolean {
-    if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight || watchedMode !== "weight_loss") return false;
-    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-    if (remaining <= 0) return false;
-    const totalDays = months * 30.44;
-    const dailyChange = (remaining * 7700) / totalDays;
-    return Math.round(estimatedTDEE - dailyChange) < 1200;
-  }
-
-  function handleSelectOptimal() {
-    if (!optimalPlan) return;
-    form.setValue("dailyCalorieGoal", optimalPlan.calorie);
-    if (optimalPlan.days !== null) {
-      const approxMonths = Math.round(optimalPlan.days / 30.44);
-      const clampedMonths = Math.max(1, Math.min(6, approxMonths));
-      form.setValue("goalDurationMonths", clampedMonths);
-    }
-    setSelectedDuration(null);
-    setUseManualCalories(false);
-  }
-
-  function handleDurationSelect(months: number) {
-    setSelectedDuration(months);
-    const newGoal = calcGoalForDuration(months);
-    if (newGoal !== null) form.setValue("dailyCalorieGoal", newGoal);
-    form.setValue("goalDurationMonths", months);
-    setUseManualCalories(false);
-  }
-
-  // Auto-sync calorie goal whenever body parameters change and user is in auto mode
+  // Initialize plan once when optimalPlan first becomes available
   useEffect(() => {
-    if (useManualCalories) return;
-    if (!estimatedTDEE) return;
-
-    let newGoal: number;
-    if (selectedDuration !== null) {
-      if (!watchedStartWeight || !watchedGoalWeight) return;
-      const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-      if (remaining <= 0) {
-        newGoal = estimatedTDEE;
-      } else {
-        const totalDays = selectedDuration * 30.44;
+    if (planInitialized.current || !optimalPlan) return;
+    planInitialized.current = true;
+    if (settings?.goalDurationMonths && settings.goalDurationMonths > 0) {
+      setPlanMonths(settings.goalDurationMonths);
+      if (estimatedTDEE && watchedStartWeight && watchedGoalWeight) {
+        const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+        const totalDays = settings.goalDurationMonths * 30.44;
         const dailyChange = (remaining * 7700) / totalDays;
-        newGoal = watchedMode === "weight_gain"
+        const newGoal = watchedMode === "weight_gain"
           ? Math.round(estimatedTDEE + dailyChange)
           : Math.max(1200, Math.round(estimatedTDEE - dailyChange));
+        form.setValue("dailyCalorieGoal", newGoal);
       }
-    } else if (watchedMode === "maintenance") {
-      newGoal = estimatedTDEE;
     } else {
-      if (!watchedStartWeight || !watchedGoalWeight) return;
-      const weightDiff = Math.abs(watchedStartWeight - watchedGoalWeight);
-      if (weightDiff <= 0) return;
-      newGoal = watchedMode === "weight_gain"
-        ? estimatedTDEE + 350
-        : Math.max(1200, estimatedTDEE - 500);
+      if (optimalPlan.days) setPlanMonths(Math.max(1, Math.round(optimalPlan.days / 30.44)));
+      form.setValue("dailyCalorieGoal", optimalPlan.calorie);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optimalPlan]);
 
-    form.setValue("dailyCalorieGoal", newGoal);
-  }, [useManualCalories, estimatedTDEE, selectedDuration, watchedStartWeight, watchedGoalWeight, watchedMode]);
+  function goalDateFromMonths(months: number): string {
+    const d = new Date();
+    d.setMonth(d.getMonth() + months);
+    return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", year: "numeric" });
+  }
+
+  function handleMonthsChange(raw: string) {
+    const months = parseInt(raw, 10);
+    setPlanMonths(months > 0 ? months : null);
+    if (!months || months <= 0) return;
+    form.setValue("goalDurationMonths", months);
+    if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return;
+    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+    const totalDays = months * 30.44;
+    const dailyChange = (remaining * 7700) / totalDays;
+    form.setValue(
+      "dailyCalorieGoal",
+      watchedMode === "weight_gain"
+        ? Math.round(estimatedTDEE + dailyChange)
+        : Math.max(1200, Math.round(estimatedTDEE - dailyChange)),
+    );
+  }
+
+  function handleCaloriesChange(raw: string) {
+    const cal = parseInt(raw, 10);
+    form.setValue("dailyCalorieGoal", cal || 0);
+    if (!cal || cal < 500 || !estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return;
+    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+    if (remaining <= 0) return;
+    const dailyChange = watchedMode === "weight_gain" ? cal - estimatedTDEE : estimatedTDEE - cal;
+    if (dailyChange <= 0) { setPlanMonths(null); return; }
+    const months = Math.max(1, Math.round((remaining * 7700) / dailyChange / 30.44));
+    setPlanMonths(months);
+    form.setValue("goalDurationMonths", months);
+  }
+
+  const planWarning = useMemo(() => {
+    if (!estimatedTDEE || watchedMode === "maintenance") return null;
+    if (watchedCalorieGoal > 0 && watchedCalorieGoal < 1200) return t("planUnsafeWarning");
+    if (watchedMode === "weight_loss" && watchedCalorieGoal > 0 && estimatedTDEE - watchedCalorieGoal > 1000) return t("planAggressiveWarning");
+    return null;
+  }, [estimatedTDEE, watchedCalorieGoal, watchedMode, t]);
+
+  const recommendedMonths = optimalPlan?.days ? Math.max(1, Math.round(optimalPlan.days / 30.44)) : null;
 
   const canComputeTarget =
     watchedMode === "maintenance"
@@ -482,216 +460,136 @@ export default function SettingsPage() {
               )} />
             </div>
 
-            {/* ── Daily Target ── */}
+            {/* ── Plan ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("dailyTarget")}
               </div>
-              <p className="text-[10px] opacity-50 mb-5 mt-2 leading-relaxed">
-                {watchedMode === "weight_loss"
-                  ? t("lossGoalHint")
-                  : watchedMode === "maintenance"
-                  ? t("maintenanceTargetHint")
-                  : t("gainGoalHint")}
-              </p>
 
               {canComputeTarget ? (
-                <div className="space-y-5">
+                <div className="space-y-5 mt-4">
 
-                  {/* ① Primary recommendation card */}
-                  {optimalPlan && (
-                    <div className="border-2 border-[#1C1714] p-5" data-testid="panel-optimal-time">
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">
-                            {watchedMode === "maintenance" ? t("maintenanceOnly") : t("optimalTime")}
-                          </p>
-                          <p className="text-xs opacity-50 leading-snug">
-                            {watchedMode === "maintenance"
-                              ? t("maintenanceTargetHint")
-                              : t("optimalTimeSubtitle")}
-                          </p>
-                        </div>
-                        {optimalPlan.days !== null && (
-                          <div className="shrink-0 text-right">
-                            <p className="text-3xl tabular-nums tracking-tighter leading-none" data-testid="text-optimal-days">
-                              {daysToReadable(optimalPlan.days, lang)}
-                            </p>
-                            <p className="text-[9px] uppercase tracking-widest opacity-40 mt-0.5">
-                              {watchedMode === "weight_gain" ? t("withSurplus300") : t("withDeficit500")}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="border-t border-[#1C1714]/15 pt-4 flex items-center justify-between gap-4">
-                        <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("optimalCalorieGoal")}</p>
-                          <p className="text-xl tabular-nums tracking-tighter" data-testid="text-optimal-calorie">
-                            {optimalPlan.calorie.toLocaleString()}
-                            <span className="text-xs opacity-40 ml-1">{t("kcalPerDay")}</span>
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          data-testid="button-select-optimal"
-                          onClick={handleSelectOptimal}
-                          className="bg-[#1C1714] text-[#F2EDE7] px-5 py-2.5 text-[10px] uppercase tracking-widest hover:bg-[#1C1714]/80 transition-colors shrink-0"
-                        >
-                          {t("selectPlan")}
-                        </button>
-                      </div>
+                  {/* TDEE reference row */}
+                  <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
+                    <div data-testid="panel-tdee">
+                      <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("maintenance")}</div>
+                      <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE?.toLocaleString()}</div>
+                      <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
                     </div>
-                  )}
-
-                  {/* ② Calculated Estimates — Maintenance + Mode-specific */}
-                  <div data-testid="panel-estimates">
-                    <div className="text-[9px] uppercase tracking-widest opacity-50 mb-3">{t("calculatedEstimates")}</div>
-                    <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4">
-                      <div data-testid="panel-tdee">
-                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("maintenance")}</div>
-                        <div className="text-2xl tabular-nums" data-testid="text-tdee">
-                          {estimatedTDEE?.toLocaleString()}
-                        </div>
+                    {watchedMode === "maintenance" ? (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("modeMaintenance")}</div>
+                        <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE?.toLocaleString()}</div>
                         <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
                       </div>
-
-                      {watchedMode === "maintenance" ? (
-                        <div data-testid="panel-suggested-goal">
-                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("modeMaintenance")}</div>
-                          <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">
-                            {estimatedTDEE?.toLocaleString()}
-                          </div>
-                          <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                        </div>
-                      ) : watchedMode === "weight_gain" ? (
-                        <div data-testid="panel-suggested-goal">
-                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("surplus300")}</div>
-                          <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">
-                            {((estimatedTDEE ?? 0) + 350).toLocaleString()}
-                          </div>
-                          <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                        </div>
-                      ) : (
-                        <div data-testid="panel-suggested-goal">
-                          <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
-                          <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">
-                            {((estimatedTDEE ?? 0) - 500).toLocaleString()}
-                          </div>
-                          <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                        </div>
-                      )}
-                    </div>
+                    ) : watchedMode === "weight_gain" ? (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("surplus300")}</div>
+                        <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{((estimatedTDEE ?? 0) + 350).toLocaleString()}</div>
+                        <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    ) : (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
+                        <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{((estimatedTDEE ?? 0) - 500).toLocaleString()}</div>
+                        <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* ③ Duration picker — only for loss / gain */}
+                  {/* 2-way planner — loss / gain only */}
                   {watchedMode !== "maintenance" && (
-                    <div>
-                      <div className="text-[9px] uppercase tracking-widest opacity-50 mb-3">{t("moreOptions")}</div>
-                      <div className="grid grid-cols-1 gap-2">
-                        {DURATION_MONTHS.map((m) => {
-                          const suggested = calcGoalForDuration(m);
-                          const isSelected = selectedDuration === m;
-                          return (
-                            <button
-                              key={m}
-                              type="button"
-                              data-testid={`button-duration-${m}`}
-                              onClick={() => handleDurationSelect(m)}
-                              className={`flex items-center justify-between px-5 py-4 border transition-colors text-left ${
-                                isSelected
-                                  ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
-                                  : "border-[#1C1714]/30 hover:border-[#1C1714] hover:bg-[#1C1714]/5"
-                              }`}
-                            >
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-sm uppercase tracking-widest font-bold">
-                                  {m} {m === 1 ? t("month") : t("months")}
-                                </span>
-                                <span className={`text-[10px] ${isSelected ? "opacity-55" : "opacity-40"}`}>
-                                  {t("goalBy")} {calcGoalDateFromMonths(m, lang)}
-                                </span>
-                              </div>
-                                      {suggested !== null && (
-                                <div className="text-right">
-                                  <span className={`text-lg tabular-nums font-medium ${isSelected ? "opacity-90" : "opacity-70"}`}>
-                                    {suggested.toLocaleString()}
-                                  </span>
-                                  <span className={`text-[10px] ml-1 ${isSelected ? "opacity-50" : "opacity-40"}`}>{t("kcalPerDay")}</span>
-                                  {isFlooredCalorie(m) && (
-                                    <span className={`block text-[9px] uppercase tracking-widest mt-0.5 ${isSelected ? "opacity-50" : "opacity-35"}`}>
-                                      {t("weightFloorNote")}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {selectedDuration !== null && (
-                        <div className="border border-[#1C1714]/20 px-4 py-3 text-[10px] opacity-60 mt-2">
-                          {t("targetSetTo")}{" "}
-                          <span className="opacity-100 font-bold text-[#1C1714]">
-                            {calcGoalForDuration(selectedDuration)?.toLocaleString() ?? "—"} {t("kcalPerDay")}
-                          </span>
-                          {" "}{t("saveBelow")}
+                    <div className="border-2 border-[#1C1714] p-5 space-y-5" data-testid="panel-planner">
+
+                      {/* Recommended headline */}
+                      {recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">{t("recommendedTag")}</p>
+                          <p className="text-sm leading-snug opacity-70">
+                            {(watchedMode === "weight_loss" ? t("planRecommendedLoss") : t("planRecommendedGain"))
+                              .replace("{kg}", String(Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)))
+                              .replace("{months}", String(recommendedMonths))
+                              .replace("{cal}", optimalPlan.calorie.toLocaleString())}
+                          </p>
                         </div>
                       )}
+
+                      {/* 2-way inputs */}
+                      <div>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-3">{t("adjustYourPlan")}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
+                              {t("planMonthsLabel")}
+                            </label>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={120}
+                              data-testid="input-plan-months"
+                              value={planMonths ?? ""}
+                              onChange={(e) => handleMonthsChange(e.target.value)}
+                              className={IN + " text-3xl h-14 tabular-nums w-full px-3"}
+                            />
+                            {planMonths && planMonths > 0 && (
+                              <p className="text-[10px] opacity-40 mt-1">
+                                {t("planGoalDateLabel")} {goalDateFromMonths(planMonths)}
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
+                              {t("planCaloriesLabel")}
+                            </label>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={800}
+                              max={10000}
+                              data-testid="input-plan-calories"
+                              value={watchedCalorieGoal || ""}
+                              onChange={(e) => handleCaloriesChange(e.target.value)}
+                              className={IN + " text-3xl h-14 tabular-nums w-full px-3"}
+                            />
+                            <p className="text-[10px] opacity-40 mt-1">{t("kcalPerDay")}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Warning */}
+                      {planWarning && (
+                        <div className="border border-[#9e4515] px-4 py-3 text-[10px] text-[#9e4515] leading-snug" data-testid="text-plan-warning">
+                          {planWarning}
+                        </div>
+                      )}
+
+                      {/* Monthly rate */}
+                      {planMonths && planMonths > 0 && watchedStartWeight && watchedGoalWeight && (
+                        <div className="border-t border-[#1C1714]/10 pt-4 flex gap-6">
+                          <div>
+                            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
+                            <p className="text-base tabular-nums">
+                              ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / planMonths).toFixed(1)} kg
+                              <span className="text-[10px] opacity-40 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
+                            <p className="text-base">{goalDateFromMonths(planMonths)}</p>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   )}
+
                 </div>
               ) : (
-                <div className="border border-dashed border-[#1C1714]/20 px-5 py-6 text-center">
+                <div className="border border-dashed border-[#1C1714]/20 px-5 py-6 text-center mt-4">
                   <p className="text-[10px] opacity-40 leading-relaxed">{t("fillMetricsHint")}</p>
                 </div>
               )}
-            </div>
-
-            {/* ── Calorie Target ── */}
-            <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
-                {t("calorieTarget")}
-              </div>
-              <div className="flex items-start justify-between gap-4 mt-4">
-                <div className="flex-1 min-w-0">
-                  {useManualCalories ? (
-                    <FormField control={form.control} name="dailyCalorieGoal" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">
-                          {t("calorieTargetLabel")}
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="number" inputMode="numeric" data-testid="input-goal"
-                            className={IN + " text-3xl h-14 tabular-nums max-w-[260px]"}
-                            {...field} onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  ) : (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("calorieTargetLabel")}</p>
-                      <p className="text-3xl tabular-nums tracking-tighter truncate" data-testid="text-calorie-display">
-                        {form.watch("dailyCalorieGoal").toLocaleString()}
-                        <span className="text-base opacity-40 ml-1">{t("kcalPerDay")}</span>
-                      </p>
-                      <p className="text-[10px] opacity-40 mt-1">{t("autoCalorieMode")}</p>
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  data-testid="button-toggle-manual-calories"
-                  onClick={() => setUseManualCalories((v) => !v)}
-                  className={`shrink-0 mt-4 text-[10px] uppercase tracking-widest border px-3 py-2 transition-colors whitespace-nowrap ${
-                    useManualCalories
-                      ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
-                      : "border-[#1C1714]/30 hover:border-[#1C1714]"
-                  }`}
-                >
-                  {useManualCalories ? t("manualCalorieMode") : t("manualCalorieToggle")}
-                </button>
-              </div>
             </div>
 
             {/* ── Save ── */}

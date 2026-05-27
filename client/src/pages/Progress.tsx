@@ -270,6 +270,15 @@ export default function ProgressPage() {
     ...chartData.map((d) => d.calories ?? 0),
   );
 
+  const hasInvalidBodyParams = useMemo(() => {
+    if (!settings) return false;
+    const { startingWeightKg, goalWeightKg, heightCm } = settings;
+    if (startingWeightKg > 0 && (startingWeightKg < 30 || startingWeightKg > 300)) return true;
+    if (goalWeightKg != null && goalWeightKg > 0 && (goalWeightKg < 30 || goalWeightKg > 300)) return true;
+    if (heightCm != null && heightCm > 0 && (heightCm < 100 || heightCm > 250)) return true;
+    return false;
+  }, [settings]);
+
   useEffect(() => {
     if (selectedWeekKey === null) return;
     const handler = (e: PointerEvent) => {
@@ -290,6 +299,19 @@ export default function ProgressPage() {
   return (
     <AppShell title={t("progressTitle")}>
       <div className="w-full font-['Space_Mono'] text-[#1C1714] space-y-8">
+
+        {/* ══ Invalid params banner ══ */}
+        {hasInvalidBodyParams && (
+          <div className="border-2 border-[#9e4515] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm leading-snug opacity-80">{t("invalidBodyParams")}</p>
+            <a
+              href="/settings"
+              className="shrink-0 border border-[#9e4515] text-[#9e4515] px-4 py-2 text-[10px] uppercase tracking-widest hover:bg-[#9e4515]/5 transition-colors"
+            >
+              {t("editParameters")}
+            </a>
+          </div>
+        )}
 
         {/* ══ Current Weight ══ */}
         <div className="border-2 border-[#1C1714] p-5">

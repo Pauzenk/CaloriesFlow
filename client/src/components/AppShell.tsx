@@ -1,15 +1,26 @@
-import { ReactNode } from "react";
-import { Link, useLocation } from "wouter";
+import { ReactNode, useState } from "react";
+import { useLocation } from "wouter";
 import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, LogOut, ChefHat } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, logout } = useAuth();
   const { t } = useLanguage();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const navItems = [
     { labelKey: "dashboard" as const, path: "/", icon: LayoutDashboard },
@@ -47,20 +58,19 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                   const Icon = item.icon;
                   return (
                     <li key={item.labelKey}>
-                      <Link href={item.path}>
-                        <button
-                          type="button"
-                          data-testid={`link-nav-${item.labelKey}`}
-                          className={`flex h-10 w-full items-center gap-3 px-3 text-left transition-colors ${
-                            active
-                              ? "border-l-2 border-[#1C1714] bg-[#1C1714]/8 text-[#1C1714]"
-                              : "border-l-2 border-transparent text-[#1C1714]/50 hover:bg-[#1C1714]/5 hover:text-[#1C1714]"
-                          }`}
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span className="text-sm font-medium">{t(item.labelKey)}</span>
-                        </button>
-                      </Link>
+                      <button
+                        type="button"
+                        data-testid={`link-nav-${item.labelKey}`}
+                        onClick={() => navigate(item.path)}
+                        className={`flex h-10 w-full items-center gap-3 px-3 text-left transition-colors ${
+                          active
+                            ? "border-l-2 border-[#1C1714] bg-[#1C1714]/8 text-[#1C1714]"
+                            : "border-l-2 border-transparent text-[#1C1714]/50 hover:bg-[#1C1714]/5 hover:text-[#1C1714]"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-medium">{t(item.labelKey)}</span>
+                      </button>
                     </li>
                   );
                 })}
@@ -95,7 +105,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
             <Button
               data-testid="button-logout"
               variant="ghost"
-              onClick={() => logout.mutate()}
+              onClick={() => setLogoutOpen(true)}
               title={t("logOut")}
               className="flex items-center gap-1.5 text-xs font-medium text-[#6B6560] hover:text-[#1C1714] px-2 py-1.5 h-auto uppercase tracking-widest"
             >
@@ -114,21 +124,46 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           const active = location === item.path || (item.path === "/recipes" && location.startsWith("/recipes"));
           const Icon = item.icon;
           return (
-            <Link key={item.path} href={item.path}>
-              <button
-                type="button"
-                data-testid={`link-mobile-nav-${item.labelKey}`}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 ${
-                  active ? "text-[#3c3a40]" : "text-[#6B6560]"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
-              </button>
-            </Link>
+            <button
+              key={item.path}
+              type="button"
+              data-testid={`link-mobile-nav-${item.labelKey}`}
+              onClick={() => navigate(item.path)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 ${
+                active ? "text-[#3c3a40]" : "text-[#6B6560]"
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
+            </button>
           );
         })}
       </nav>
+
+      {/* Logout confirmation modal */}
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent className="font-['Space_Mono'] bg-[#F2EDE7] border-2 border-[#1C1714] rounded-none max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#1C1714] tracking-tight">
+              {t("logOutConfirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[#1C1714]/60 text-sm leading-relaxed">
+              {t("logOutConfirmDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none border-[#1C1714]/30 bg-transparent text-[#1C1714] hover:bg-[#1C1714]/5 uppercase text-xs tracking-widest font-['Space_Mono']">
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => logout.mutate()}
+              className="rounded-none bg-[#1C1714] text-[#F2EDE7] hover:bg-[#1C1714]/80 uppercase text-xs tracking-widest font-['Space_Mono']"
+            >
+              {t("logOutConfirmBtn")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

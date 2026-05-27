@@ -60,6 +60,7 @@ export default function SettingsPage() {
   const { t, lang, setLang } = useLanguage();
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
+  const [useManualCalories, setUseManualCalories] = useState(false);
 
   const activityLabelMap: Record<ActivityLevel, string> = {
     sedentary: t("actSedentary"),
@@ -120,13 +121,8 @@ export default function SettingsPage() {
   const watchedActivityLevel = form.watch("activityLevel");
   const watchedMode = (form.watch("goalMode") ?? "weight_loss") as GoalMode;
 
-  // Use current weight for calculations when available, fall back to starting weight
-  const weightForCalc =
-    watchedCurrentWeight && watchedCurrentWeight > 0
-      ? watchedCurrentWeight
-      : watchedStartWeight && watchedStartWeight > 0
-      ? watchedStartWeight
-      : 0;
+  // Use starting weight for all calculations — currentWeightKg is legacy and not user-facing
+  const weightForCalc = watchedStartWeight && watchedStartWeight > 0 ? watchedStartWeight : 0;
 
   const estimatedTDEE = useMemo(() => {
     if (!watchedHeight || !watchedAge || !watchedSex || !weightForCalc) return null;
@@ -191,6 +187,15 @@ export default function SettingsPage() {
     return Math.max(1200, Math.round(estimatedTDEE - dailyChange));
   }
 
+  function isFlooredCalorie(months: number): boolean {
+    if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight || watchedMode !== "weight_loss") return false;
+    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+    if (remaining <= 0) return false;
+    const totalDays = months * 30.44;
+    const dailyChange = (remaining * 7700) / totalDays;
+    return Math.round(estimatedTDEE - dailyChange) < 1200;
+  }
+
   function handleSelectOptimal() {
     if (!optimalPlan) return;
     form.setValue("dailyCalorieGoal", optimalPlan.calorie);
@@ -200,6 +205,7 @@ export default function SettingsPage() {
       form.setValue("goalDurationMonths", clampedMonths);
     }
     setSelectedDuration(null);
+    setUseManualCalories(false);
   }
 
   function handleDurationSelect(months: number) {
@@ -207,6 +213,7 @@ export default function SettingsPage() {
     const newGoal = calcGoalForDuration(months);
     if (newGoal !== null) form.setValue("dailyCalorieGoal", newGoal);
     form.setValue("goalDurationMonths", months);
+    setUseManualCalories(false);
   }
 
   const canComputeTarget =
@@ -216,7 +223,9 @@ export default function SettingsPage() {
 
   const save = useMutation({
     mutationFn: async (data: UpsertSettings) => {
-      const res = await apiRequest("PUT", "/api/settings", data);
+      // Keep currentWeightKg in sync with startingWeightKg — it is not user-facing
+      const payload = { ...data, currentWeightKg: data.startingWeightKg };
+      const res = await apiRequest("PUT", "/api/settings", payload);
       return (await res.json()) as Settings;
     },
     onSuccess: () => {
@@ -292,8 +301,11 @@ export default function SettingsPage() {
                     <FormItem>
                       <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("startWeight")}</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.1" data-testid="input-starting-weight"
+                        <Input type="number" step="0.1" inputMode="decimal"
+                          data-testid="input-starting-weight"
+                          placeholder="e.g. 70.0"
                           className={IN + " tabular-nums"} {...field}
+                          value={field.value || ""}
                           onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
                       </FormControl>
                       <FormMessage />
@@ -567,12 +579,17 @@ export default function SettingsPage() {
                                   {t("goalBy")} {calcGoalDateFromMonths(m, lang)}
                                 </span>
                               </div>
-                              {suggested !== null && (
+                                      {suggested !== null && (
                                 <div className="text-right">
                                   <span className={`text-lg tabular-nums font-medium ${isSelected ? "opacity-90" : "opacity-70"}`}>
                                     {suggested.toLocaleString()}
                                   </span>
                                   <span className={`text-[10px] ml-1 ${isSelected ? "opacity-50" : "opacity-40"}`}>{t("kcalPerDay")}</span>
+                                  {isFlooredCalorie(m) && (
+                                    <span className={`block text-[9px] uppercase tracking-widest mt-0.5 ${isSelected ? "opacity-50" : "opacity-35"}`}>
+                                      {t("weightFloorNote")}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </button>
@@ -598,24 +615,51 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {/* ── Calorie Target (manual override) ── */}
+            {/* ── Calorie Target ── */}
             <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-4 border-b border-[#1C1714]/20 pb-2">
+              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("calorieTarget")}
               </div>
-              <FormField control={form.control} name="dailyCalorieGoal" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">
-                    {t("calorieTargetLabel")}
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" data-testid="input-goal"
-                      className={IN + " text-3xl h-14 tabular-nums max-w-[260px]"}
-                      {...field} onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <div className="flex items-start justify-between gap-4 mt-4">
+                <div className="flex-1 min-w-0">
+                  {useManualCalories ? (
+                    <FormField control={form.control} name="dailyCalorieGoal" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">
+                          {t("calorieTargetLabel")}
+                        </FormLabel>
+                        <FormControl>
+                          <Input type="number" inputMode="numeric" data-testid="input-goal"
+                            className={IN + " text-3xl h-14 tabular-nums max-w-[260px]"}
+                            {...field} onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  ) : (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("calorieTargetLabel")}</p>
+                      <p className="text-3xl tabular-nums tracking-tighter truncate" data-testid="text-calorie-display">
+                        {form.watch("dailyCalorieGoal").toLocaleString()}
+                        <span className="text-base opacity-40 ml-1">{t("kcalPerDay")}</span>
+                      </p>
+                      <p className="text-[10px] opacity-40 mt-1">{t("autoCalorieMode")}</p>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  data-testid="button-toggle-manual-calories"
+                  onClick={() => setUseManualCalories((v) => !v)}
+                  className={`shrink-0 mt-4 text-[10px] uppercase tracking-widest border px-3 py-2 transition-colors whitespace-nowrap ${
+                    useManualCalories
+                      ? "bg-[#1C1714] text-[#F2EDE7] border-[#1C1714]"
+                      : "border-[#1C1714]/30 hover:border-[#1C1714]"
+                  }`}
+                >
+                  {useManualCalories ? t("manualCalorieMode") : t("manualCalorieToggle")}
+                </button>
+              </div>
             </div>
 
             {/* ── Save ── */}

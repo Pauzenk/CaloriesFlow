@@ -73,13 +73,21 @@ export const upsertSettingsSchema = createInsertSchema(settings)
   .omit({ userId: true })
   .extend({
     dailyCalorieGoal: z.coerce.number().int().min(500).max(10000),
-    startingWeightKg: z.coerce.number().min(0).max(500),
-    currentWeightKg: z.coerce.number().min(0).max(500),
+    startingWeightKg: z.coerce
+      .number()
+      .min(0)
+      .max(300, { message: "Weight must be ≤ 300 kg" })
+      .refine((v) => v === 0 || v >= 30, { message: "Enter 30–300 kg (or leave empty)" }),
+    currentWeightKg: z.coerce
+      .number()
+      .min(0)
+      .max(300, { message: "Weight must be ≤ 300 kg" })
+      .refine((v) => v === 0 || v >= 30, { message: "Enter 30–300 kg (or leave empty)" }),
     journeyStartDate: z.string().min(1),
-    heightCm: nullableNumber(50, 300),
+    heightCm: nullableNumber(100, 250),
     ageYears: nullableNumber(5, 120),
     sexAtBirth: z.enum(["male", "female"]).nullable().optional(),
-    goalWeightKg: nullableNumber(20, 500),
+    goalWeightKg: nullableNumber(30, 300),
     activityLevel: z.enum(ACTIVITY_LEVELS).default("sedentary"),
     goalDurationMonths: z
       .preprocess(

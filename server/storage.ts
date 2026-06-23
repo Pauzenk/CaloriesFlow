@@ -228,8 +228,9 @@ export class DbStorage implements IStorage {
         heightCm: null,
         ageYears: null,
         sexAtBirth: null,
-        activityLevel: null,
-        goalMode: null,
+        activityLevel: "sedentary",
+        goalMode: "weight_loss",
+        goalDurationMonths: null,
         journeyStartDate: today,
       })
       .where(eq(settings.userId, userId));

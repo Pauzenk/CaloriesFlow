@@ -50,6 +50,8 @@ export interface IStorage {
   createActivity(userId: string, data: InsertActivity): Promise<Activity>;
   updateActivity(userId: string, id: string, data: InsertActivity): Promise<Activity | undefined>;
   deleteActivity(userId: string, id: string): Promise<boolean>;
+
+  resetUserData(userId: string): Promise<void>;
 }
 
 const DEFAULT_SETTINGS = {
@@ -207,6 +209,30 @@ export class DbStorage implements IStorage {
       .where(and(eq(activities.id, id), eq(activities.userId, userId)))
       .returning();
     return result.length > 0;
+  }
+
+  async resetUserData(userId: string): Promise<void> {
+    const today = new Date().toISOString().slice(0, 10);
+    await Promise.all([
+      db.delete(meals).where(eq(meals.userId, userId)),
+      db.delete(weights).where(eq(weights.userId, userId)),
+      db.delete(activities).where(eq(activities.userId, userId)),
+    ]);
+    await db
+      .update(settings)
+      .set({
+        dailyCalorieGoal: DEFAULT_SETTINGS.dailyCalorieGoal,
+        startingWeightKg: DEFAULT_SETTINGS.startingWeightKg,
+        currentWeightKg: DEFAULT_SETTINGS.currentWeightKg,
+        goalWeightKg: null,
+        heightCm: null,
+        ageYears: null,
+        sexAtBirth: null,
+        activityLevel: null,
+        goalMode: null,
+        journeyStartDate: today,
+      })
+      .where(eq(settings.userId, userId));
   }
 }
 

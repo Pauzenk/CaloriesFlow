@@ -684,6 +684,15 @@ Return ONLY a JSON object with this exact structure:
     }
   });
 
+  app.delete("/api/account/data", requireAuth, async (req, res, next) => {
+    try {
+      await storage.resetUserData(req.user!.id);
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get("/api/stats/calories", requireAuth, async (req, res, next) => {
     try {
       const userId = req.user!.id;

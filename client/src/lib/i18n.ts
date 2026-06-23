@@ -220,6 +220,11 @@ export const translations = {
     planMonthlyLabel: "Monthly rate",
     planAggressiveWarning: "This pace is more aggressive than recommended — consider a longer timeline.",
     planUnsafeWarning: "Below 1,200 kcal/day is not recommended for safe weight loss.",
+    restartLabel: "Start over",
+    restartConfirmTitle: "Start over from scratch?",
+    restartConfirmDesc: "This will permanently delete all your meals, weight logs, and activities, and reset your settings. This cannot be undone.",
+    restartConfirmBtn: "Yes, delete everything",
+    restartSuccess: "All data cleared. You can set up your profile again.",
   },
   ru: {
     dashboard: "Обзор",
@@ -440,6 +445,11 @@ export const translations = {
     planMonthlyLabel: "Темп в месяц",
     planAggressiveWarning: "Этот темп агрессивнее рекомендуемого — рассмотрите более длительный срок.",
     planUnsafeWarning: "Менее 1 200 ккал/день не рекомендуется для безопасного похудения.",
+    restartLabel: "Начать заново",
+    restartConfirmTitle: "Начать всё с нуля?",
+    restartConfirmDesc: "Это безвозвратно удалит все приёмы пищи, записи веса и активности, а также сбросит настройки. Отменить действие невозможно.",
+    restartConfirmBtn: "Да, удалить всё",
+    restartSuccess: "Все данные удалены. Можно заполнить профиль заново.",
   },
 } as const;
 

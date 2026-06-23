@@ -5,6 +5,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AppShell } from "@/components/AppShell";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +54,16 @@ export default function SettingsPage() {
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const [planMonths, setPlanMonths] = useState<number | null>(null);
   const planInitialized = useRef(false);
+  const [restartOpen, setRestartOpen] = useState(false);
+
+  const restart = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/account/data"),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({ title: t("restartSuccess") });
+    },
+    onError: () => toast({ title: "Failed to reset data", variant: "destructive" }),
+  });
 
   const activityLabelMap: Record<ActivityLevel, string> = {
     sedentary: t("actSedentary"),
@@ -607,7 +627,47 @@ export default function SettingsPage() {
 
           </form>
         </Form>
+
+        {/* ── Danger zone ── */}
+        <div className="border-t border-[#1C1714]/20 pt-8 mt-4">
+          <button
+            type="button"
+            data-testid="button-restart"
+            onClick={() => setRestartOpen(true)}
+            disabled={restart.isPending}
+            className="text-[10px] uppercase tracking-widest text-[#9B4A2E] border border-[#9B4A2E]/40 px-6 py-2.5 hover:bg-[#9B4A2E]/10 transition-colors disabled:opacity-40"
+          >
+            {restart.isPending ? "…" : t("restartLabel")}
+          </button>
+        </div>
+
       </div>
+
+      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <AlertDialogContent className="font-['Space_Mono'] bg-[#F2EDE7] border-2 border-[#1C1714] rounded-none max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#1C1714] tracking-tight">
+              {t("restartConfirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[#1C1714]/60 text-sm leading-relaxed">
+              {t("restartConfirmDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none border-[#1C1714]/30 bg-transparent text-[#1C1714] hover:bg-[#1C1714]/5 uppercase text-xs tracking-widest font-['Space_Mono']">
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-restart-confirm"
+              onClick={() => restart.mutate()}
+              className="rounded-none bg-[#9B4A2E] text-[#F2EDE7] hover:bg-[#7a3a24] uppercase text-xs tracking-widest font-['Space_Mono']"
+            >
+              {t("restartConfirmBtn")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </AppShell>
   );
 }

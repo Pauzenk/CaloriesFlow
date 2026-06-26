@@ -150,6 +150,134 @@ export function suggestGoalMode(
   return "weight_loss";
 }
 
+// ─── Three-Line Weight Chart Engine ────────────────────────────────────────────
+
+export type ThreeLinePoint = {
+  weekIdx: number;
+  week: string;
+  planned: number;    // planned weight (always present)
+  real?: number;      // real calorie-based estimate (past weeks only)
+  actual?: number;    // manually logged weight (sparse)
+  goal?: number;      // goal weight reference (constant)
+};
+
+export function threeLineWeightSeries(
+  settings: Settings,
+  meals: Meal[],
+  activities: { date: string; caloriesBurned: number }[],
+  weights: Weight[],
+  goalMode?: string,
+  lang?: string,
+): { points: ThreeLinePoint[]; projectedGoalDate: string | null } {
+  const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate, dailyCalorieGoal } =
+    settings;
+  const effectiveMode = goalMode ?? settings.goalMode ?? "weight_loss";
+  const needsGoalWeight = effectiveMode !== "maintenance";
+
+  if (!heightCm || !ageYears || !sexAtBirth || !startingWeightKg)
+    return { points: [], projectedGoalDate: null };
+  if (needsGoalWeight && !goalWeightKg)
+    return { points: [], projectedGoalDate: null };
+  if (sexAtBirth !== "male" && sexAtBirth !== "female")
+    return { points: [], projectedGoalDate: null };
+
+  const bmr = computeBMR(startingWeightKg, heightCm, ageYears, sexAtBirth);
+  const mult = ACTIVITY_MULTIPLIERS[(settings.activityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
+  const tdee = computeTDEE(bmr, mult);
+  const plannedDailyDeficit = effectiveMode === "maintenance" ? 0 : tdee - (dailyCalorieGoal ?? tdee);
+
+  const mealCal = new Map<string, number>();
+  for (const m of meals) mealCal.set(m.date, (mealCal.get(m.date) ?? 0) + m.calories);
+
+  const actCal = new Map<string, number>();
+  for (const a of activities) actCal.set(a.date, (actCal.get(a.date) ?? 0) + a.caloriesBurned);
+
+  const actualWtMap = new Map<string, number>();
+  for (const w of weights) actualWtMap.set(w.date, w.weightKg);
+
+  const today = localDateStr(new Date());
+  const startMs = new Date(journeyStartDate + "T00:00:00").getTime();
+  const todayMs = new Date(today + "T00:00:00").getTime();
+  const weekMs = 7 * 24 * 60 * 60 * 1000;
+  const isLosing = goalWeightKg ? goalWeightKg < startingWeightKg : false;
+  const nowLabel = lang === "ru" ? "Сейчас" : "Now";
+  const wkLabel = lang === "ru" ? "Нед." : "Wk";
+
+  interface Bucket {
+    endPlannedDeficit: number;
+    endRealDeficit: number;
+    hasPast: boolean;
+    actuals: number[];
+  }
+  const buckets = new Map<number, Bucket>();
+
+  let cumPlanned = 0;
+  let cumReal = 0;
+  let projectedGoalDate: string | null = null;
+
+  for (let i = 0; i <= 730; i++) {
+    const dMs = startMs + i * 86400000;
+    const d = new Date(dMs);
+    const dateStr = localDateStr(d);
+    const weekIdx = Math.floor((dMs - startMs) / weekMs);
+    const isPast = dMs <= todayMs;
+    const daysAhead = Math.floor((dMs - todayMs) / 86400000);
+
+    if (daysAhead > 365) break;
+
+    if (i > 0) {
+      cumPlanned += plannedDailyDeficit;
+      if (isPast) {
+        const eaten = mealCal.get(dateStr);
+        const burned = actCal.get(dateStr) ?? 0;
+        if (eaten !== undefined) {
+          cumReal += tdee - (eaten - burned);
+        }
+      }
+    }
+
+    const plannedWt = startingWeightKg - cumPlanned / 7700;
+    if (!projectedGoalDate && goalWeightKg) {
+      if ((isLosing && plannedWt <= goalWeightKg) || (!isLosing && plannedWt >= goalWeightKg)) {
+        projectedGoalDate = dateStr;
+      }
+    }
+
+    if (!buckets.has(weekIdx)) {
+      buckets.set(weekIdx, { endPlannedDeficit: cumPlanned, endRealDeficit: cumReal, hasPast: isPast, actuals: [] });
+    } else {
+      const b = buckets.get(weekIdx)!;
+      b.endPlannedDeficit = cumPlanned;
+      if (isPast) { b.endRealDeficit = cumReal; b.hasPast = true; }
+    }
+
+    const logged = actualWtMap.get(dateStr);
+    if (logged !== undefined) buckets.get(weekIdx)!.actuals.push(logged);
+
+    if (projectedGoalDate && daysAhead > 56) break;
+  }
+
+  const sorted = Array.from(buckets.entries()).sort(([a], [b]) => a - b);
+  const points: ThreeLinePoint[] = sorted.map(([weekIdx, b]) => {
+    const planned = +(startingWeightKg - b.endPlannedDeficit / 7700).toFixed(1);
+    const real = b.hasPast ? +(startingWeightKg - b.endRealDeficit / 7700).toFixed(1) : undefined;
+    const weekActuals = weekIdx === 0 ? (b.actuals.length > 0 ? b.actuals : [startingWeightKg]) : b.actuals;
+    const actual = weekActuals.length > 0
+      ? +(weekActuals.reduce((s, v) => s + v, 0) / weekActuals.length).toFixed(1)
+      : undefined;
+    return {
+      weekIdx,
+      week: weekIdx === 0 ? nowLabel : `${wkLabel} ${weekIdx}`,
+      planned,
+      real,
+      actual,
+      goal: goalWeightKg ?? undefined,
+    };
+  });
+
+  return { points, projectedGoalDate };
+}
+
 // ─── Weight Projection Engine ──────────────────────────────────────────────────
 
 export type WeightProjectionPoint = {

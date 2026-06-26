@@ -225,6 +225,10 @@ export const translations = {
     restartConfirmDesc: "This will permanently delete all your meals, weight logs, and activities, and reset your settings. This cannot be undone.",
     restartConfirmBtn: "Yes, delete everything",
     restartSuccess: "All data cleared. You can set up your profile again.",
+    plannedLine: "Planned",
+    realLine: "Real estimate",
+    loggedLine: "Logged",
+    weightDateLabel: "Date",
   },
   ru: {
     dashboard: "Обзор",
@@ -450,6 +454,10 @@ export const translations = {
     restartConfirmDesc: "Это безвозвратно удалит все приёмы пищи, записи веса и активности, а также сбросит настройки. Отменить действие невозможно.",
     restartConfirmBtn: "Да, удалить всё",
     restartSuccess: "Все данные удалены. Можно заполнить профиль заново.",
+    plannedLine: "По плану",
+    realLine: "Расчётный факт",
+    loggedLine: "Взвешивание",
+    weightDateLabel: "Дата",
   },
 } as const;
 

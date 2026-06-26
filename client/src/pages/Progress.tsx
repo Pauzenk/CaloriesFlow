@@ -28,7 +28,7 @@ import {
   lastNDates,
   sumMacros,
   todayStr,
-  weightProjectionSeries,
+  threeLineWeightSeries,
 } from "@/lib/calorieflow";
 import type { Lang } from "@/lib/i18n";
 
@@ -100,6 +100,7 @@ export default function ProgressPage() {
   const { lang, t } = useLanguage();
   const [period, setPeriod] = useState<Period>("week");
   const [weightInput, setWeightInput] = useState("");
+  const [weightDate, setWeightDate] = useState(todayStr());
   const [selectedWeekKey, setSelectedWeekKey] = useState<number | null>(null);
   const projectionContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -110,8 +111,8 @@ export default function ProgressPage() {
   const { data: activities = [] } = useQuery<Activity[]>({ queryKey: ["/api/activities"] });
 
   const addWeight = useMutation({
-    mutationFn: async (kg: number) => {
-      await apiRequest("POST", "/api/weights", { date: todayStr(), weightKg: kg });
+    mutationFn: async ({ kg, date }: { kg: number; date: string }) => {
+      await apiRequest("POST", "/api/weights", { date, weightKg: kg });
     },
     onSuccess: () => {
       setWeightInput("");
@@ -149,24 +150,18 @@ export default function ProgressPage() {
     (goalMode === "maintenance" || settings?.goalWeightKg)
   );
 
-  const { points: projectionPoints, projectedGoalDate } = useMemo(
+  const { points: threeLinePoints, projectedGoalDate } = useMemo(
     () =>
-      settings
-        ? weightProjectionSeries(settings, meals, weights, goalMode)
+      settings && canProject
+        ? threeLineWeightSeries(settings, meals, activities, weights, goalMode, lang)
         : { points: [], projectedGoalDate: null },
-    [settings, meals, weights, goalMode],
+    [settings, meals, activities, weights, goalMode, lang, canProject],
   );
 
   const currentEstimatedWeight = useMemo(() => {
-    if (projectionPoints.length === 0) return null;
-    const today = todayStr();
-    const todayPoint = projectionPoints.find((p) => p.date === today);
-    if (todayPoint) return todayPoint.estimatedWeightKg;
-    const pastPoints = projectionPoints.filter((p) => p.date <= today);
-    return pastPoints.length > 0
-      ? pastPoints[pastPoints.length - 1].estimatedWeightKg
-      : projectionPoints[0].estimatedWeightKg;
-  }, [projectionPoints]);
+    const past = threeLinePoints.filter((p) => p.real !== undefined);
+    return past.length > 0 ? (past[past.length - 1].real ?? null) : null;
+  }, [threeLinePoints]);
 
   const mostRecentActualWeight = useMemo(() => {
     if (weights.length === 0) return null;
@@ -174,18 +169,8 @@ export default function ProgressPage() {
     return sorted[0];
   }, [weights]);
 
-  // Prefer the most recent logged weight as the displayed current weight —
-  // it's the ground truth from the scale. When no weight has been logged,
-  // fall back to the calorie-model projection.
-  // The projection chart always continues from the last logged weight anchor.
   const displayWeight = mostRecentActualWeight?.weightKg ?? currentEstimatedWeight;
   const isActualWeight = !!mostRecentActualWeight;
-
-  const actualWeightMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const w of weights) map.set(w.date, w.weightKg);
-    return map;
-  }, [weights]);
 
   const estimatedTDEE = useMemo(() => {
     if (!settings?.heightCm || !settings?.ageYears || !settings?.sexAtBirth || !settings?.startingWeightKg)
@@ -197,59 +182,12 @@ export default function ProgressPage() {
     return Math.round(computeTDEE(bmr, multiplier));
   }, [settings]);
 
-
   const weightProgressPct = useMemo(() => {
     if (!settings?.startingWeightKg || !settings?.goalWeightKg || displayWeight === null) return 0;
     const total = Math.abs(settings.startingWeightKg - settings.goalWeightKg);
     const done = Math.abs(settings.startingWeightKg - displayWeight);
     return Math.max(0, Math.min(100, Math.round((done / total) * 100)));
   }, [settings, displayWeight]);
-
-  const projectionChartData = useMemo(() => {
-    if (!canProject || projectionPoints.length === 0) return [];
-    const startMs = new Date(settings!.journeyStartDate + "T00:00:00").getTime();
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
-
-    const weekMap = new Map<number, { projected: number; actuals: number[] }>();
-    for (const p of projectionPoints) {
-      const pMs = new Date(p.date + "T00:00:00").getTime();
-      const weekIdx = Math.floor((pMs - startMs) / weekMs);
-      if (!weekMap.has(weekIdx)) {
-        weekMap.set(weekIdx, { projected: p.estimatedWeightKg, actuals: [] });
-      } else {
-        weekMap.get(weekIdx)!.projected = p.estimatedWeightKg;
-      }
-    }
-
-    Array.from(actualWeightMap.entries()).forEach(([date, kg]) => {
-      const dMs = new Date(date + "T00:00:00").getTime();
-      const weekIdx = Math.floor((dMs - startMs) / weekMs);
-      if (weekMap.has(weekIdx)) {
-        weekMap.get(weekIdx)!.actuals.push(kg);
-      }
-    });
-
-    const nowLabel = lang === "ru" ? "Сейчас" : "Now";
-    const wkLabel = lang === "ru" ? "Нед." : "Wk";
-
-    const sorted = Array.from(weekMap.entries()).sort(([a], [b]) => a - b);
-    return sorted.map(([weekIdx, { projected, actuals }], i) => {
-      const prevProjected = i > 0 ? sorted[i - 1][1].projected : null;
-      const deficitKcal =
-        prevProjected !== null ? Math.round((prevProjected - projected) * 7700) : null;
-      return {
-        weekIdx,
-        week: weekIdx === 0 ? nowLabel : `${wkLabel} ${weekIdx}`,
-        projected: +projected.toFixed(1),
-        goal: settings?.goalWeightKg ?? undefined,
-        actual:
-          actuals.length > 0
-            ? +(actuals.reduce((s, v) => s + v, 0) / actuals.length).toFixed(1)
-            : undefined,
-        deficitKcal,
-      };
-    });
-  }, [projectionPoints, actualWeightMap, settings, canProject, lang]);
 
   const activityLabel = settings?.activityLevel
     ? ACTIVITY_LEVEL_LABELS[settings.activityLevel as ActivityLevel]
@@ -331,11 +269,11 @@ export default function ProgressPage() {
               )}
             </div>
             <form
-              className="flex gap-2 sm:max-w-[280px] w-full"
+              className="flex flex-col gap-2 sm:flex-row sm:max-w-[420px] w-full"
               onSubmit={(e) => {
                 e.preventDefault();
                 const kg = parseFloat(weightInput);
-                if (!isNaN(kg) && kg > 0) addWeight.mutate(kg);
+                if (!isNaN(kg) && kg > 0 && weightDate) addWeight.mutate({ kg, date: weightDate });
               }}
             >
               <Input
@@ -347,10 +285,18 @@ export default function ProgressPage() {
                 placeholder={t("logActualPlaceholder")}
                 className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40 h-9 text-sm flex-1"
               />
+              <Input
+                data-testid="input-weight-date"
+                type="date"
+                value={weightDate}
+                max={todayStr()}
+                onChange={(e) => setWeightDate(e.target.value)}
+                className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] h-9 text-sm w-full sm:w-36"
+              />
               <button
                 type="submit"
                 data-testid="button-log-weight"
-                disabled={addWeight.isPending || !weightInput}
+                disabled={addWeight.isPending || !weightInput || !weightDate}
                 className="shrink-0 bg-[#1C1714] text-[#F2EDE7] px-4 py-2 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 transition-colors disabled:opacity-40 whitespace-nowrap"
               >
                 {addWeight.isPending ? "…" : t("addButton")}
@@ -413,39 +359,44 @@ export default function ProgressPage() {
           </div>
 
           <div ref={projectionContainerRef}>
-            {canProject && projectionChartData.length > 0 ? (
+            {canProject && threeLinePoints.length > 0 ? (
               <>
+                {/* Legend */}
                 <div className="flex flex-wrap gap-5 mb-3 text-[10px] uppercase tracking-widest opacity-50">
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#9e4515]" />
-                    {t("projected")}
+                    <span className="inline-block w-4" style={{ height: 2, borderTop: "2px dashed #9e4515" }} />
+                    {t("plannedLine")}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#1C1714]/40" />
-                    {t("goal")} ({settings?.goalWeightKg} kg)
+                    <span className="inline-block w-4 bg-[#1C1714]" style={{ height: 2 }} />
+                    {t("realLine")}
                   </span>
-                  {weights.length > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#4a7c59]" />
+                    {t("loggedLine")}
+                  </span>
+                  {settings?.goalWeightKg && (
                     <span className="flex items-center gap-1.5">
-                      <span className="inline-block h-2 w-2 rounded-full bg-[#1C1714]" />
-                      {t("actualShort")}
+                      <span className="inline-block w-4" style={{ height: 1, borderTop: "1px dashed #1C1714", opacity: 0.4 }} />
+                      {t("goal")} ({settings.goalWeightKg} kg)
                     </span>
                   )}
                 </div>
-                <div className="h-52 w-full cursor-pointer">
+
+                {/* Chart */}
+                <div className="h-56 w-full cursor-pointer">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart
-                      data={projectionChartData}
+                      data={threeLinePoints}
                       margin={{ top: 4, right: 24, left: 0, bottom: 4 }}
                       onClick={(chartState) => {
-                        if (!chartState || chartState.activeTooltipIndex === undefined || chartState.activeTooltipIndex === null) {
+                        if (!chartState || chartState.activeTooltipIndex == null) {
                           setSelectedWeekKey(null);
                           return;
                         }
-                        const arrIdx = chartState.activeTooltipIndex as number;
-                        const point = projectionChartData[arrIdx];
+                        const point = threeLinePoints[chartState.activeTooltipIndex as number];
                         if (!point) { setSelectedWeekKey(null); return; }
-                        const key = point.weekIdx;
-                        setSelectedWeekKey((prev) => (prev === key ? null : key));
+                        setSelectedWeekKey((prev) => (prev === point.weekIdx ? null : point.weekIdx));
                       }}
                     >
                       <CartesianGrid strokeDasharray="none" vertical={false} stroke="#1C1714" strokeOpacity={0.06} />
@@ -467,78 +418,79 @@ export default function ProgressPage() {
                         {...CHART_TOOLTIP}
                         formatter={(v: number, name: string) => {
                           const labels: Record<string, string> = {
-                            projected: t("projected"),
-                            goal: t("goal"),
-                            actual: t("actualShort"),
+                            planned: t("plannedLine"),
+                            real: t("realLine"),
+                            actual: t("loggedLine"),
                           };
                           return [`${v?.toFixed(1)} kg`, labels[name] ?? name];
                         }}
                       />
+
+                      {/* Goal reference line */}
+                      {settings?.goalWeightKg && (
+                        <ReferenceLine
+                          y={settings.goalWeightKg}
+                          stroke="#1C1714"
+                          strokeDasharray="4 3"
+                          strokeOpacity={0.3}
+                          strokeWidth={1}
+                        />
+                      )}
+
+                      {/* Planned line — dashed terracotta */}
                       <Line
                         type="monotone"
-                        dataKey="projected"
+                        dataKey="planned"
                         stroke="#9e4515"
                         strokeDasharray="5 4"
                         strokeWidth={1.5}
-                        dot={(props: { cx?: number; cy?: number; index?: number }) => {
+                        dot={false}
+                        connectNulls
+                      />
+
+                      {/* Real estimated line — solid ink, past only */}
+                      <Line
+                        type="monotone"
+                        dataKey="real"
+                        stroke="#1C1714"
+                        strokeWidth={2}
+                        dot={false}
+                        connectNulls
+                      />
+
+                      {/* Actual logged weight — green dots */}
+                      <Line
+                        type="monotone"
+                        dataKey="actual"
+                        stroke="#4a7c59"
+                        strokeWidth={1.5}
+                        dot={(props: { cx?: number; cy?: number; index?: number; value?: number }) => {
+                          if (props.value === undefined || props.cx == null || props.cy == null)
+                            return <g key={`act-empty-${props.index}`} />;
                           const isSelected =
                             props.index !== undefined &&
-                            projectionChartData[props.index]?.weekIdx === selectedWeekKey;
+                            threeLinePoints[props.index]?.weekIdx === selectedWeekKey;
                           return (
                             <circle
-                              key={`proj-dot-${props.index}`}
+                              key={`act-dot-${props.index}`}
                               cx={props.cx}
                               cy={props.cy}
-                              r={isSelected ? 5 : 2.5}
-                              fill="#9e4515"
-                              stroke={isSelected ? "#F2EDE7" : "none"}
-                              strokeWidth={isSelected ? 2 : 0}
+                              r={isSelected ? 6 : 4}
+                              fill="#4a7c59"
+                              stroke="#F2EDE7"
+                              strokeWidth={isSelected ? 2.5 : 1.5}
                             />
                           );
                         }}
                         connectNulls
                       />
-                      <Line
-                        type="monotone"
-                        dataKey="goal"
-                        stroke="#1C1714"
-                        strokeDasharray="4 4"
-                        strokeOpacity={0.35}
-                        strokeWidth={1.5}
-                        dot={false}
-                        connectNulls
-                      />
-                      {weights.length > 0 && (
-                        <Line
-                          type="monotone"
-                          dataKey="actual"
-                          stroke="#1C1714"
-                          strokeWidth={2}
-                          dot={(props: { cx?: number; cy?: number; index?: number }) => {
-                            const isSelected =
-                              props.index !== undefined &&
-                              projectionChartData[props.index]?.weekIdx === selectedWeekKey;
-                            return (
-                              <circle
-                                key={`actual-dot-${props.index}`}
-                                cx={props.cx}
-                                cy={props.cy}
-                                r={isSelected ? 5 : 3}
-                                fill="#1C1714"
-                                stroke={isSelected ? "#F2EDE7" : "none"}
-                                strokeWidth={isSelected ? 2 : 0}
-                              />
-                            );
-                          }}
-                          connectNulls
-                        />
-                      )}
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
 
+                {/* Click-to-inspect detail panel */}
                 {selectedWeekKey !== null && (() => {
-                  const point = projectionChartData.find((p) => p.weekIdx === selectedWeekKey);
+                  const point = threeLinePoints.find((p) => p.weekIdx === selectedWeekKey);
                   if (!point) return null;
                   return (
                     <div
@@ -550,24 +502,19 @@ export default function ProgressPage() {
                         <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">{point.week}</p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("projected")}</p>
-                        <p className="text-base tabular-nums tracking-tight" data-testid="detail-projected">{point.projected.toFixed(1)} kg</p>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("plannedLine")}</p>
+                        <p className="text-base tabular-nums tracking-tight" data-testid="detail-planned">{point.planned.toFixed(1)} kg</p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("actualAvg")}</p>
-                        <p className="text-base tabular-nums tracking-tight opacity-60" data-testid="detail-actual">
-                          {point.actual !== undefined ? `${point.actual.toFixed(1)} kg` : "—"}
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("realLine")}</p>
+                        <p className="text-base tabular-nums tracking-tight opacity-80" data-testid="detail-real">
+                          {point.real !== undefined ? `${point.real.toFixed(1)} kg` : "—"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("estDeficit")}</p>
-                        <p
-                          className={`text-base tabular-nums tracking-tight ${point.deficitKcal !== null && point.deficitKcal > 0 ? "opacity-100" : "opacity-60"}`}
-                          data-testid="detail-deficit"
-                        >
-                          {point.deficitKcal !== null
-                            ? `${point.deficitKcal > 0 ? "−" : "+"}${Math.abs(point.deficitKcal).toLocaleString()} kcal`
-                            : "—"}
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("loggedLine")}</p>
+                        <p className="text-base tabular-nums tracking-tight opacity-60" data-testid="detail-actual">
+                          {point.actual !== undefined ? `${point.actual.toFixed(1)} kg` : "—"}
                         </p>
                       </div>
                       <button

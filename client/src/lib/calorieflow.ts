@@ -52,15 +52,20 @@ export function lastNDates(n: number): string[] {
   return out;
 }
 
-export function dailyCaloriesSeries(meals: Meal[], dates: string[]) {
+export function dailyCaloriesSeries(
+  meals: Meal[],
+  dates: string[],
+  activities: { date: string; caloriesBurned: number }[] = [],
+) {
   return dates.map((date) => {
-    const sum = meals.filter((m) => m.date === date).reduce((a, m) => a + m.calories, 0);
+    const eaten = meals.filter((m) => m.date === date).reduce((a, m) => a + m.calories, 0);
+    const burned = activities.filter((a) => a.date === date).reduce((a, act) => a + act.caloriesBurned, 0);
     const d = new Date(date + "T00:00:00");
     return {
       date,
       label: d.toLocaleDateString("en-US", { weekday: "short" }),
       shortLabel: d.toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
-      calories: sum,
+      calories: Math.max(0, eaten - burned),
     };
   });
 }

@@ -18,7 +18,7 @@ import { SetupPrompt } from "@/components/SetupPrompt";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Meal, Settings, Weight } from "@shared/schema";
+import type { Activity, Meal, Settings, Weight } from "@shared/schema";
 import { ACTIVITY_MULTIPLIERS, ACTIVITY_LEVEL_LABELS, type ActivityLevel, type GoalMode } from "@shared/schema";
 import {
   computeBMR,
@@ -107,6 +107,7 @@ export default function ProgressPage() {
   const { data: settings } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
   const { data: weights = [] } = useQuery<Weight[]>({ queryKey: ["/api/weights"] });
+  const { data: activities = [] } = useQuery<Activity[]>({ queryKey: ["/api/activities"] });
 
   const addWeight = useMutation({
     mutationFn: async (kg: number) => {
@@ -128,14 +129,16 @@ export default function ProgressPage() {
 
   const n = period === "day" ? 1 : period === "week" ? 7 : 30;
   const dates = lastNDates(n);
-  const series = dailyCaloriesSeries(meals, dates);
+  const series = dailyCaloriesSeries(meals, dates, activities);
   const chartData = series.map((s) => ({ ...s, goal }));
 
   const periodMeals = meals.filter((m) => dates.includes(m.date));
   const periodTotals = sumMacros(periodMeals);
+  const periodBurned = activities.filter((a) => dates.includes(a.date)).reduce((s, a) => s + a.caloriesBurned, 0);
+  const netPeriodCalories = Math.max(0, periodTotals.calories - periodBurned);
   const daysWithLogs = Math.max(1, dates.filter((d) => meals.some((m) => m.date === d)).length);
-  const avgPerDay = Math.round(periodTotals.calories / daysWithLogs);
-  const periodDeficit = goal * daysWithLogs - periodTotals.calories;
+  const avgPerDay = Math.round(netPeriodCalories / daysWithLogs);
+  const periodDeficit = goal * daysWithLogs - netPeriodCalories;
   const estimatedKgLost = periodDeficit / 7700;
 
   const canProject = !!(

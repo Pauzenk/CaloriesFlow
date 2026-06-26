@@ -699,11 +699,12 @@ Return ONLY a JSON object with this exact structure:
       const periodRaw = typeof req.query.period === "string" ? req.query.period : "week";
       const period = periodRaw === "day" || periodRaw === "month" ? periodRaw : "week";
       const n = period === "day" ? 1 : period === "week" ? 7 : 30;
-      const [settings, meals] = await Promise.all([
+      const [settings, meals, acts] = await Promise.all([
         storage.getSettings(userId),
         storage.listMeals(userId),
+        storage.listActivities(userId),
       ]);
-      res.json(calorieSeries(meals, lastNDates(n), settings.dailyCalorieGoal));
+      res.json(calorieSeries(meals, lastNDates(n), settings.dailyCalorieGoal, acts));
     } catch (err) {
       next(err);
     }

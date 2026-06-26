@@ -48,15 +48,21 @@ export function summarizeDay(meals: Meal[], date: string): DaySummary {
   return { date, calories, proteins, carbs, fats, byMealType };
 }
 
-export function calorieSeries(meals: Meal[], dates: string[], goal: number): CalorieSeriesPoint[] {
+export function calorieSeries(
+  meals: Meal[],
+  dates: string[],
+  goal: number,
+  acts: Activity[] = [],
+): CalorieSeriesPoint[] {
   return dates.map((date) => {
-    const calories = meals.filter((m) => m.date === date).reduce((a, m) => a + m.calories, 0);
+    const eaten = meals.filter((m) => m.date === date).reduce((a, m) => a + m.calories, 0);
+    const burned = acts.filter((a) => a.date === date).reduce((a, act) => a + act.caloriesBurned, 0);
     const d = new Date(date + "T00:00:00");
     return {
       date,
       label: d.toLocaleDateString("en-US", { weekday: "short" }),
       shortLabel: d.toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
-      calories,
+      calories: Math.max(0, eaten - burned),
       goal,
     };
   });
@@ -97,7 +103,7 @@ export function buildDashboardSummary(
   acts: Activity[] = [],
 ): DashboardSummary {
   const today = summarizeDay(meals, todayStr());
-  const weekSeries = calorieSeries(meals, lastNDates(7), settings.dailyCalorieGoal);
+  const weekSeries = calorieSeries(meals, lastNDates(7), settings.dailyCalorieGoal, acts);
   const weeklyW = weeklyWeights(weights, settings);
   const totalWeightChange = +weeklyW.reduce((a, w) => a + w.delta, 0).toFixed(1);
   const todayDate = todayStr();

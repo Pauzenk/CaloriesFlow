@@ -261,9 +261,8 @@ export function threeLineWeightSeries(
   const points: ThreeLinePoint[] = sorted.map(([weekIdx, b]) => {
     const planned = +(startingWeightKg - b.endPlannedDeficit / 7700).toFixed(1);
     const real = b.hasPast ? +(startingWeightKg - b.endRealDeficit / 7700).toFixed(1) : undefined;
-    const weekActuals = weekIdx === 0 ? (b.actuals.length > 0 ? b.actuals : [startingWeightKg]) : b.actuals;
-    const actual = weekActuals.length > 0
-      ? +(weekActuals.reduce((s, v) => s + v, 0) / weekActuals.length).toFixed(1)
+    const actual = b.actuals.length > 0
+      ? +(b.actuals.reduce((s, v) => s + v, 0) / b.actuals.length).toFixed(1)
       : undefined;
     return {
       weekIdx,

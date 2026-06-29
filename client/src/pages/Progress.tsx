@@ -458,32 +458,34 @@ export default function ProgressPage() {
                         connectNulls
                       />
 
-                      {/* Actual logged weight — green dots */}
-                      <Line
-                        type="monotone"
-                        dataKey="actual"
-                        stroke="#4a7c59"
-                        strokeWidth={1.5}
-                        dot={(props: { cx?: number; cy?: number; index?: number; value?: number }) => {
-                          if (props.value === undefined || props.cx == null || props.cy == null)
-                            return <g key={`act-empty-${props.index}`} />;
-                          const isSelected =
-                            props.index !== undefined &&
-                            threeLinePoints[props.index]?.weekIdx === selectedWeekKey;
-                          return (
-                            <circle
-                              key={`act-dot-${props.index}`}
-                              cx={props.cx}
-                              cy={props.cy}
-                              r={isSelected ? 6 : 4}
-                              fill="#4a7c59"
-                              stroke="#F2EDE7"
-                              strokeWidth={isSelected ? 2.5 : 1.5}
-                            />
-                          );
-                        }}
-                        connectNulls
-                      />
+                      {/* Actual logged weight — green dots (only when weights exist) */}
+                      {weights.length > 0 && (
+                        <Line
+                          type="monotone"
+                          dataKey="actual"
+                          stroke="#4a7c59"
+                          strokeWidth={1.5}
+                          dot={(props: { cx?: number; cy?: number; index?: number; value?: number }) => {
+                            if (props.value === undefined || props.cx == null || props.cy == null)
+                              return <g key={`act-empty-${props.index}`} />;
+                            const isSelected =
+                              props.index !== undefined &&
+                              threeLinePoints[props.index]?.weekIdx === selectedWeekKey;
+                            return (
+                              <circle
+                                key={`act-dot-${props.index}`}
+                                cx={props.cx}
+                                cy={props.cy}
+                                r={isSelected ? 6 : 4}
+                                fill="#4a7c59"
+                                stroke="#F2EDE7"
+                                strokeWidth={isSelected ? 2.5 : 1.5}
+                              />
+                            );
+                          }}
+                          connectNulls
+                        />
+                      )}
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>

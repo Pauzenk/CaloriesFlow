@@ -458,34 +458,31 @@ export default function ProgressPage() {
                         connectNulls
                       />
 
-                      {/* Actual logged weight — green dots (only when weights exist) */}
-                      {weights.length > 0 && (
-                        <Line
-                          type="monotone"
-                          dataKey="actual"
-                          stroke="#4a7c59"
-                          strokeWidth={1.5}
-                          dot={(props: { cx?: number; cy?: number; index?: number; value?: number }) => {
-                            if (props.value === undefined || props.cx == null || props.cy == null)
-                              return <g key={`act-empty-${props.index}`} />;
-                            const isSelected =
-                              props.index !== undefined &&
-                              threeLinePoints[props.index]?.weekIdx === selectedWeekKey;
-                            return (
-                              <circle
-                                key={`act-dot-${props.index}`}
-                                cx={props.cx}
-                                cy={props.cy}
-                                r={isSelected ? 6 : 4}
-                                fill="#4a7c59"
-                                stroke="#F2EDE7"
-                                strokeWidth={isSelected ? 2.5 : 1.5}
-                              />
-                            );
-                          }}
-                          connectNulls
-                        />
-                      )}
+                      {/* Actual logged weight — line extended as reference + dots only at real measurements */}
+                      <Line
+                        type="monotone"
+                        dataKey="actual"
+                        stroke="#4a7c59"
+                        strokeWidth={1.5}
+                        dot={(props: { cx?: number; cy?: number; index?: number }) => {
+                          const point = props.index !== undefined ? threeLinePoints[props.index] : undefined;
+                          if (point?.actualLog === undefined || props.cx == null || props.cy == null)
+                            return <g key={`act-empty-${props.index}`} />;
+                          const isSelected = point.weekIdx === selectedWeekKey;
+                          return (
+                            <circle
+                              key={`act-dot-${props.index}`}
+                              cx={props.cx}
+                              cy={props.cy}
+                              r={isSelected ? 6 : 4}
+                              fill="#4a7c59"
+                              stroke="#F2EDE7"
+                              strokeWidth={isSelected ? 2.5 : 1.5}
+                            />
+                          );
+                        }}
+                        connectNulls
+                      />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -516,7 +513,7 @@ export default function ProgressPage() {
                       <div>
                         <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("loggedLine")}</p>
                         <p className="text-base tabular-nums tracking-tight opacity-60" data-testid="detail-actual">
-                          {point.actual !== undefined ? `${point.actual.toFixed(1)} kg` : "—"}
+                          {point.actualLog !== undefined ? `${point.actualLog.toFixed(1)} kg` : "—"}
                         </p>
                       </div>
                       <button

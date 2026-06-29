@@ -156,8 +156,9 @@ export type ThreeLinePoint = {
   weekIdx: number;
   week: string;
   planned: number;    // planned weight (always present)
-  real?: number;      // real calorie-based estimate (past weeks only)
-  actual?: number;    // manually logged weight (sparse)
+  real?: number;      // real calorie-based estimate (extended forward as reference)
+  actual?: number;    // logged weight extended forward as reference line
+  actualLog?: number; // logged weight only where truly measured (for dots)
   goal?: number;      // goal weight reference (constant)
 };
 
@@ -258,10 +259,10 @@ export function threeLineWeightSeries(
   }
 
   const sorted = Array.from(buckets.entries()).sort(([a], [b]) => a - b);
-  const points: ThreeLinePoint[] = sorted.map(([weekIdx, b]) => {
+  const rawPoints: ThreeLinePoint[] = sorted.map(([weekIdx, b]) => {
     const planned = +(startingWeightKg - b.endPlannedDeficit / 7700).toFixed(1);
     const real = b.hasPast ? +(startingWeightKg - b.endRealDeficit / 7700).toFixed(1) : undefined;
-    const actual = b.actuals.length > 0
+    const actualLog = b.actuals.length > 0
       ? +(b.actuals.reduce((s, v) => s + v, 0) / b.actuals.length).toFixed(1)
       : undefined;
     return {
@@ -269,10 +270,25 @@ export function threeLineWeightSeries(
       week: weekIdx === 0 ? nowLabel : `${wkLabel} ${weekIdx}`,
       planned,
       real,
-      actual,
+      actual: actualLog, // will be extended below
+      actualLog,         // stays sparse — only where truly measured
       goal: goalWeightKg ?? undefined,
     };
   });
+
+  // Find the last known values so we can extend them as horizontal reference
+  // lines across all future weeks — ensures both lines are always visible
+  let lastRealKg: number | undefined;
+  let lastActualKg: number | undefined;
+  for (const p of rawPoints) {
+    if (p.real !== undefined) lastRealKg = p.real;
+    if (p.actual !== undefined) lastActualKg = p.actual;
+  }
+  const points = rawPoints.map(p => ({
+    ...p,
+    real: p.real ?? lastRealKg,
+    actual: p.actual ?? lastActualKg,
+  }));
 
   return { points, projectedGoalDate };
 }

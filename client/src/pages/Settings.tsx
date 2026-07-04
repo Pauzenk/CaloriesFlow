@@ -439,38 +439,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* ── Workout Counting ── */}
-            <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
-                {t("workoutCounting")}
-              </div>
-              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("workoutCountingHint")}</p>
-              <FormField control={form.control} name="workoutCountingMode" render={({ field }) => (
-                <FormItem>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {(["include_in_activity_level", "track_separately"] as const).map((mode) => {
-                      const active = field.value === mode;
-                      const label = mode === "include_in_activity_level" ? t("workoutModeInclude") : t("workoutModeTrack");
-                      const desc = mode === "include_in_activity_level" ? t("workoutModeIncludeDesc") : t("workoutModeTrackDesc");
-                      return (
-                        <button key={mode} type="button" data-testid={`radio-workout-${mode}`}
-                          onClick={() => field.onChange(mode)}
-                          className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
-                            active
-                              ? "border-[#1C1714] bg-[#1C1714] text-[#F2EDE7]"
-                              : "border-[#1C1714]/30 text-[#1C1714] hover:border-[#1C1714]"
-                          }`}>
-                          <span className="text-xs uppercase tracking-wider font-bold">{label}</span>
-                          <span className={`text-[10px] leading-snug ${active ? "opacity-70" : "opacity-50"}`}>{desc}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
             {/* ── Plan ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">

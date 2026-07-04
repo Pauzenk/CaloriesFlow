@@ -135,10 +135,7 @@ export default function Dashboard() {
   const totals = sumMacros(dayMeals);
   const totalActivityCalories = dayActivities.reduce((s, a) => s + a.caloriesBurned, 0);
   const goal = settings?.dailyCalorieGoal || 2000;
-  const workoutMode = settings?.workoutCountingMode ?? "include_in_activity_level";
-  const netCalories = workoutMode === "track_separately"
-    ? totals.calories - totalActivityCalories
-    : totals.calories;
+  const netCalories = totals.calories - totalActivityCalories;
   const remaining = Math.max(0, goal - netCalories);
   const dayNum = settings ? daysSince(settings.journeyStartDate, selectedDate) : null;
 
@@ -563,13 +560,7 @@ export default function Dashboard() {
                               {a.activityType} · {a.durationMinutes}min
                             </div>
                           </div>
-                          {workoutMode === "track_separately" ? (
-                            <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-2">−{a.caloriesBurned}</div>
-                          ) : (
-                            <div className="text-[9px] uppercase tracking-widest opacity-35 shrink-0 mr-2 leading-none text-right">
-                              {a.caloriesBurned} kcal<br />{t("includedInActivity")}
-                            </div>
-                          )}
+                          <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-2">−{a.caloriesBurned}</div>
                           <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                             <button
                               type="button"
@@ -609,14 +600,23 @@ export default function Dashboard() {
               </div>
 
               {/* Actions */}
-              <div className="mt-4">
-                <Link href={`/log?date=${selectedDate}`}>
+              <div className="mt-4 flex gap-2">
+                <Link href={`/log?date=${selectedDate}&mode=meal`} className="flex-1">
                   <button
                     type="button"
                     data-testid="button-add-meal"
                     className="w-full bg-[#1C1714] text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714]/85 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Plus className="h-3.5 w-3.5" /> {t("addEntry")}
+                    <Plus className="h-3.5 w-3.5" /> {t("addMeal")}
+                  </button>
+                </Link>
+                <Link href={`/log?date=${selectedDate}&mode=activity`} className="flex-1">
+                  <button
+                    type="button"
+                    data-testid="button-add-activity"
+                    className="w-full border border-[#1C1714] text-[#1C1714] py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Activity className="h-3.5 w-3.5" /> {t("addActivity")}
                   </button>
                 </Link>
               </div>

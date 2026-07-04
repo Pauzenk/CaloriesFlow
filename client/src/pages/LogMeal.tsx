@@ -88,12 +88,14 @@ function InlineChat({
   logDate,
   calorieGoal,
   caloriesLogged,
+  chatMode,
 }: {
   onLogMeal: (estimate: NutritionEstimate, mealType: string) => Promise<string>;
   storageKey: string;
   logDate: string;
   calorieGoal: number;
   caloriesLogged: number;
+  chatMode: "meal" | "activity";
 }) {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
@@ -161,7 +163,7 @@ function InlineChat({
       const fd = new FormData();
       fd.append("messages", JSON.stringify(history));
       fd.append("message", userText);
-      fd.append("context", JSON.stringify({ calorieGoal, caloriesLogged, remainingCalories: remaining, logDate, language: lang }));
+      fd.append("context", JSON.stringify({ calorieGoal, caloriesLogged, remainingCalories: remaining, logDate, language: lang, chatMode }));
       if (photo) fd.append("photo", photo);
       const res = await fetch("/api/meals/chat", { method: "POST", credentials: "include", body: fd });
       if (!res.ok) {
@@ -364,31 +366,49 @@ function InlineChat({
 
   const canSend = (input.trim().length > 0 || pendingPhoto !== null) && !chat.isPending;
 
-  const suggestions = lang === "ru"
-    ? [
-        ...(remaining > 0
-          ? [`Составь план на день — завтрак, обед, ужин и перекус — ещё ${remaining} ккал`]
-          : [`Составь план на день — завтрак, обед, ужин и перекус`]),
-        "Предложи рецепт только для завтрака",
-        "Предложи рецепт только для обеда",
-        "Предложи рецепт только для ужина",
-        "Предложи рецепт для перекуса",
-        "Я ел овсянку с бананом на завтрак",
-        "Куриная грудка с рисом и брокколи",
-        "Кардио 25 минут",
-      ]
-    : [
-        ...(remaining > 0
-          ? [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack — ${remaining} kcal remaining`]
-          : [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack`]),
-        "Suggest only a breakfast recipe",
-        "Suggest only a lunch recipe",
-        "Suggest only a dinner recipe",
-        "Suggest a snack recipe",
-        "I had oatmeal with banana for breakfast",
-        "Chicken breast with rice and broccoli",
-        "Cardio 25 minutes",
-      ];
+  const suggestions = chatMode === "activity"
+    ? (lang === "ru"
+        ? [
+            "Бег 30 минут",
+            "Велосипед 1 час",
+            "Силовая тренировка 45 минут",
+            "Йога 20 минут",
+            "Плавание 30 минут",
+            "Ходьба 5 км",
+            "HIIT 20 минут",
+          ]
+        : [
+            "Running 30 minutes",
+            "Cycling 1 hour",
+            "Strength training 45 minutes",
+            "Yoga 20 minutes",
+            "Swimming 30 minutes",
+            "Walking 5 km",
+            "HIIT 20 minutes",
+          ])
+    : (lang === "ru"
+        ? [
+            ...(remaining > 0
+              ? [`Составь план на день — завтрак, обед, ужин и перекус — ещё ${remaining} ккал`]
+              : [`Составь план на день — завтрак, обед, ужин и перекус`]),
+            "Предложи рецепт только для завтрака",
+            "Предложи рецепт только для обеда",
+            "Предложи рецепт только для ужина",
+            "Предложи рецепт для перекуса",
+            "Я ел овсянку с бананом на завтрак",
+            "Куриная грудка с рисом и брокколи",
+          ]
+        : [
+            ...(remaining > 0
+              ? [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack — ${remaining} kcal remaining`]
+              : [`Generate a full day plan — Breakfast, Lunch, Dinner & Snack`]),
+            "Suggest only a breakfast recipe",
+            "Suggest only a lunch recipe",
+            "Suggest only a dinner recipe",
+            "Suggest a snack recipe",
+            "I had oatmeal with banana for breakfast",
+            "Chicken breast with rice and broccoli",
+          ]);
 
   if (!hasApiKey) {
     return (
@@ -406,7 +426,7 @@ function InlineChat({
       {messages.length === 0 && (
         <div className="flex flex-col gap-2">
           <p className="text-xs mb-3 leading-relaxed text-[#F2EDE7]/60">
-            {t("chatEmptyHint")}
+            {chatMode === "activity" ? t("chatEmptyHintActivity") : t("chatEmptyHint")}
           </p>
           <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/40 mb-1">{t("quickActions")}</div>
           {suggestions.map((s) => (
@@ -831,7 +851,11 @@ export default function LogMeal() {
     return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : todayStr();
   })();
 
-  const chatStorageKey = `calorieflow-chat-${logDate}`;
+  const chatMode: "meal" | "activity" = (() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("mode") === "activity" ? "activity" : "meal";
+  })();
+  const chatStorageKey = `calorieflow-chat-${chatMode}-${logDate}`;
 
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
   const { data: settingsData, isSuccess: settingsLoaded } = useQuery<Settings>({ queryKey: ["/api/settings"] });
@@ -893,7 +917,9 @@ export default function LogMeal() {
           </Link>
           <div className="h-4 w-px bg-[#F2EDE7]/15" />
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 leading-none mb-0.5">{t("aiChatTitle")}</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 leading-none mb-0.5">
+              {chatMode === "activity" ? t("addActivity") : t("addMeal")}
+            </p>
             <p className="text-base tracking-tighter text-[#F2EDE7] leading-none">
               {isToday ? t("today") : dateLabel}
             </p>
@@ -921,6 +947,7 @@ export default function LogMeal() {
           logDate={logDate}
           calorieGoal={calorieGoal}
           caloriesLogged={caloriesLogged}
+          chatMode={chatMode}
         />
       </div>
     </div>

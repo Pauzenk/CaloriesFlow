@@ -232,7 +232,7 @@ export function threeLineWeightSeries(
       if (isPast) {
         const eaten = mealCal.get(dateStr);
         const rawBurned = actCal.get(dateStr) ?? 0;
-        const burned = settings.workoutCountingMode === "track_separately" ? rawBurned : 0;
+        const burned = rawBurned;
         if (eaten !== undefined) {
           cumDeficitSinceAnchor += tdee - (eaten - burned);
         }

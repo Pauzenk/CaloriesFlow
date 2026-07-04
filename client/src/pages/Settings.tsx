@@ -146,6 +146,8 @@ export default function SettingsPage() {
     return { bmi: +bmi.toFixed(1), category, range };
   }, [watchedHeight, weightForCalc]);
 
+  const isGoalBelowHealthyRange = !!(watchedGoalWeight && bmiData && watchedGoalWeight < bmiData.range.minKg);
+
   // Auto-select goal mode based on goal weight vs starting weight
   useEffect(() => {
     if (!watchedGoalWeight || !watchedStartWeight) return;
@@ -356,6 +358,11 @@ export default function SettingsPage() {
                           onChange={(e) => field.onChange(e.target.value === "" ? null : e.target.valueAsNumber)} />
                       </FormControl>
                       <FormMessage />
+                      {isGoalBelowHealthyRange && bmiData && (
+                        <p className="text-[10px] text-amber-600 mt-1" data-testid="warn-below-healthy-range">
+                          {t("belowHealthyRangeWarning")} ({bmiData.range.minKg}–{bmiData.range.maxKg} kg)
+                        </p>
+                      )}
                     </FormItem>
                   )} />
                 </div>
@@ -558,7 +565,9 @@ export default function SettingsPage() {
                       {/* Recommended headline */}
                       {recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">{t("recommendedTag")}</p>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">
+                            {isGoalBelowHealthyRange ? t("yourPlanTag") : t("recommendedTag")}
+                          </p>
                           <p className="text-sm leading-snug opacity-70">
                             {(watchedMode === "weight_loss" ? t("planRecommendedLoss") : t("planRecommendedGain"))
                               .replace("{kg}", String(Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)))

@@ -3,6 +3,16 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays, Sparkles } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AppShell } from "@/components/AppShell";
 import { SetupPrompt } from "@/components/SetupPrompt";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -46,9 +56,21 @@ type EditState = {
   mealType: string;
 } | null;
 
+type ActivityEditState = {
+  id: string;
+  date: string;
+  name: string;
+  durationMinutes: string;
+  activityType: string;
+  caloriesBurned: string;
+} | null;
+
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [editState, setEditState] = useState<EditState>(null);
+  const [activityEditState, setActivityEditState] = useState<ActivityEditState>(null);
+  const [pendingDeleteMeal, setPendingDeleteMeal] = useState<string | null>(null);
+  const [pendingDeleteActivity, setPendingDeleteActivity] = useState<string | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const { t, lang } = useLanguage();
 
@@ -81,6 +103,16 @@ export default function Dashboard() {
   const deleteActivity = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/activities/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/activities", selectedDate] }),
+  });
+
+  const updateActivity = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { date: string; name: string; durationMinutes: number; caloriesBurned: number; activityType: string } }) => {
+      await apiRequest("PATCH", `/api/activities/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/activities", selectedDate] });
+      setActivityEditState(null);
+    },
   });
 
   if (sLoading || mLoading) {
@@ -155,6 +187,20 @@ export default function Dashboard() {
     });
   }
 
+  function commitActivityEdit() {
+    if (!activityEditState) return;
+    updateActivity.mutate({
+      id: activityEditState.id,
+      data: {
+        date: activityEditState.date,
+        name: activityEditState.name,
+        durationMinutes: parseInt(activityEditState.durationMinutes) || 0,
+        caloriesBurned: parseInt(activityEditState.caloriesBurned) || 0,
+        activityType: activityEditState.activityType,
+      },
+    });
+  }
+
   const IN = "rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714]";
 
   const profileIncomplete = !!settings && (!settings.heightCm || !settings.ageYears || !settings.startingWeightKg);
@@ -184,7 +230,7 @@ export default function Dashboard() {
           <button
             type="button"
             data-testid="button-dashboard-prev-day"
-            onClick={() => { setSelectedDate((d) => offsetDate(d, -1)); setEditState(null); }}
+            onClick={() => { setSelectedDate((d) => offsetDate(d, -1)); setEditState(null); setActivityEditState(null); }}
             className="flex items-center gap-1 px-2 py-1.5 border border-[#1C1714]/20 hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors"
             aria-label="Previous day"
           >
@@ -202,7 +248,7 @@ export default function Dashboard() {
                 type="date"
                 value={selectedDate}
                 max={todayStr()}
-                onChange={(e) => { if (e.target.value) { setSelectedDate(e.target.value); setEditState(null); } }}
+                onChange={(e) => { if (e.target.value) { setSelectedDate(e.target.value); setEditState(null); setActivityEditState(null); } }}
                 data-testid="button-dashboard-date"
                 className="absolute inset-0 opacity-0 cursor-pointer w-full"
               />
@@ -214,7 +260,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 data-testid="button-dashboard-goto-today"
-                onClick={() => { setSelectedDate(todayStr()); setEditState(null); }}
+                onClick={() => { setSelectedDate(todayStr()); setEditState(null); setActivityEditState(null); }}
                 className="text-[9px] uppercase tracking-widest opacity-50 hover:opacity-100 underline transition-opacity mt-0.5"
               >
                 → {t("today")}
@@ -225,7 +271,7 @@ export default function Dashboard() {
           <button
             type="button"
             data-testid="button-dashboard-next-day"
-            onClick={() => { setSelectedDate((d) => offsetDate(d, 1)); setEditState(null); }}
+            onClick={() => { setSelectedDate((d) => offsetDate(d, 1)); setEditState(null); setActivityEditState(null); }}
             disabled={isToday}
             className="flex items-center gap-1 px-2 py-1.5 border border-[#1C1714]/20 hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
             aria-label="Next day"
@@ -423,9 +469,8 @@ export default function Dashboard() {
                               <button
                                 type="button"
                                 data-testid={`button-delete-meal-${m.id}`}
-                                onClick={() => deleteMeal.mutate(m.id)}
-                                disabled={deleteMeal.isPending}
-                                className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9B4A2E] transition-all disabled:opacity-30"
+                                onClick={() => setPendingDeleteMeal(m.id)}
+                                className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9B4A2E] transition-all"
                                 aria-label="Delete meal"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -443,34 +488,110 @@ export default function Dashboard() {
                 <div className="mb-3">
                   <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1 pt-1">{t("activity")}</div>
                   {dayActivities.map((a) => (
-                    <div
-                      key={a.id}
-                      data-testid={`row-activity-${a.id}`}
-                      className="group flex items-center py-2.5 border-b border-dashed border-[#1C1714]/20 pl-2 border-l-2 border-l-[#1C1714]/30"
-                    >
-                      <div className="flex-1 px-2 min-w-0">
-                        <div className="leading-tight truncate">{a.name}</div>
-                        <div className="text-[10px] uppercase opacity-50 tracking-widest mt-0.5">
-                          {a.activityType} · {a.durationMinutes}min
+                    <div key={a.id} data-testid={`row-activity-${a.id}`}>
+                      {activityEditState?.id === a.id ? (
+                        <div className="border border-[#1C1714]/20 p-3 mb-2 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="col-span-2">
+                              <input
+                                type="text"
+                                value={activityEditState.name}
+                                onChange={(e) => setActivityEditState((s) => s && ({ ...s, name: e.target.value }))}
+                                className={IN + " h-8 text-sm w-full px-2 border"}
+                                placeholder="Activity name"
+                                data-testid="input-edit-activity-name"
+                              />
+                            </div>
+                            <select
+                              value={activityEditState.activityType}
+                              onChange={(e) => setActivityEditState((s) => s && ({ ...s, activityType: e.target.value }))}
+                              className={IN + " h-8 text-xs w-full px-2 border"}
+                              data-testid="select-edit-activity-type"
+                            >
+                              {["cardio", "strength", "other"].map((at) => (
+                                <option key={at} value={at}>{at}</option>
+                              ))}
+                            </select>
+                            <div className="grid grid-cols-2 gap-1">
+                              <div>
+                                <div className="text-[8px] uppercase opacity-50 mb-0.5">min</div>
+                                <input
+                                  type="number"
+                                  value={activityEditState.durationMinutes}
+                                  onChange={(e) => setActivityEditState((s) => s && ({ ...s, durationMinutes: e.target.value }))}
+                                  className={IN + " h-7 text-xs w-full px-1 border tabular-nums"}
+                                  data-testid="input-edit-activity-duration"
+                                />
+                              </div>
+                              <div>
+                                <div className="text-[8px] uppercase opacity-50 mb-0.5">kcal</div>
+                                <input
+                                  type="number"
+                                  value={activityEditState.caloriesBurned}
+                                  onChange={(e) => setActivityEditState((s) => s && ({ ...s, caloriesBurned: e.target.value }))}
+                                  className={IN + " h-7 text-xs w-full px-1 border tabular-nums"}
+                                  data-testid="input-edit-activity-kcal"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={commitActivityEdit}
+                              disabled={updateActivity.isPending}
+                              data-testid="button-confirm-activity-edit"
+                              className="flex items-center gap-1 bg-[#1C1714] text-[#F2EDE7] px-3 py-1 text-[10px] uppercase tracking-widest hover:bg-[#1C1714]/80 disabled:opacity-40"
+                            >
+                              <Check className="h-3 w-3" /> {t("save")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActivityEditState(null)}
+                              data-testid="button-cancel-activity-edit"
+                              className="flex items-center gap-1 border border-[#1C1714]/30 px-3 py-1 text-[10px] uppercase tracking-widest hover:border-[#1C1714]"
+                            >
+                              <X className="h-3 w-3" /> {t("cancel")}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      {workoutMode === "track_separately" ? (
-                        <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-2">−{a.caloriesBurned}</div>
                       ) : (
-                        <div className="text-[9px] uppercase tracking-widest opacity-35 shrink-0 mr-2 leading-none text-right">
-                          {a.caloriesBurned} kcal<br />{t("includedInActivity")}
+                        <div className="group flex items-center py-2.5 border-b border-dashed border-[#1C1714]/20 pl-2 border-l-2 border-l-[#1C1714]/30">
+                          <div className="flex-1 px-2 min-w-0">
+                            <div className="leading-tight truncate">{a.name}</div>
+                            <div className="text-[10px] uppercase opacity-50 tracking-widest mt-0.5">
+                              {a.activityType} · {a.durationMinutes}min
+                            </div>
+                          </div>
+                          {workoutMode === "track_separately" ? (
+                            <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-2">−{a.caloriesBurned}</div>
+                          ) : (
+                            <div className="text-[9px] uppercase tracking-widest opacity-35 shrink-0 mr-2 leading-none text-right">
+                              {a.caloriesBurned} kcal<br />{t("includedInActivity")}
+                            </div>
+                          )}
+                          <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                            <button
+                              type="button"
+                              data-testid={`button-edit-activity-${a.id}`}
+                              onClick={() => setActivityEditState({ id: a.id, date: a.date, name: a.name, durationMinutes: String(a.durationMinutes), activityType: a.activityType, caloriesBurned: String(a.caloriesBurned) })}
+                              className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                              aria-label="Edit activity"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              data-testid={`button-delete-activity-${a.id}`}
+                              onClick={() => setPendingDeleteActivity(a.id)}
+                              className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9B4A2E] transition-all"
+                              aria-label="Delete activity"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       )}
-                      <button
-                        type="button"
-                        data-testid={`button-delete-activity-${a.id}`}
-                        onClick={() => deleteActivity.mutate(a.id)}
-                        disabled={deleteActivity.isPending}
-                        className="shrink-0 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity p-1"
-                        aria-label="Delete activity"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -516,6 +637,42 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      <AlertDialog open={!!pendingDeleteMeal} onOpenChange={(o) => { if (!o) setPendingDeleteMeal(null); }}>
+        <AlertDialogContent className="rounded-none font-['Space_Mono']">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("confirmDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("confirmDeleteDesc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none" onClick={() => setPendingDeleteMeal(null)}>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-none bg-[#9B4A2E] hover:bg-[#9B4A2E]/80"
+              onClick={() => { if (pendingDeleteMeal) { deleteMeal.mutate(pendingDeleteMeal); setPendingDeleteMeal(null); } }}
+            >
+              {t("confirmDeleteBtn")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!pendingDeleteActivity} onOpenChange={(o) => { if (!o) setPendingDeleteActivity(null); }}>
+        <AlertDialogContent className="rounded-none font-['Space_Mono']">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("confirmDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("confirmDeleteDesc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none" onClick={() => setPendingDeleteActivity(null)}>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-none bg-[#9B4A2E] hover:bg-[#9B4A2E]/80"
+              onClick={() => { if (pendingDeleteActivity) { deleteActivity.mutate(pendingDeleteActivity); setPendingDeleteActivity(null); } }}
+            >
+              {t("confirmDeleteBtn")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

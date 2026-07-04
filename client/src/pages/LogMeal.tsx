@@ -7,6 +7,17 @@ import {
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MEAL_TYPES, type Meal, type Settings } from "@shared/schema";
 import { AppShell } from "@/components/AppShell";
 import { SetupPrompt } from "@/components/SetupPrompt";
@@ -22,6 +33,7 @@ type NutritionEstimate = {
   carbs: number;
   fats: number;
   mealType?: string;
+  portionAssumption?: string;
 };
 
 type ActivityEstimate = {
@@ -78,7 +90,7 @@ function InlineChat({
   calorieGoal,
   caloriesLogged,
 }: {
-  onLogMeal: (estimate: NutritionEstimate, mealType: string) => Promise<void>;
+  onLogMeal: (estimate: NutritionEstimate, mealType: string) => Promise<string>;
   storageKey: string;
   logDate: string;
   calorieGoal: number;
@@ -103,6 +115,7 @@ function InlineChat({
   const [loggingAll, setLoggingAll] = useState<number | null>(null);
   const [mealTypeOverride, setMealTypeOverride] = useState<Record<number, string>>({});
   const [showMealTypeFor, setShowMealTypeFor] = useState<number | null>(null);
+  const [clearChatOpen, setClearChatOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -292,7 +305,7 @@ function InlineChat({
   async function handleLogMeal(msgId: number, estimate: NutritionEstimate, mealType: string) {
     setLoggingId(msgId);
     try {
-      await onLogMeal(estimate, mealType);
+      const mealId = await onLogMeal(estimate, mealType);
       setMessages((prev) =>
         prev.map((m) => m.id === msgId ? { ...m, confirmed: true } : m)
       );
@@ -301,6 +314,23 @@ function InlineChat({
         text: `${t("addedToLog")} — ${mealType.charAt(0).toUpperCase() + mealType.slice(1)}: ${estimate.name} (${estimate.calories} kcal)`,
         confirmed: true,
       }]);
+      toast({
+        title: `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} · +${estimate.calories} kcal`,
+        duration: 5000,
+        action: (
+          <ToastAction
+            altText={t("undoLabel")}
+            onClick={async () => {
+              try {
+                await apiRequest("DELETE", `/api/meals/${mealId}`);
+                queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+              } catch { /* silent */ }
+            }}
+          >
+            {t("undoLabel")}
+          </ToastAction>
+        ),
+      });
     } catch {
       toast({ title: t("chatFailedToLog"), variant: "destructive" });
     } finally {
@@ -448,7 +478,7 @@ function InlineChat({
                     onToggleMealType={() => setShowMealTypeFor((p) => p === msg.id ? null : msg.id)}
                     mealTypeOverride={mealTypeOverride[msg.id]}
                     onMealTypeChange={(t) => { setMealTypeOverride((p) => ({ ...p, [msg.id]: t })); setShowMealTypeFor(null); }}
-                    onLog={(mealType) => handleLogMeal(msg.id, msg.estimate!, mealType)}
+                    onLog={(mealType, est) => handleLogMeal(msg.id, est, mealType)}
                   />
                 )}
 
@@ -468,7 +498,7 @@ function InlineChat({
                           onToggleMealType={() => setShowMealTypeFor((p) => p === cardId ? null : cardId)}
                           mealTypeOverride={mealTypeOverride[cardId]}
                           onMealTypeChange={(t) => { setMealTypeOverride((p) => ({ ...p, [cardId]: t })); setShowMealTypeFor(null); }}
-                          onLog={(mealType) => handleLogMeal(cardId, est, mealType)}
+                          onLog={(mealType, editedEst) => handleLogMeal(cardId, editedEst, mealType)}
                         />
                       );
                     })}
@@ -627,7 +657,7 @@ function InlineChat({
             {messages.length > 0 && (
               <button
                 type="button"
-                onClick={() => { setMessages([]); try { localStorage.removeItem(storageKey); } catch {} }}
+                onClick={() => setClearChatOpen(true)}
                 data-testid="button-chat-clear"
                 title={lang === "ru" ? "Очистить чат" : "Clear chat"}
                 className="flex h-8 w-8 items-center justify-center border border-[#F2EDE7]/15 hover:border-red-500/50 hover:bg-red-950/30 transition-colors"
@@ -650,6 +680,28 @@ function InlineChat({
           {t("sendHint")}
         </p>
       </div>
+
+      <AlertDialog open={clearChatOpen} onOpenChange={setClearChatOpen}>
+        <AlertDialogContent className="bg-[#1C1714] border-[#F2EDE7]/20 rounded-none max-w-sm font-['Space_Mono']">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[#F2EDE7]">{t("clearChatConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#F2EDE7]/55">
+              {t("clearChatConfirmDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none bg-transparent border-[#F2EDE7]/20 text-[#F2EDE7] hover:bg-[#F2EDE7]/5 uppercase text-xs tracking-widest font-['Space_Mono']">
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setMessages([]); try { localStorage.removeItem(storageKey); } catch {} }}
+              className="rounded-none bg-red-900 text-[#F2EDE7] hover:bg-red-800 uppercase text-xs tracking-widest font-['Space_Mono']"
+            >
+              {t("clearChatBtn")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -675,10 +727,16 @@ function EstimateCard({
   onToggleMealType: () => void;
   mealTypeOverride?: string;
   onMealTypeChange: (type: string) => void;
-  onLog: (mealType: string) => void;
+  onLog: (mealType: string, estimate: NutritionEstimate) => void;
 }) {
   const { t } = useLanguage();
   const mealType = mealTypeOverride || defaultMealType;
+  const [vals, setVals] = useState({
+    calories: estimate.calories,
+    proteins: estimate.proteins,
+    carbs: estimate.carbs,
+    fats: estimate.fats,
+  });
 
   return (
     <div
@@ -688,17 +746,33 @@ function EstimateCard({
       <div className="text-[9px] uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 opacity-50">
         {estimate.mealType ? estimate.mealType.charAt(0).toUpperCase() + estimate.mealType.slice(1) : "Estimate"}
       </div>
-      <div className="text-xs mb-2 text-[#F2EDE7]/85">{estimate.name}</div>
+      <div className="text-xs mb-1.5 text-[#F2EDE7]/85">{estimate.name}</div>
+      {estimate.portionAssumption && (
+        <div className="text-[9px] text-[#F2EDE7]/40 mb-2 leading-snug italic">
+          {estimate.portionAssumption}
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-1.5 text-center mb-3">
-        {[
-          { label: "Kcal", value: estimate.calories },
-          { label: "PRO", value: `${estimate.proteins}g` },
-          { label: "CRB", value: `${estimate.carbs}g` },
-          { label: "FAT", value: `${estimate.fats}g` },
-        ].map(({ label, value }) => (
-          <div key={label} className="border border-[#F2EDE7]/10 py-1.5">
-            <div className="text-[8px] uppercase tracking-widest opacity-50">{label}</div>
-            <div className="text-xs tabular-nums mt-0.5">{value}</div>
+        {([
+          { label: "Kcal", key: "calories" as const, step: "1", isInt: true },
+          { label: "PRO", key: "proteins" as const, step: "0.1", isInt: false },
+          { label: "CRB", key: "carbs" as const, step: "0.1", isInt: false },
+          { label: "FAT", key: "fats" as const, step: "0.1", isInt: false },
+        ] as const).map(({ label, key, step, isInt }) => (
+          <div key={label} className="border border-[#F2EDE7]/10 py-1.5 px-0.5">
+            <div className="text-[8px] uppercase tracking-widest opacity-50 mb-0.5">{label}</div>
+            <input
+              type="number"
+              step={step}
+              min={0}
+              value={vals[key]}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setVals((v) => ({ ...v, [key]: isInt ? (parseInt(raw) || 0) : (parseFloat(raw) || 0) }));
+              }}
+              data-testid={`input-estimate-${key}-${msgId}`}
+              className="text-xs tabular-nums w-full bg-transparent text-center text-[#F2EDE7] outline-none border-b border-[#F2EDE7]/20 focus:border-[#F2EDE7]/60 transition-colors"
+            />
           </div>
         ))}
       </div>
@@ -738,7 +812,7 @@ function EstimateCard({
       <button
         type="button"
         data-testid={`button-use-estimate-${msgId}`}
-        onClick={() => onLog(mealType)}
+        onClick={() => onLog(mealType, { ...estimate, ...vals })}
         disabled={isLogging}
         className="w-full flex items-center justify-center gap-1.5 border border-[#F2EDE7]/40 text-[#F2EDE7] py-2 text-[10px] uppercase tracking-widest hover:bg-[#F2EDE7] hover:text-[#1C1714] transition-colors disabled:opacity-40"
       >
@@ -790,8 +864,9 @@ export default function LogMeal() {
     },
   });
 
-  async function onLogMeal(estimate: NutritionEstimate, mealType: string): Promise<void> {
-    await logMealDirect.mutateAsync({ estimate, mealType });
+  async function onLogMeal(estimate: NutritionEstimate, mealType: string): Promise<string> {
+    const meal = await logMealDirect.mutateAsync({ estimate, mealType });
+    return (meal as { id: string }).id;
   }
 
   if (settingsLoaded && !hasProfile) {

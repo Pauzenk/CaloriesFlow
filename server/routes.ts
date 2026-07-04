@@ -33,6 +33,7 @@ const photoAnalysisSchema = z.object({
   proteins: z.number().min(0).max(2000),
   carbs: z.number().min(0).max(2000),
   fats: z.number().min(0).max(2000),
+  portionAssumption: z.string().max(200).optional(),
 });
 
 const imageCache = new Map<string, string>();
@@ -389,6 +390,7 @@ When the user asks for meal ideas or a full-day plan:
 - NEVER ask clarifying questions about portion size, ingredients, or meal details. If the portion is unspecified, use a realistic standard portion. If the food is ambiguous, pick the most common interpretation.
 - If the user says "add it", "log it", "log this", "yes", "save it", "add to lunch", or any short affirmative/action phrase referring to food or an activity you already estimated in this conversation: re-emit the same estimate in JSON so it can be added to the log. Re-read your previous message to reconstruct the numbers.
 - Numbers: calories = integer, proteins/carbs/fats = 1 decimal place, caloriesBurned = integer.
+- ALWAYS include "portionAssumption" in every food estimate — state the assumed portion and weight in grams (e.g., "1 medium banana, ~118 g" or "1 cup cooked oatmeal (~240 g) + 1 tbsp honey").
 
 ━━━ MANDATORY JSON OUTPUT ━━━
 YOUR ENTIRE RESPONSE must be exactly ONE JSON block — nothing before it, nothing after it.
@@ -399,7 +401,7 @@ YOUR ENTIRE RESPONSE must be exactly ONE JSON block — nothing before it, nothi
 
 For single food:
 \`\`\`json
-{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>}}
+{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"portionAssumption":"<e.g. 1 medium muffin, ~110 g>"}}
 \`\`\`
 
 For activity only:
@@ -414,7 +416,7 @@ For both food and activity:
 
 For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
 \`\`\`json
-{"estimates":[{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"breakfast|lunch|dinner|snack"},{"name":"...","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"..."}]}
+{"estimates":[{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"breakfast|lunch|dinner|snack","portionAssumption":"<e.g. 1 bowl, ~350 g>"},{"name":"...","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"mealType":"...","portionAssumption":"..."}]}
 \`\`\``,
         };
 

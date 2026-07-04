@@ -443,7 +443,7 @@ export default function ProgressPage() {
 
                       {/* Planned line — dashed terracotta, smooth monotone (spec: stays as-is) */}
                       <Line
-                        type="monotone"
+                        type="linear"
                         dataKey="planned"
                         stroke="#9e4515"
                         strokeDasharray="5 4"
@@ -452,9 +452,9 @@ export default function ProgressPage() {
                         connectNulls
                       />
 
-                      {/* Real estimated line — solid ink, past + extended forward */}
+                      {/* Real estimated line — solid ink, straight segments */}
                       <Line
-                        type="stepAfter"
+                        type="linear"
                         dataKey="real"
                         stroke="#1C1714"
                         strokeWidth={2}
@@ -462,9 +462,9 @@ export default function ProgressPage() {
                         connectNulls
                       />
 
-                      {/* Actual logged weight — step line, holds at each measurement */}
+                      {/* Actual logged weight — straight segments */}
                       <Line
-                        type="stepAfter"
+                        type="linear"
                         dataKey="actual"
                         stroke="#4a7c59"
                         strokeWidth={1.5}

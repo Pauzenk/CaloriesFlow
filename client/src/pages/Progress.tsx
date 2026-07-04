@@ -417,11 +417,21 @@ export default function ProgressPage() {
                       />
                       <Tooltip
                         {...CHART_TOOLTIP}
-                        formatter={(v: number, name: string) => {
-                          const labels: Record<string, string> = {
-                            planned: t("plannedLine"),
-                          };
-                          return [`${v?.toFixed(1)} kg`, labels[name] ?? name];
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const pt = payload[0].payload as { week: string; planned: number };
+                          return (
+                            <div style={CHART_TOOLTIP.contentStyle} className="px-3 py-2.5 flex flex-col gap-1">
+                              <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">{pt.week}</p>
+                              <p style={{ color: "#9e4515" }}>{t("plannedLine")} : {pt.planned.toFixed(1)} kg</p>
+                              {currentRealKg !== undefined && (
+                                <p style={{ color: "#1C1714" }}>{t("realLine")} : {currentRealKg.toFixed(1)} kg</p>
+                              )}
+                              {lastLoggedKg !== undefined && (
+                                <p style={{ color: "#4a7c59" }}>{t("loggedLine")} : {lastLoggedKg.toFixed(1)} kg</p>
+                              )}
+                            </div>
+                          );
                         }}
                       />
 

@@ -83,7 +83,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (settings) {
       form.reset({
-        dailyCalorieGoal: settings.dailyCalorieGoal,
+        dailyCalorieGoal: settings.dailyCalorieGoal || 2000,
         startingWeightKg: settings.startingWeightKg,
         currentWeightKg: settings.currentWeightKg,
         journeyStartDate: settings.journeyStartDate,
@@ -205,7 +205,7 @@ export default function SettingsPage() {
       "dailyCalorieGoal",
       watchedMode === "weight_gain"
         ? Math.round(estimatedTDEE + dailyChange)
-        : Math.round(estimatedTDEE - dailyChange),
+        : Math.max(100, Math.round(estimatedTDEE - dailyChange)),
     );
   }
 
@@ -543,7 +543,7 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 data-testid="button-calories-dec"
-                                onClick={() => handleCaloriesChange(String((watchedCalorieGoal || 2000) - 50))}
+                                onClick={() => handleCaloriesChange(String(Math.max(100, (watchedCalorieGoal || 2000) - 50)))}
                                 aria-label="Decrease calories"
                                 className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
                               >−</button>

@@ -159,9 +159,14 @@ export default function SettingsPage() {
       return { calorie: estimatedTDEE + 350, days: optimalDays };
     }
 
-    // weight_loss default
-    const optimalDays = Math.round((weightDiff * 7700) / 500);
-    return { calorie: Math.max(1200, estimatedTDEE - 500), days: optimalDays };
+    // weight_loss default — keep months/calories consistent
+    const idealCalorie = estimatedTDEE - 500;
+    if (idealCalorie >= 1200) {
+      return { calorie: idealCalorie, days: Math.round((weightDiff * 7700) / 500) };
+    }
+    // TDEE is low: floor at 1200, recompute days from actual deficit
+    const actualDeficit = Math.max(1, estimatedTDEE - 1200);
+    return { calorie: 1200, days: Math.round((weightDiff * 7700) / actualDeficit) };
   }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode]);
 
   // Initialize plan once when optimalPlan first becomes available
@@ -225,7 +230,7 @@ export default function SettingsPage() {
 
   const planWarning = useMemo(() => {
     if (!estimatedTDEE || watchedMode === "maintenance") return null;
-    if (watchedCalorieGoal < 1200) return t("planUnsafeWarning");
+    if (watchedCalorieGoal > 0 && watchedCalorieGoal < 1200) return t("planUnsafeWarning");
     return null;
   }, [estimatedTDEE, watchedCalorieGoal, watchedMode, t]);
 

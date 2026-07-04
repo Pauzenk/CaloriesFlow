@@ -175,11 +175,11 @@ export function threeLineWeightSeries(
   const needsGoalWeight = effectiveMode !== "maintenance";
 
   if (!heightCm || !ageYears || !sexAtBirth || !startingWeightKg)
-    return { points: [], projectedGoalDate: null };
+    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined };
   if (needsGoalWeight && !goalWeightKg)
-    return { points: [], projectedGoalDate: null };
+    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined };
   if (sexAtBirth !== "male" && sexAtBirth !== "female")
-    return { points: [], projectedGoalDate: null };
+    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined };
 
   const bmr = computeBMR(startingWeightKg, heightCm, ageYears, sexAtBirth);
   const tdee = computeTDEE(bmr, 1.2);

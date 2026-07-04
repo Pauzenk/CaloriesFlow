@@ -174,10 +174,11 @@ export default function SettingsPage() {
         const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
         const totalDays = settings.goalDurationMonths * 30.44;
         const dailyChange = (remaining * 7700) / totalDays;
-        const newGoal = watchedMode === "weight_gain"
-          ? Math.round(estimatedTDEE + dailyChange)
-          : Math.max(1200, Math.round(estimatedTDEE - dailyChange));
-        form.setValue("dailyCalorieGoal", newGoal);
+        form.setValue("dailyCalorieGoal",
+          watchedMode === "weight_gain"
+            ? Math.round(estimatedTDEE + dailyChange)
+            : Math.round(estimatedTDEE - dailyChange),
+        );
       }
     } else {
       if (optimalPlan.days) setPlanMonths(Math.max(1, Math.round(optimalPlan.days / 30.44)));
@@ -205,7 +206,7 @@ export default function SettingsPage() {
       "dailyCalorieGoal",
       watchedMode === "weight_gain"
         ? Math.round(estimatedTDEE + dailyChange)
-        : Math.max(1200, Math.round(estimatedTDEE - dailyChange)),
+        : Math.round(estimatedTDEE - dailyChange),
     );
   }
 
@@ -224,10 +225,22 @@ export default function SettingsPage() {
 
   const planWarning = useMemo(() => {
     if (!estimatedTDEE || watchedMode === "maintenance") return null;
-    if (watchedCalorieGoal > 0 && watchedCalorieGoal < 1200) return t("planUnsafeWarning");
-    if (watchedMode === "weight_loss" && watchedCalorieGoal > 0 && estimatedTDEE - watchedCalorieGoal > 1000) return t("planAggressiveWarning");
+    if (watchedCalorieGoal < 1200) return t("planUnsafeWarning");
     return null;
   }, [estimatedTDEE, watchedCalorieGoal, watchedMode, t]);
+
+  const minMonthsReached = useMemo(() => {
+    if (!planMonths || planMonths <= 1) return true;
+    if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return false;
+    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+    if (remaining <= 0) return false;
+    const newMonths = planMonths - 1;
+    const dailyChange = (remaining * 7700) / (newMonths * 30.44);
+    const newCalories = watchedMode === "weight_gain"
+      ? estimatedTDEE + dailyChange
+      : estimatedTDEE - dailyChange;
+    return newCalories <= 0;
+  }, [planMonths, estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode]);
 
   const recommendedMonths = optimalPlan?.days ? Math.max(1, Math.round(optimalPlan.days / 30.44)) : null;
 
@@ -507,9 +520,10 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 data-testid="button-months-dec"
-                                onClick={() => handleMonthsChange(String(Math.max(1, (planMonths ?? 2) - 1)))}
+                                onClick={() => handleMonthsChange(String((planMonths ?? 2) - 1))}
                                 aria-label="Decrease months"
-                                className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
+                                disabled={minMonthsReached}
+                                className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none disabled:opacity-20 disabled:cursor-not-allowed"
                               >−</button>
                               <input
                                 type="number"
@@ -539,31 +553,16 @@ export default function SettingsPage() {
                             <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
                               {t("planCaloriesLabel")}
                             </label>
-                            <div className="flex border border-[#1C1714]/40 h-14">
-                              <button
-                                type="button"
-                                data-testid="button-calories-dec"
-                                onClick={() => handleCaloriesChange(String(Math.max(800, (watchedCalorieGoal || 2000) - 50)))}
-                                aria-label="Decrease calories"
-                                className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
-                              >−</button>
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                min={800}
-                                max={10000}
-                                data-testid="input-plan-calories"
-                                value={watchedCalorieGoal || ""}
-                                onChange={(e) => handleCaloriesChange(e.target.value)}
-                                className="flex-1 h-full text-center text-3xl tabular-nums bg-transparent focus:outline-none font-['Space_Mono'] text-[#1C1714]"
-                              />
-                              <button
-                                type="button"
-                                data-testid="button-calories-inc"
-                                onClick={() => handleCaloriesChange(String((watchedCalorieGoal || 2000) + 50))}
-                                aria-label="Increase calories"
-                                className="px-3 border-l border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
-                              >+</button>
+                            <div
+                              data-testid="display-plan-calories"
+                              className="flex items-center justify-center h-14 border border-[#1C1714]/20 bg-[#1C1714]/3"
+                            >
+                              <span
+                                className="text-3xl tabular-nums font-['Space_Mono']"
+                                style={{ color: watchedCalorieGoal < 1200 ? "#9e4515" : "#1C1714" }}
+                              >
+                                {watchedCalorieGoal > 0 ? watchedCalorieGoal.toLocaleString() : "—"}
+                              </span>
                             </div>
                             <p className="text-[10px] opacity-40 mt-1">{t("kcalPerDay")}</p>
                           </div>

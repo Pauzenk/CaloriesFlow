@@ -286,19 +286,21 @@ export function threeLineWeightSeries(
     };
   });
 
-  // Extend real forward (horizontal reference into future).
-  // Extend actual only to current week — don't project logged weights into the future.
+  // Forward-pass carry-forward: extend each line only from the point where a value
+  // was last observed — never backward-fill from a later measurement.
+  // real:   extends into future as a flat reference (current estimated weight).
+  // actual: only extends to current week; not projected into future weeks.
   let lastRealKg: number | undefined;
   let lastActualKg: number | undefined;
-  for (const p of rawPoints) {
+  const points = rawPoints.map(p => {
     if (p.real !== undefined) lastRealKg = p.real;
     if (p.actual !== undefined) lastActualKg = p.actual;
-  }
-  const points = rawPoints.map(p => ({
-    ...p,
-    real: p.real ?? lastRealKg,
-    actual: p.weekIdx <= currentWeekIdx ? (p.actual ?? lastActualKg) : undefined,
-  }));
+    return {
+      ...p,
+      real: p.real ?? lastRealKg,
+      actual: p.weekIdx <= currentWeekIdx ? (p.actual ?? lastActualKg) : undefined,
+    };
+  });
 
   return { points, projectedGoalDate };
 }

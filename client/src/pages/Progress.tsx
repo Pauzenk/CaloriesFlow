@@ -441,9 +441,9 @@ export default function ProgressPage() {
                         />
                       )}
 
-                      {/* Planned line — dashed terracotta */}
+                      {/* Planned line — dashed terracotta, smooth monotone (spec: stays as-is) */}
                       <Line
-                        type="stepAfter"
+                        type="monotone"
                         dataKey="planned"
                         stroke="#9e4515"
                         strokeDasharray="5 4"

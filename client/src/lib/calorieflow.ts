@@ -168,7 +168,7 @@ export function threeLineWeightSeries(
   weights: Weight[],
   goalMode?: string,
   lang?: string,
-): { points: ThreeLinePoint[]; projectedGoalDate: string | null } {
+): { points: ThreeLinePoint[]; projectedGoalDate: string | null; currentRealKg: number | undefined; lastLoggedKg: number | undefined } {
   const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate, dailyCalorieGoal } =
     settings;
   const effectiveMode = goalMode ?? settings.goalMode ?? "weight_loss";
@@ -302,7 +302,7 @@ export function threeLineWeightSeries(
     };
   });
 
-  return { points, projectedGoalDate };
+  return { points, projectedGoalDate, currentRealKg: lastRealKg, lastLoggedKg: lastActualKg };
 }
 
 // ─── Weight Projection Engine ──────────────────────────────────────────────────

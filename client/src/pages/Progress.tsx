@@ -150,18 +150,15 @@ export default function ProgressPage() {
     (goalMode === "maintenance" || settings?.goalWeightKg)
   );
 
-  const { points: threeLinePoints, projectedGoalDate } = useMemo(
+  const { points: threeLinePoints, projectedGoalDate, currentRealKg, lastLoggedKg } = useMemo(
     () =>
       settings && canProject
         ? threeLineWeightSeries(settings, meals, activities, weights, goalMode, lang)
-        : { points: [], projectedGoalDate: null },
+        : { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined },
     [settings, meals, activities, weights, goalMode, lang, canProject],
   );
 
-  const currentEstimatedWeight = useMemo(() => {
-    const past = threeLinePoints.filter((p) => p.real !== undefined);
-    return past.length > 0 ? (past[past.length - 1].real ?? null) : null;
-  }, [threeLinePoints]);
+  const currentEstimatedWeight = currentRealKg ?? null;
 
   const mostRecentActualWeight = useMemo(() => {
     if (weights.length === 0) return null;
@@ -423,14 +420,12 @@ export default function ProgressPage() {
                         formatter={(v: number, name: string) => {
                           const labels: Record<string, string> = {
                             planned: t("plannedLine"),
-                            real: t("realLine"),
-                            actual: t("loggedLine"),
                           };
                           return [`${v?.toFixed(1)} kg`, labels[name] ?? name];
                         }}
                       />
 
-                      {/* Goal reference line */}
+                      {/* Goal reference line — faint dashed ink */}
                       {settings?.goalWeightKg && (
                         <ReferenceLine
                           y={settings.goalWeightKg}
@@ -441,32 +436,32 @@ export default function ProgressPage() {
                         />
                       )}
 
-                      {/* Planned line — dashed terracotta, smooth monotone (spec: stays as-is) */}
+                      {/* Real estimate — flat horizontal ink line at current deficit estimate */}
+                      {currentRealKg !== undefined && (
+                        <ReferenceLine
+                          y={currentRealKg}
+                          stroke="#1C1714"
+                          strokeWidth={2}
+                          strokeOpacity={1}
+                        />
+                      )}
+
+                      {/* Last logged weight — flat horizontal green line */}
+                      {lastLoggedKg !== undefined && (
+                        <ReferenceLine
+                          y={lastLoggedKg}
+                          stroke="#4a7c59"
+                          strokeWidth={1.5}
+                          strokeOpacity={1}
+                        />
+                      )}
+
+                      {/* Planned line — dashed terracotta diagonal */}
                       <Line
                         type="linear"
                         dataKey="planned"
                         stroke="#9e4515"
                         strokeDasharray="5 4"
-                        strokeWidth={1.5}
-                        dot={false}
-                        connectNulls
-                      />
-
-                      {/* Real estimated line — solid ink, straight segments */}
-                      <Line
-                        type="linear"
-                        dataKey="real"
-                        stroke="#1C1714"
-                        strokeWidth={2}
-                        dot={false}
-                        connectNulls
-                      />
-
-                      {/* Actual logged weight — straight segments */}
-                      <Line
-                        type="linear"
-                        dataKey="actual"
-                        stroke="#4a7c59"
                         strokeWidth={1.5}
                         dot={false}
                         connectNulls
@@ -495,13 +490,13 @@ export default function ProgressPage() {
                       <div>
                         <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("realLine")}</p>
                         <p className="text-base tabular-nums tracking-tight opacity-80" data-testid="detail-real">
-                          {point.real !== undefined ? `${point.real.toFixed(1)} kg` : "—"}
+                          {currentRealKg !== undefined ? `${currentRealKg.toFixed(1)} kg` : "—"}
                         </p>
                       </div>
                       <div>
                         <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("loggedLine")}</p>
                         <p className="text-base tabular-nums tracking-tight opacity-60" data-testid="detail-actual">
-                          {point.actualLog !== undefined ? `${point.actualLog.toFixed(1)} kg` : "—"}
+                          {point.actualLog !== undefined ? `${point.actualLog.toFixed(1)} kg` : lastLoggedKg !== undefined ? `${lastLoggedKg.toFixed(1)} kg` : "—"}
                         </p>
                       </div>
                       <button

@@ -251,7 +251,9 @@ export default function ProgressPage() {
               </p>
               <div className="flex items-end gap-2">
                 <span className="text-4xl tabular-nums tracking-tighter leading-none" data-testid="text-estimated-weight">
-                  {displayWeight !== null ? displayWeight.toFixed(1) : "—"}
+                  {displayWeight !== null
+                    ? `${!isActualWeight ? "≈" : ""}${displayWeight.toFixed(1)}`
+                    : "—"}
                 </span>
                 <span className="text-xl opacity-40 mb-0.5">kg</span>
                 {settings?.goalWeightKg && (
@@ -262,42 +264,49 @@ export default function ProgressPage() {
                 <p className="text-[10px] opacity-40 mt-1">
                   {isActualWeight && mostRecentActualWeight
                     ? `${t("loggedOn")} ${formatGoalDate(mostRecentActualWeight.date, lang)}`
-                    : activityLabel
-                    ? `${t("calcFromDeficit")} · ${activityLabel}`
-                    : t("calcFromDeficit")}
+                    : t("modelEstimateCaption")}
                 </p>
               )}
             </div>
             <form
-              className="flex flex-col gap-2 sm:flex-row sm:max-w-[420px] w-full"
+              className="flex flex-col gap-2 sm:flex-row sm:items-end sm:max-w-[420px] w-full mt-2 sm:mt-0"
               onSubmit={(e) => {
                 e.preventDefault();
                 const kg = parseFloat(weightInput);
                 if (!isNaN(kg) && kg > 0 && weightDate) addWeight.mutate({ kg, date: weightDate });
               }}
             >
-              <Input
-                data-testid="input-weight"
-                type="number"
-                step="0.1"
-                value={weightInput}
-                onChange={(e) => setWeightInput(e.target.value)}
-                placeholder={t("logActualPlaceholder")}
-                className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40 h-9 text-sm flex-1"
-              />
+              <div className="flex-1">
+                <label className="block text-[9px] uppercase tracking-widest opacity-50 mb-1.5 font-['Space_Mono']">
+                  {t("logWeightLabel")}
+                </label>
+                <Input
+                  data-testid="input-weight"
+                  type="number"
+                  step="0.1"
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  placeholder="0.0"
+                  className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] placeholder:opacity-40 h-9 text-sm w-full"
+                />
+              </div>
               <Input
                 data-testid="input-weight-date"
                 type="date"
                 value={weightDate}
                 max={todayStr()}
                 onChange={(e) => setWeightDate(e.target.value)}
-                className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] h-9 text-sm w-full sm:w-36"
+                className="rounded-none border-[#1C1714]/30 bg-transparent font-['Space_Mono'] text-[#1C1714] focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#1C1714] h-9 text-sm w-full sm:w-36 shrink-0"
               />
               <button
                 type="submit"
                 data-testid="button-log-weight"
                 disabled={addWeight.isPending || !weightInput || !weightDate}
-                className="shrink-0 bg-[#1C1714] text-[#F2EDE7] px-4 py-2 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 transition-colors disabled:opacity-40 whitespace-nowrap"
+                className={`shrink-0 px-5 py-2 text-xs uppercase tracking-widest transition-colors whitespace-nowrap h-9 ${
+                  weightInput
+                    ? "bg-[#1C1714] text-[#F2EDE7] hover:bg-[#1C1714]/80"
+                    : "border border-[#1C1714]/25 text-[#1C1714]/35 cursor-default"
+                }`}
               >
                 {addWeight.isPending ? "…" : t("addButton")}
               </button>

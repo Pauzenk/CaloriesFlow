@@ -75,9 +75,8 @@ const nextId = () => ++msgId;
 
 function getDefaultMealType(): string {
   const h = new Date().getHours();
-  if (h < 10) return "breakfast";
-  if (h < 14) return "lunch";
-  if (h < 18) return "snack";
+  if (h < 11) return "breakfast";
+  if (h < 16) return "lunch";
   return "dinner";
 }
 
@@ -676,7 +675,7 @@ function InlineChat({
             </button>
           </div>
         </div>
-        <p className="mt-1.5 text-[9px] uppercase tracking-widest text-[#F2EDE7]/25">
+        <p className="hidden sm:block mt-1.5 text-[9px] uppercase tracking-widest text-[#F2EDE7]/25">
           {t("sendHint")}
         </p>
       </div>
@@ -756,7 +755,7 @@ function EstimateCard({
         {([
           { label: "Kcal", key: "calories" as const, step: "1", isInt: true },
           { label: "PRO", key: "proteins" as const, step: "0.1", isInt: false },
-          { label: "CRB", key: "carbs" as const, step: "0.1", isInt: false },
+          { label: "CARB", key: "carbs" as const, step: "0.1", isInt: false },
           { label: "FAT", key: "fats" as const, step: "0.1", isInt: false },
         ] as const).map(({ label, key, step, isInt }) => (
           <div key={label} className="border border-[#F2EDE7]/10 py-1.5 px-0.5">

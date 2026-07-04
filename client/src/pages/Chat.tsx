@@ -241,7 +241,7 @@ export default function ChatPage() {
                         {[
                           { label: "Kcal", value: msg.estimate.calories },
                           { label: "PRO", value: `${msg.estimate.proteins}g` },
-                          { label: "CRB", value: `${msg.estimate.carbs}g` },
+                          { label: "CARB", value: `${msg.estimate.carbs}g` },
                           { label: "FAT", value: `${msg.estimate.fats}g` },
                         ].map(({ label, value }) => (
                           <div key={label} className="border border-[#1C1714]/10 py-2">

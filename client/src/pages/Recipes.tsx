@@ -124,7 +124,7 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
           <div className="flex gap-4 text-xs mb-8 mt-3 pb-4 border-b border-[#1C1714]/15">
             <span><span className="opacity-50">Kcal</span> <span className="tabular-nums font-bold">{meal.calories}</span></span>
             <span><span className="opacity-50">PRO</span> <span className="tabular-nums">{meal.proteins}g</span></span>
-            <span><span className="opacity-50">CRB</span> <span className="tabular-nums">{meal.carbs}g</span></span>
+            <span><span className="opacity-50">CARB</span> <span className="tabular-nums">{meal.carbs}g</span></span>
             <span><span className="opacity-50">FAT</span> <span className="tabular-nums">{meal.fats}g</span></span>
           </div>
           <section className="mb-8">

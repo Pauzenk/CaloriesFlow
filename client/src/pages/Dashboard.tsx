@@ -341,7 +341,7 @@ export default function Dashboard() {
                 <span data-testid="text-macro-proteins">{Math.round(totals.proteins)}g</span>
               </div>
               <div>
-                <span className="opacity-50">CRB</span>{" "}
+                <span className="opacity-50">CARB</span>{" "}
                 <span data-testid="text-macro-carbs">{Math.round(totals.carbs)}g</span>
               </div>
               <div>
@@ -453,10 +453,10 @@ export default function Dashboard() {
                           </div>
                         ) : (
                           <div className="group flex items-center py-2.5 border-b border-[#1C1714]/10 hover:border-[#1C1714]/40 transition-colors">
-                            <div className="flex-1 px-0 min-w-0">
+                            <div className="flex-1 pr-4 min-w-0">
                               <div className="leading-tight truncate">{m.name}</div>
                             </div>
-                            <div className="tabular-nums shrink-0 mr-2 opacity-80">+{m.calories}</div>
+                            <div className="tabular-nums shrink-0 mr-2 opacity-80 min-w-[3.5rem] text-right">+{m.calories}</div>
                             <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                               <button
                                 type="button"

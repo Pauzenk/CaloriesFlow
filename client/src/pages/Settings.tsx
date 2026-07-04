@@ -262,7 +262,8 @@ export default function SettingsPage() {
       const res = await apiRequest("PUT", "/api/settings", payload);
       return (await res.json()) as Settings;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      form.reset(variables);
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({ title: t("saveChanges") });
     },
@@ -655,24 +656,33 @@ export default function SettingsPage() {
               )}
             </div>
 
-            {/* ── Save ── */}
-            <div className="border-t-2 border-[#1C1714] pt-6 flex flex-col items-start gap-3">
-              <button
-                type="submit"
-                disabled={save.isPending}
-                data-testid="button-save-settings"
-                className="border-2 border-[#1C1714] px-12 py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors disabled:opacity-40 w-full sm:w-auto"
-              >
-                {save.isPending ? t("saving") : t("saveChanges")}
-              </button>
-              <div className="text-[10px] opacity-30 tracking-widest uppercase">{t("endOfRecord")}</div>
+            {/* ── Sticky Save Bar (only when dirty) ── */}
+            <div
+              className={`sticky bottom-16 md:bottom-0 -mx-4 md:-mx-8 mt-8 border-t-2 border-[#1C1714] bg-[#F2EDE7] px-4 md:px-8 py-4 z-40 transition-all duration-200 ${
+                form.formState.isDirty
+                  ? "opacity-100 pointer-events-auto shadow-[0_-6px_24px_rgba(28,23,20,0.1)]"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div className="flex items-center gap-4 flex-wrap">
+                <button
+                  type="submit"
+                  disabled={save.isPending}
+                  data-testid="button-save-settings"
+                  className="border-2 border-[#1C1714] px-10 py-3 text-xs uppercase tracking-widest hover:bg-[#1C1714] hover:text-[#F2EDE7] transition-colors disabled:opacity-40"
+                >
+                  {save.isPending ? t("saving") : t("saveChanges")}
+                </button>
+                <span className="text-[10px] uppercase tracking-widest opacity-40">{t("unsavedChanges")}</span>
+              </div>
             </div>
 
           </form>
         </Form>
 
-        {/* ── Danger zone ── */}
-        <div className="border-t border-[#1C1714]/20 pt-8 mt-4">
+        {/* ── Danger Zone ── */}
+        <div className="border-t border-[#1C1714]/20 pt-8 mt-8">
+          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-5">{t("dangerZone")}</p>
           <button
             type="button"
             data-testid="button-restart"

@@ -202,7 +202,7 @@ export default function SettingsPage() {
     const months = parseInt(raw, 10);
     setPlanMonths(months > 0 ? months : null);
     if (!months || months <= 0) return;
-    form.setValue("goalDurationMonths", months);
+    form.setValue("goalDurationMonths", months, { shouldDirty: true });
     if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return;
     const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
     const totalDays = months * 30.44;
@@ -212,6 +212,7 @@ export default function SettingsPage() {
       watchedMode === "weight_gain"
         ? Math.round(estimatedTDEE + dailyChange)
         : Math.round(estimatedTDEE - dailyChange),
+      { shouldDirty: true },
     );
   }
 

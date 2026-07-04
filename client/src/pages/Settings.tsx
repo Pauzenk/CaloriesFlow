@@ -205,18 +205,18 @@ export default function SettingsPage() {
       "dailyCalorieGoal",
       watchedMode === "weight_gain"
         ? Math.round(estimatedTDEE + dailyChange)
-        : Math.max(1200, Math.round(estimatedTDEE - dailyChange)),
+        : Math.round(estimatedTDEE - dailyChange),
     );
   }
 
   function handleCaloriesChange(raw: string) {
     const cal = parseInt(raw, 10);
-    form.setValue("dailyCalorieGoal", cal || 0);
-    if (!cal || cal < 500 || !estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return;
+    form.setValue("dailyCalorieGoal", isNaN(cal) ? 0 : cal);
+    if (!cal || cal <= 0 || !estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return;
     const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
     if (remaining <= 0) return;
     const dailyChange = watchedMode === "weight_gain" ? cal - estimatedTDEE : estimatedTDEE - cal;
-    if (dailyChange <= 0) { setPlanMonths(null); return; }
+    if (dailyChange <= 0) { setPlanMonths(null); form.setValue("goalDurationMonths", null); return; }
     const months = Math.max(1, Math.round((remaining * 7700) / dailyChange / 30.44));
     setPlanMonths(months);
     form.setValue("goalDurationMonths", months);
@@ -543,14 +543,13 @@ export default function SettingsPage() {
                               <button
                                 type="button"
                                 data-testid="button-calories-dec"
-                                onClick={() => handleCaloriesChange(String(Math.max(800, (watchedCalorieGoal || 2000) - 50)))}
+                                onClick={() => handleCaloriesChange(String((watchedCalorieGoal || 2000) - 50))}
                                 aria-label="Decrease calories"
                                 className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
                               >−</button>
                               <input
                                 type="number"
                                 inputMode="numeric"
-                                min={800}
                                 max={10000}
                                 data-testid="input-plan-calories"
                                 value={watchedCalorieGoal || ""}

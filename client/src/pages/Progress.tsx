@@ -420,7 +420,10 @@ export default function ProgressPage() {
                         formatter={(v: number, name: string) => {
                           const labels: Record<string, string> = {
                             planned: t("plannedLine"),
+                            real: t("realLine"),
+                            actual: t("loggedLine"),
                           };
+                          if (v === undefined || v === null) return null as any;
                           return [`${v?.toFixed(1)} kg`, labels[name] ?? name];
                         }}
                       />
@@ -436,7 +439,7 @@ export default function ProgressPage() {
                         />
                       )}
 
-                      {/* Real estimate — flat horizontal ink line at current deficit estimate */}
+                      {/* Real estimate — flat horizontal ink line (visual) */}
                       {currentRealKg !== undefined && (
                         <ReferenceLine
                           y={currentRealKg}
@@ -446,7 +449,7 @@ export default function ProgressPage() {
                         />
                       )}
 
-                      {/* Last logged weight — flat horizontal green line */}
+                      {/* Last logged weight — flat horizontal green line (visual) */}
                       {lastLoggedKg !== undefined && (
                         <ReferenceLine
                           y={lastLoggedKg}
@@ -466,6 +469,10 @@ export default function ProgressPage() {
                         dot={false}
                         connectNulls
                       />
+
+                      {/* Hidden lines — carry real + actual into the hover tooltip */}
+                      <Line type="linear" dataKey="real" stroke="transparent" strokeWidth={0} dot={false} connectNulls legendType="none" />
+                      <Line type="linear" dataKey="actual" stroke="transparent" strokeWidth={0} dot={false} connectNulls legendType="none" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>

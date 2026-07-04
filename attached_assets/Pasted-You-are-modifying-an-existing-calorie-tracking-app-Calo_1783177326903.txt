@@ -1,0 +1,55 @@
+You are modifying an existing calorie-tracking app (CalorieFlow).
+
+STRICT CONSTRAINTS:
+- Do NOT redesign the visual style. Keep existing typography, colors, spacing.
+- Do NOT remove or rename features other than those explicitly listed below.
+- Only additive/safe data migrations; existing user data must remain valid.
+- Keep the app runnable after each change.
+
+=== 1. Remove activity level from calculations ===
+
+1.1 Remove the "ACTIVITY LEVEL" block (Sedentary / Lightly active / Moderately active / Very active) from the Parameters screen entirely.
+
+1.2 Maintenance calories are now always calculated as BMR × 1.2 (sedentary baseline). Update all dependent values: daily target, deficit, projections, goal date.
+
+1.3 Workouts logged by the user (via AI chat or elsewhere) continue to add burned calories back to the daily budget, as they do now. This is now the ONLY way activity affects the numbers — no more double-counting with a multiplier.
+
+1.4 Remove the text "Lightly active (×1.375)" from the "Calculated from calorie deficit" caption on the Progress screen and anywhere else the multiplier is mentioned.
+
+=== 2. Parameters: make plan controls look editable ===
+
+2.1 In the "ADJUST YOUR PLAN" section, TIMELINE (MONTHS) and CALORIES / DAY currently look like static numbers. Make them clearly recognizable as editable inputs: visible field borders (same border style as other inputs on this screen, e.g. Start weight / Goal weight) and stepper controls (+/−). Keep the existing recalculation logic linking the two fields.
+
+=== 3. Recipes screen: empty state ===
+
+3.1 On first visit (no plan generated yet), the Recipes screen must show an empty state instead of a blank/auto-generated list: a short line "Generate your day plan" and a primary button "GENERATE PLAN".
+
+3.2 After a plan has been generated at least once, the screen always shows the most recent generated plan (persist it). The existing "NEW PLAN" button stays for regenerating.
+
+=== 4. Dashboard cleanup ===
+
+4.1 Remove the "RECIPES" button next to "+ ADD ENTRY" on the Dashboard. Recipes remain accessible via the bottom tab only. "+ ADD ENTRY" can take the full width.
+
+4.2 Keep the day's tally exactly as it is now: a single large net number against the daily goal. Do NOT add an "Eaten / Burned / Net" breakdown.
+
+=== 5. Progress: weight projection chart (step lines) ===
+
+Rework the projection chart so all weight lines are STEP LINES: strictly horizontal segments that shift straight down at change points. No slopes, no curves, no smoothing.
+
+5.1 REAL ESTIMATE (solid black line): a step line computed from accumulated calorie deficit. It stays horizontal and steps down as estimated weight decreases (e.g. steps of 0.1 kg, each step placed at the date when the accumulated deficit crosses that threshold).
+
+5.2 LOGGED (currently a dot in the legend): change to a step line, not points. Each time the user logs an actual weight, the line steps down (or up) to that value at that date and continues horizontally until the next logged weight.
+
+5.3 Anchoring: when a new actual weight is logged, the REAL ESTIMATE line re-anchors — from that date forward it starts from the logged value and continues estimating from accumulated deficit on top of it. Past segments of the estimate line before the anchor date remain unchanged.
+
+5.4 PLANNED (dashed line) stays as is. The purpose of the chart is to let the user see how the estimate and logged lines move down and where they intersect the planned line — make sure all three lines share the same axes and scale.
+
+5.5 Update the legend: LOGGED becomes a line style (not a dot). Keep GOAL horizontal reference line.
+
+=== VERIFICATION ===
+- App builds and runs; existing logs render correctly.
+- Removing activity level changed maintenance to BMR × 1.2 and all dependent numbers recalculated.
+- Timeline and Calories fields in Parameters are visibly editable and still linked.
+- Recipes: empty state on fresh account; last plan persists after generation.
+- Dashboard has no Recipes button; tally unchanged.
+- Chart: estimate and logged render as step lines; logging a new weight re-anchors the estimate from that point.

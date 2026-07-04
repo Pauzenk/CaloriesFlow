@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays, Sparkles } from "lucide-react";
+import { Plus, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -609,8 +609,8 @@ export default function Dashboard() {
               </div>
 
               {/* Actions */}
-              <div className="mt-4 flex gap-3">
-                <Link href={`/log?date=${selectedDate}`} className="flex-1">
+              <div className="mt-4">
+                <Link href={`/log?date=${selectedDate}`}>
                   <button
                     type="button"
                     data-testid="button-add-meal"
@@ -619,18 +619,6 @@ export default function Dashboard() {
                     <Plus className="h-3.5 w-3.5" /> {t("addEntry")}
                   </button>
                 </Link>
-                {isToday && remaining > 0 && (
-                  <Link href={`/recipes?date=${selectedDate}`}>
-                    <button
-                      type="button"
-                      data-testid="button-meal-ideas"
-                      className="border border-[#1C1714]/40 text-[#1C1714] py-3 px-4 text-xs uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors flex items-center justify-center gap-2"
-                      title={`${remaining} kcal remaining — get recipe ideas`}
-                    >
-                      <Sparkles className="h-3.5 w-3.5 opacity-60" /> {t("recipes")}
-                    </button>
-                  </Link>
-                )}
               </div>
             </>
           )}

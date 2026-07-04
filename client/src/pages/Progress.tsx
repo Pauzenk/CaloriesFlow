@@ -19,7 +19,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Activity, Meal, Settings, Weight } from "@shared/schema";
-import { ACTIVITY_MULTIPLIERS, ACTIVITY_LEVEL_LABELS, type ActivityLevel, type GoalMode } from "@shared/schema";
+import { type GoalMode } from "@shared/schema";
 import {
   computeBMR,
   computeTDEE,
@@ -178,8 +178,7 @@ export default function ProgressPage() {
     const sex = settings.sexAtBirth;
     if (sex !== "male" && sex !== "female") return null;
     const bmr = computeBMR(settings.startingWeightKg, settings.heightCm, settings.ageYears, sex);
-    const multiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
-    return Math.round(computeTDEE(bmr, multiplier));
+    return Math.round(computeTDEE(bmr, 1.2));
   }, [settings]);
 
   const weightProgressPct = useMemo(() => {
@@ -188,10 +187,6 @@ export default function ProgressPage() {
     const done = Math.abs(settings.startingWeightKg - displayWeight);
     return Math.max(0, Math.min(100, Math.round((done / total) * 100)));
   }, [settings, displayWeight]);
-
-  const activityLabel = settings?.activityLevel
-    ? ACTIVITY_LEVEL_LABELS[settings.activityLevel as ActivityLevel]
-    : null;
 
   const intakeChartMax = Math.max(
     (estimatedTDEE ?? goal) + 200,
@@ -381,7 +376,7 @@ export default function ProgressPage() {
                     {t("realLine")}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#4a7c59]" />
+                    <span className="inline-block w-4 bg-[#4a7c59]" style={{ height: 2 }} />
                     {t("loggedLine")}
                   </span>
                   {settings?.goalWeightKg && (
@@ -448,7 +443,7 @@ export default function ProgressPage() {
 
                       {/* Planned line — dashed terracotta */}
                       <Line
-                        type="monotone"
+                        type="stepAfter"
                         dataKey="planned"
                         stroke="#9e4515"
                         strokeDasharray="5 4"
@@ -457,9 +452,9 @@ export default function ProgressPage() {
                         connectNulls
                       />
 
-                      {/* Real estimated line — solid ink, past only */}
+                      {/* Real estimated line — solid ink, past + extended forward */}
                       <Line
-                        type="monotone"
+                        type="stepAfter"
                         dataKey="real"
                         stroke="#1C1714"
                         strokeWidth={2}
@@ -467,29 +462,13 @@ export default function ProgressPage() {
                         connectNulls
                       />
 
-                      {/* Actual logged weight — line extended as reference + dots only at real measurements */}
+                      {/* Actual logged weight — step line, holds at each measurement */}
                       <Line
-                        type="monotone"
+                        type="stepAfter"
                         dataKey="actual"
                         stroke="#4a7c59"
                         strokeWidth={1.5}
-                        dot={(props: { cx?: number; cy?: number; index?: number }) => {
-                          const point = props.index !== undefined ? threeLinePoints[props.index] : undefined;
-                          if (point?.actualLog === undefined || props.cx == null || props.cy == null)
-                            return <g key={`act-empty-${props.index}`} />;
-                          const isSelected = point.weekIdx === selectedWeekKey;
-                          return (
-                            <circle
-                              key={`act-dot-${props.index}`}
-                              cx={props.cx}
-                              cy={props.cy}
-                              r={isSelected ? 6 : 4}
-                              fill="#4a7c59"
-                              stroke="#F2EDE7"
-                              strokeWidth={isSelected ? 2.5 : 1.5}
-                            />
-                          );
-                        }}
+                        dot={false}
                         connectNulls
                       />
                     </ComposedChart>

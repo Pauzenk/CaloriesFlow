@@ -22,9 +22,6 @@ import {
   upsertSettingsSchema,
   type Settings,
   type UpsertSettings,
-  ACTIVITY_LEVELS,
-  ACTIVITY_MULTIPLIERS,
-  type ActivityLevel,
   type GoalMode,
 } from "@shared/schema";
 import {
@@ -65,20 +62,6 @@ export default function SettingsPage() {
     onError: () => toast({ title: "Failed to reset data", variant: "destructive" }),
   });
 
-  const activityLabelMap: Record<ActivityLevel, string> = {
-    sedentary: t("actSedentary"),
-    lightly_active: t("actLightlyActive"),
-    moderately_active: t("actModeratelyActive"),
-    very_active: t("actVeryActive"),
-  };
-
-  const activityDescMap: Record<ActivityLevel, string> = {
-    sedentary: t("actDescSedentary"),
-    lightly_active: t("actDescLightlyActive"),
-    moderately_active: t("actDescModeratelyActive"),
-    very_active: t("actDescVeryActive"),
-  };
-
   const form = useForm<UpsertSettings>({
     resolver: zodResolver(upsertSettingsSchema),
     defaultValues: {
@@ -108,7 +91,7 @@ export default function SettingsPage() {
         ageYears: settings.ageYears ?? null,
         sexAtBirth: (settings.sexAtBirth as "male" | "female" | null) ?? null,
         goalWeightKg: settings.goalWeightKg ?? null,
-        activityLevel: (settings.activityLevel as ActivityLevel) ?? "sedentary",
+        activityLevel: settings.activityLevel ?? "sedentary",
         goalDurationMonths: settings.goalDurationMonths ?? null,
         goalMode: (settings.goalMode as GoalMode) ?? "weight_loss",
         workoutCountingMode: (settings.workoutCountingMode as "include_in_activity_level" | "track_separately") ?? "include_in_activity_level",
@@ -123,7 +106,6 @@ export default function SettingsPage() {
   const watchedStartWeight = form.watch("startingWeightKg");
   const watchedCurrentWeight = form.watch("currentWeightKg");
   const watchedGoalWeight = form.watch("goalWeightKg");
-  const watchedActivityLevel = form.watch("activityLevel");
   const watchedMode = (form.watch("goalMode") ?? "weight_loss") as GoalMode;
   const watchedCalorieGoal = form.watch("dailyCalorieGoal");
 
@@ -133,9 +115,8 @@ export default function SettingsPage() {
   const estimatedTDEE = useMemo(() => {
     if (!watchedHeight || !watchedAge || !watchedSex || !weightForCalc) return null;
     const bmr = computeBMR(weightForCalc, watchedHeight, watchedAge, watchedSex as "male" | "female");
-    const multiplier = ACTIVITY_MULTIPLIERS[(watchedActivityLevel as ActivityLevel) ?? "sedentary"] ?? 1.2;
-    return Math.round(computeTDEE(bmr, multiplier));
-  }, [watchedHeight, watchedAge, watchedSex, weightForCalc, watchedActivityLevel]);
+    return Math.round(computeTDEE(bmr, 1.2));
+  }, [watchedHeight, watchedAge, watchedSex, weightForCalc]);
 
   // BMI panel — computed from height + current/start weight
   const bmiData = useMemo(() => {
@@ -458,38 +439,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* ── Activity Level ── */}
-            <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
-                {t("activityLevel")}
-              </div>
-              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("activityLevelHint")}</p>
-              <FormField control={form.control} name="activityLevel" render={({ field }) => (
-                <FormItem>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {ACTIVITY_LEVELS.map((level) => {
-                      const active = field.value === level;
-                      return (
-                        <button key={level} type="button" data-testid={`radio-activity-${level}`}
-                          onClick={() => field.onChange(level)}
-                          className={`flex flex-col gap-1 border px-4 py-3 text-left transition-colors ${
-                            active
-                              ? "border-[#1C1714] bg-[#1C1714] text-[#F2EDE7]"
-                              : "border-[#1C1714]/30 text-[#1C1714] hover:border-[#1C1714]"
-                          }`}>
-                          <span className="text-xs uppercase tracking-wider font-bold">{activityLabelMap[level]}</span>
-                          <span className={`text-[10px] leading-snug ${active ? "opacity-70" : "opacity-50"}`}>
-                            {activityDescMap[level]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            </div>
-
             {/* ── Workout Counting ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
@@ -586,16 +535,32 @@ export default function SettingsPage() {
                             <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
                               {t("planMonthsLabel")}
                             </label>
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              min={1}
-                              max={120}
-                              data-testid="input-plan-months"
-                              value={planMonths ?? ""}
-                              onChange={(e) => handleMonthsChange(e.target.value)}
-                              className={IN + " text-3xl h-14 tabular-nums w-full px-3"}
-                            />
+                            <div className="flex border border-[#1C1714]/40 h-14">
+                              <button
+                                type="button"
+                                data-testid="button-months-dec"
+                                onClick={() => handleMonthsChange(String(Math.max(1, (planMonths ?? 2) - 1)))}
+                                aria-label="Decrease months"
+                                className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
+                              >−</button>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={1}
+                                max={120}
+                                data-testid="input-plan-months"
+                                value={planMonths ?? ""}
+                                onChange={(e) => handleMonthsChange(e.target.value)}
+                                className="flex-1 h-full text-center text-3xl tabular-nums bg-transparent focus:outline-none font-['Space_Mono'] text-[#1C1714]"
+                              />
+                              <button
+                                type="button"
+                                data-testid="button-months-inc"
+                                onClick={() => handleMonthsChange(String((planMonths ?? 0) + 1))}
+                                aria-label="Increase months"
+                                className="px-3 border-l border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
+                              >+</button>
+                            </div>
                             {planMonths && planMonths > 0 && (
                               <p className="text-[10px] opacity-40 mt-1">
                                 {t("planGoalDateLabel")} {goalDateFromMonths(planMonths)}
@@ -606,16 +571,32 @@ export default function SettingsPage() {
                             <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
                               {t("planCaloriesLabel")}
                             </label>
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              min={800}
-                              max={10000}
-                              data-testid="input-plan-calories"
-                              value={watchedCalorieGoal || ""}
-                              onChange={(e) => handleCaloriesChange(e.target.value)}
-                              className={IN + " text-3xl h-14 tabular-nums w-full px-3"}
-                            />
+                            <div className="flex border border-[#1C1714]/40 h-14">
+                              <button
+                                type="button"
+                                data-testid="button-calories-dec"
+                                onClick={() => handleCaloriesChange(String(Math.max(800, (watchedCalorieGoal || 2000) - 50)))}
+                                aria-label="Decrease calories"
+                                className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
+                              >−</button>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={800}
+                                max={10000}
+                                data-testid="input-plan-calories"
+                                value={watchedCalorieGoal || ""}
+                                onChange={(e) => handleCaloriesChange(e.target.value)}
+                                className="flex-1 h-full text-center text-3xl tabular-nums bg-transparent focus:outline-none font-['Space_Mono'] text-[#1C1714]"
+                              />
+                              <button
+                                type="button"
+                                data-testid="button-calories-inc"
+                                onClick={() => handleCaloriesChange(String((watchedCalorieGoal || 2000) + 50))}
+                                aria-label="Increase calories"
+                                className="px-3 border-l border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
+                              >+</button>
+                            </div>
                             <p className="text-[10px] opacity-40 mt-1">{t("kcalPerDay")}</p>
                           </div>
                         </div>

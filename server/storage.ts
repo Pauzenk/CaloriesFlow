@@ -58,6 +58,7 @@ const DEFAULT_SETTINGS = {
   dailyCalorieGoal: 2000,
   startingWeightKg: 0,
   currentWeightKg: 0,
+  workoutCountingMode: "include_in_activity_level" as const,
 };
 
 export class DbStorage implements IStorage {

@@ -102,8 +102,11 @@ export default function Dashboard() {
   const dayActivities = activities;
   const totals = sumMacros(dayMeals);
   const totalActivityCalories = dayActivities.reduce((s, a) => s + a.caloriesBurned, 0);
-  const netCalories = totals.calories - totalActivityCalories;
   const goal = settings?.dailyCalorieGoal || 2000;
+  const workoutMode = settings?.workoutCountingMode ?? "include_in_activity_level";
+  const netCalories = workoutMode === "track_separately"
+    ? totals.calories - totalActivityCalories
+    : totals.calories;
   const remaining = Math.max(0, goal - netCalories);
   const dayNum = settings ? daysSince(settings.journeyStartDate, selectedDate) : null;
 
@@ -245,7 +248,7 @@ export default function Dashboard() {
             </div>
             <div className="text-right">
               <p className={`text-[10px] uppercase tracking-widest mb-1 ${netCalories > goal ? "text-red-500 opacity-80" : "opacity-60"}`}>
-                {netCalories > goal ? t("surplusLabel") : t("deficitLabel")}
+                {netCalories > goal ? t("surplusLabel") : t("remaining")}
               </p>
               <div
                 className={`text-3xl tracking-tighter leading-none ${netCalories > goal ? "text-red-500" : ""}`}
@@ -256,7 +259,23 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="mt-4 mb-1">
+          {/* Eaten · Burned · Net breakdown */}
+          <div className="flex gap-4 mt-2.5 text-[10px] uppercase tracking-widest opacity-60" data-testid="row-eaten-burned-net">
+            <span>
+              {t("eatenLabel")}{" "}
+              <span className="tabular-nums opacity-100 text-[#1C1714]" data-testid="text-eaten">{totals.calories}</span>
+            </span>
+            <span>
+              · {t("burnedLabel")}{" "}
+              <span className="tabular-nums opacity-100 text-[#1C1714]" data-testid="text-burned">{totalActivityCalories}</span>
+            </span>
+            <span>
+              · {t("netLabel")}{" "}
+              <span className="tabular-nums opacity-100 text-[#1C1714]" data-testid="text-net">{netCalories}</span>
+            </span>
+          </div>
+
+          <div className="mt-3 mb-1">
             <div className="w-full h-1.5 bg-[#1C1714]/10 overflow-hidden">
               <div
                 className="h-full transition-all duration-500"
@@ -435,7 +454,13 @@ export default function Dashboard() {
                           {a.activityType} · {a.durationMinutes}min
                         </div>
                       </div>
-                      <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-2">−{a.caloriesBurned}</div>
+                      {workoutMode === "track_separately" ? (
+                        <div className="tabular-nums text-[#9B4A2E] shrink-0 mr-2">−{a.caloriesBurned}</div>
+                      ) : (
+                        <div className="text-[9px] uppercase tracking-widest opacity-35 shrink-0 mr-2 leading-none text-right">
+                          {a.caloriesBurned} kcal<br />{t("includedInActivity")}
+                        </div>
+                      )}
                       <button
                         type="button"
                         data-testid={`button-delete-activity-${a.id}`}

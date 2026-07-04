@@ -67,6 +67,7 @@ export const settings = pgTable("settings", {
   activityLevel: text("activity_level").notNull().default("sedentary"),
   goalDurationMonths: integer("goal_duration_months"),
   goalMode: text("goal_mode").notNull().default("weight_loss"),
+  workoutCountingMode: text("workout_counting_mode").notNull().default("include_in_activity_level"),
 });
 
 export const upsertSettingsSchema = createInsertSchema(settings)
@@ -95,6 +96,7 @@ export const upsertSettingsSchema = createInsertSchema(settings)
         z.number().int().min(1).max(24).nullable().optional(),
       ),
     goalMode: z.enum(GOAL_MODES).default("weight_loss"),
+    workoutCountingMode: z.enum(["include_in_activity_level", "track_separately"]).default("include_in_activity_level"),
   });
 
 export type Settings = typeof settings.$inferSelect;

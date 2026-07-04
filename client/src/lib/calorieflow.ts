@@ -230,7 +230,8 @@ export function threeLineWeightSeries(
       cumPlanned += plannedDailyDeficit;
       if (isPast) {
         const eaten = mealCal.get(dateStr);
-        const burned = actCal.get(dateStr) ?? 0;
+        const rawBurned = actCal.get(dateStr) ?? 0;
+        const burned = settings.workoutCountingMode === "track_separately" ? rawBurned : 0;
         if (eaten !== undefined) {
           cumReal += tdee - (eaten - burned);
         }

@@ -465,157 +465,125 @@ export default function SettingsPage() {
               </div>
 
               {canComputeTarget ? (
-                <div className="space-y-5 mt-4">
+                <div className="space-y-4 mt-4">
 
-                  {/* TDEE reference row */}
-                  <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
-                    <div data-testid="panel-tdee">
-                      <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("maintenance")}</div>
-                      <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE?.toLocaleString()}</div>
-                      <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                    </div>
-                    {watchedMode === "maintenance" ? (
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("modeMaintenance")}</div>
-                        <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE?.toLocaleString()}</div>
-                        <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                      </div>
-                    ) : watchedMode === "weight_gain" ? (
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("surplus300")}</div>
-                        <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{((estimatedTDEE ?? 0) + 350).toLocaleString()}</div>
-                        <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                      </div>
-                    ) : (
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
-                        <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{((estimatedTDEE ?? 0) - 500).toLocaleString()}</div>
-                        <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 2-way planner — loss / gain only */}
-                  {watchedMode !== "maintenance" && (
-                    <div className="border-2 border-[#1C1714] p-5 space-y-5" data-testid="panel-planner">
-
-                      {/* Recommended headline + its own rate/date */}
-                      {recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">
-                              {isGoalBelowHealthyRange ? t("yourPlanTag") : t("recommendedTag")}
-                            </p>
-                            <p className="text-sm leading-snug opacity-70">
-                              {(watchedMode === "weight_loss" ? t("planRecommendedLoss") : t("planRecommendedGain"))
-                                .replace("{kg}", String(Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)))
-                                .replace("{months}", String(recommendedMonths))
-                                .replace("{cal}", optimalPlan.calorie.toLocaleString())}
-                            </p>
-                          </div>
-                          <div className="flex gap-6">
-                            <div>
-                              <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
-                              <p className="text-sm tabular-nums opacity-70">
-                                ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / recommendedMonths).toFixed(1)} kg
-                                <span className="text-[10px] opacity-60 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
-                              <p className="text-sm opacity-70">{goalDateFromMonths(recommendedMonths)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="border-t border-[#1C1714]/15" />
-
-                      {/* Adjust section */}
+                  {/* ── Block 1: Your Recommended Plan (accented) ── */}
+                  {watchedMode !== "maintenance" && recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
+                    <div className="bg-[#1C1714] text-[#F2EDE7] p-5 space-y-4" data-testid="panel-recommended">
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-3">{t("adjustYourPlan")}</p>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
-                              {t("planMonthsLabel")}
-                            </label>
-                            <div className="flex border border-[#1C1714]/40 h-14">
-                              <button
-                                type="button"
-                                data-testid="button-months-dec"
-                                onClick={() => handleMonthsChange(String((planMonths ?? 2) - 1))}
-                                aria-label="Decrease months"
-                                disabled={minMonthsReached}
-                                className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none disabled:opacity-20 disabled:cursor-not-allowed"
-                              >−</button>
-                              <input
-                                type="number"
-                                inputMode="numeric"
-                                min={1}
-                                max={120}
-                                data-testid="input-plan-months"
-                                value={planMonths ?? ""}
-                                onChange={(e) => handleMonthsChange(e.target.value)}
-                                className="flex-1 h-full text-center text-3xl tabular-nums bg-transparent focus:outline-none font-['Space_Mono'] text-[#1C1714]"
-                              />
-                              <button
-                                type="button"
-                                data-testid="button-months-inc"
-                                onClick={() => handleMonthsChange(String((planMonths ?? 0) + 1))}
-                                aria-label="Increase months"
-                                className="px-3 border-l border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
-                              >+</button>
-                            </div>
-                            {planMonths && planMonths > 0 && (
-                              <p className="text-[10px] opacity-40 mt-1">
-                                {t("planGoalDateLabel")} {goalDateFromMonths(planMonths)}
-                              </p>
-                            )}
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">
+                          {isGoalBelowHealthyRange ? t("yourPlanTag") : t("recommendedTag")}
+                        </p>
+                        <p className="text-base leading-snug">
+                          {(watchedMode === "weight_loss" ? t("planRecommendedLoss") : t("planRecommendedGain"))
+                            .replace("{kg}", String(Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)))
+                            .replace("{months}", String(recommendedMonths))
+                            .replace("{cal}", optimalPlan.calorie.toLocaleString())}
+                        </p>
+                      </div>
+                      <div className="flex gap-8">
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("planMonthlyLabel")}</p>
+                          <p className="text-sm tabular-nums">
+                            ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / recommendedMonths).toFixed(1)} kg
+                            <span className="text-[10px] opacity-50 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("planGoalDateLabel")}</p>
+                          <p className="text-sm">{goalDateFromMonths(recommendedMonths)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Block 2: Adjust Your Plan (lighter) ── */}
+                  {watchedMode !== "maintenance" && (
+                    <div className="border border-[#1C1714]/30 p-5 space-y-4" data-testid="panel-planner">
+                      <p className="text-[9px] uppercase tracking-widest opacity-50">{t("adjustYourPlan")}</p>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
+                            {t("planMonthsLabel")}
+                          </label>
+                          <div className="flex border border-[#1C1714]/40 h-14">
+                            <button
+                              type="button"
+                              data-testid="button-months-dec"
+                              onClick={() => handleMonthsChange(String((planMonths ?? 2) - 1))}
+                              aria-label="Decrease months"
+                              disabled={minMonthsReached}
+                              className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none disabled:opacity-20 disabled:cursor-not-allowed"
+                            >−</button>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={1}
+                              max={120}
+                              data-testid="input-plan-months"
+                              value={planMonths ?? ""}
+                              onChange={(e) => handleMonthsChange(e.target.value)}
+                              className="flex-1 h-full text-center text-3xl tabular-nums bg-transparent focus:outline-none font-['Space_Mono'] text-[#1C1714]"
+                            />
+                            <button
+                              type="button"
+                              data-testid="button-months-inc"
+                              onClick={() => handleMonthsChange(String((planMonths ?? 0) + 1))}
+                              aria-label="Increase months"
+                              className="px-3 border-l border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
+                            >+</button>
                           </div>
-                          <div>
-                            <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
-                              {t("planCaloriesLabel")}
-                            </label>
-                            <div
-                              data-testid="display-plan-calories"
-                              className="flex items-center justify-center h-14 border border-[#1C1714]/20 bg-[#1C1714]/3"
+                        </div>
+                        <div>
+                          <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
+                            {t("planCaloriesLabel")}
+                          </label>
+                          <div
+                            data-testid="display-plan-calories"
+                            className="flex items-center justify-center h-14 border border-[#1C1714]/20 bg-[#1C1714]/[0.03]"
+                          >
+                            <span
+                              className="text-3xl tabular-nums font-['Space_Mono']"
+                              style={{ color: watchedCalorieGoal > 0 && watchedCalorieGoal < 1200 ? "#9e4515" : "#1C1714" }}
                             >
-                              <span
-                                className="text-3xl tabular-nums font-['Space_Mono']"
-                                style={{ color: watchedCalorieGoal < 1200 ? "#9e4515" : "#1C1714" }}
-                              >
-                                {watchedCalorieGoal > 0 ? watchedCalorieGoal.toLocaleString() : "—"}
-                              </span>
-                            </div>
-                            <p className="text-[10px] opacity-40 mt-1">{t("kcalPerDay")}</p>
+                              {watchedCalorieGoal > 0 ? watchedCalorieGoal.toLocaleString() : "—"}
+                            </span>
                           </div>
+                          <p className="text-[10px] opacity-40 mt-1">{t("kcalPerDay")}</p>
                         </div>
                       </div>
 
-                      {/* Warning */}
                       {planWarning && (
                         <div className="border border-[#9e4515] px-4 py-3 text-[10px] text-[#9e4515] leading-snug" data-testid="text-plan-warning">
                           {planWarning}
                         </div>
                       )}
 
-                      {/* Monthly rate */}
                       {planMonths && planMonths > 0 && watchedStartWeight && watchedGoalWeight && (
-                        <div className="border-t border-[#1C1714]/10 pt-4 flex gap-6">
+                        <div className="flex gap-8 pt-1 border-t border-[#1C1714]/10">
                           <div>
                             <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
-                            <p className="text-base tabular-nums">
+                            <p className="text-sm tabular-nums">
                               ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / planMonths).toFixed(1)} kg
                               <span className="text-[10px] opacity-40 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
                             </p>
                           </div>
                           <div>
                             <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
-                            <p className="text-base">{goalDateFromMonths(planMonths)}</p>
+                            <p className="text-sm">{goalDateFromMonths(planMonths)}</p>
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
 
+                  {/* Maintenance mode: just show TDEE */}
+                  {watchedMode === "maintenance" && estimatedTDEE && (
+                    <div className="bg-[#1C1714] text-[#F2EDE7] p-5" data-testid="panel-maintenance">
+                      <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">{t("modeMaintenance")}</p>
+                      <p className="text-3xl tabular-nums">{estimatedTDEE.toLocaleString()}</p>
+                      <p className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</p>
                     </div>
                   )}
 

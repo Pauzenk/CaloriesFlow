@@ -219,7 +219,7 @@ export const translations = {
     weightFloorNote: "min",
     invalidBodyParams: "Fill in valid body parameters to calculate your progress.",
     editParameters: "Edit parameters",
-    recommendedTag: "Your recommend plan",
+    recommendedTag: "Your recommended plan",
     planRecommendedLoss: "Lose {kg} kg in ~{months} months at {cal} kcal/day",
     planRecommendedGain: "Gain {kg} kg in ~{months} months at {cal} kcal/day",
     adjustYourPlan: "Adjust your plan",

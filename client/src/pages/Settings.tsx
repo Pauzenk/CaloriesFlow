@@ -31,6 +31,7 @@ import {
   getBMICategory,
   getHealthyWeightRange,
   iterateDaysToGoal,
+  solveCaloriesForTimeline,
 } from "@/lib/calorieflow";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Lang } from "@/lib/i18n";
@@ -179,41 +180,31 @@ export default function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optimalPlan]);
 
-  function goalDateFromMonths(months: number): string {
+  function goalDateFromDays(days: number): string {
     const d = new Date();
-    d.setMonth(d.getMonth() + months);
+    d.setDate(d.getDate() + days);
     return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", year: "numeric" });
   }
 
   function handleMonthsChange(raw: string) {
     const months = parseInt(raw, 10);
-    setPlanMonths(months > 0 ? months : null);
-    if (!months || months <= 0) return;
-    form.setValue("goalDurationMonths", months, { shouldDirty: true });
-    if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return;
-    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-    const totalDays = months * 30.44;
-    const dailyChange = (remaining * 7700) / totalDays;
-    form.setValue(
-      "dailyCalorieGoal",
-      watchedMode === "weight_gain"
-        ? Math.round(estimatedTDEE + dailyChange)
-        : Math.round(estimatedTDEE - dailyChange),
-      { shouldDirty: true },
+    if (!months || months <= 0) { setPlanMonths(null); return; }
+    if (!watchedStartWeight || !watchedGoalWeight || !watchedHeight || !watchedAge || !watchedSex) {
+      setPlanMonths(months);
+      form.setValue("goalDurationMonths", months, { shouldDirty: true });
+      return;
+    }
+    if (watchedSex !== "male" && watchedSex !== "female") return;
+    const mode = watchedMode === "weight_gain" ? "weight_gain" : "weight_loss";
+    const targetDays = months * 30.44;
+    const { calories, actualDays } = solveCaloriesForTimeline(
+      targetDays, watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, mode,
     );
-  }
-
-  function handleCaloriesChange(raw: string) {
-    const cal = parseInt(raw, 10);
-    form.setValue("dailyCalorieGoal", cal || 0);
-    if (!cal || cal < 500 || !estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return;
-    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-    if (remaining <= 0) return;
-    const dailyChange = watchedMode === "weight_gain" ? cal - estimatedTDEE : estimatedTDEE - cal;
-    if (dailyChange <= 0) { setPlanMonths(null); return; }
-    const months = Math.max(1, Math.round((remaining * 7700) / dailyChange / 30.44));
-    setPlanMonths(months);
-    form.setValue("goalDurationMonths", months);
+    // If 1200 floor was hit, update planMonths to reflect actual achievable timeline
+    const actualMonths = Math.max(1, Math.round(actualDays / 30.44));
+    setPlanMonths(actualMonths);
+    form.setValue("goalDurationMonths", actualMonths, { shouldDirty: true });
+    form.setValue("dailyCalorieGoal", calories, { shouldDirty: true });
   }
 
   const planWarning = useMemo(() => {
@@ -222,18 +213,29 @@ export default function SettingsPage() {
     return null;
   }, [estimatedTDEE, watchedCalorieGoal, watchedMode, t]);
 
+  // Iterative stats for the Adjust block — same model as the Recommended card
+  const planStats = useMemo(() => {
+    if (!watchedCalorieGoal || watchedCalorieGoal <= 0) return null;
+    if (!watchedStartWeight || !watchedGoalWeight || !watchedHeight || !watchedAge || !watchedSex) return null;
+    if (watchedSex !== "male" && watchedSex !== "female") return null;
+    if (watchedMode === "maintenance") return null;
+    const weightDiff = Math.abs(watchedStartWeight - watchedGoalWeight);
+    if (weightDiff <= 0) return null;
+    const mode = watchedMode === "weight_gain" ? "weight_gain" : "weight_loss";
+    const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, watchedCalorieGoal, mode);
+    const months = Math.max(1, days / 30.44);
+    return {
+      days,
+      months,
+      monthlyRate: weightDiff / months,
+    };
+  }, [watchedCalorieGoal, watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, watchedMode]);
+
+  // Disable minus when at 1-month floor or when 1200 kcal floor is already hit
   const minMonthsReached = useMemo(() => {
     if (!planMonths || planMonths <= 1) return true;
-    if (!estimatedTDEE || !watchedStartWeight || !watchedGoalWeight) return false;
-    const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-    if (remaining <= 0) return false;
-    const newMonths = planMonths - 1;
-    const dailyChange = (remaining * 7700) / (newMonths * 30.44);
-    const newCalories = watchedMode === "weight_gain"
-      ? estimatedTDEE + dailyChange
-      : estimatedTDEE - dailyChange;
-    return newCalories <= 0;
-  }, [planMonths, estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode]);
+    return watchedMode === "weight_loss" && watchedCalorieGoal > 0 && watchedCalorieGoal <= 1200;
+  }, [planMonths, watchedCalorieGoal, watchedMode]);
 
   const recommendedMonths = optimalPlan?.days ? Math.max(1, Math.round(optimalPlan.days / 30.44)) : null;
 
@@ -514,13 +516,13 @@ export default function SettingsPage() {
                         <div>
                           <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
                           <p className="text-sm tabular-nums opacity-70">
-                            ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / recommendedMonths).toFixed(1)} kg
+                            ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / (optimalPlan!.days! / 30.44)).toFixed(1)} kg
                             <span className="text-[10px] opacity-60 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
                           </p>
                         </div>
                         <div>
                           <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
-                          <p className="text-sm opacity-70">{goalDateFromMonths(recommendedMonths)}</p>
+                          <p className="text-sm opacity-70">{goalDateFromDays(optimalPlan!.days!)}</p>
                         </div>
                       </div>
                     </div>
@@ -589,18 +591,18 @@ export default function SettingsPage() {
                         </div>
                       )}
 
-                      {planMonths && planMonths > 0 && watchedStartWeight && watchedGoalWeight && (
+                      {planStats && (
                         <div className="flex gap-8 pt-1 border-t border-[#1C1714]/10">
                           <div>
                             <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
                             <p className="text-sm tabular-nums">
-                              ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / planMonths).toFixed(1)} kg
+                              ~{planStats.monthlyRate.toFixed(1)} kg
                               <span className="text-[10px] opacity-40 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
                             </p>
                           </div>
                           <div>
                             <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
-                            <p className="text-sm">{goalDateFromMonths(planMonths)}</p>
+                            <p className="text-sm">{goalDateFromDays(planStats.days)}</p>
                           </div>
                         </div>
                       )}

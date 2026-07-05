@@ -308,6 +308,7 @@ export function threeLineWeightSeries(
 // ─── Iterative goal-days calculator ────────────────────────────────────────────
 // Returns the number of days to reach goalWeightKg from startWeightKg at a fixed
 // daily calorie intake, recomputing BMR from the evolving projected weight each day.
+// Days is monotonically increasing in calories (weight_loss) / decreasing (weight_gain).
 export function iterateDaysToGoal(
   startWeightKg: number,
   goalWeightKg: number,
@@ -327,6 +328,48 @@ export function iterateDaysToGoal(
     if (!isLosing && weight >= goalWeightKg) return day + 1;
   }
   return 3650;
+}
+
+// ─── Inverse solver: find calorie intake to hit a target timeline ───────────────
+// Binary-searches for the daily calorie intake that reaches goalWeightKg in
+// exactly targetDays days under the iterative BMR model.
+// If the floor (1200 kcal/day) requires more days than requested, returns 1200
+// with the actual days at that floor.
+export function solveCaloriesForTimeline(
+  targetDays: number,
+  startWeightKg: number,
+  goalWeightKg: number,
+  heightCm: number,
+  ageYears: number,
+  sex: "male" | "female",
+  mode: "weight_loss" | "weight_gain",
+  minCalories = 1200,
+): { calories: number; actualDays: number } {
+  const isLosing = mode === "weight_loss";
+  // Check whether the floor already takes longer than requested
+  const daysAtFloor = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, minCalories, mode);
+  if (isLosing && targetDays <= daysAtFloor) {
+    return { calories: minCalories, actualDays: daysAtFloor };
+  }
+  // Binary search over integer calorie values
+  // For weight_loss: days increases with calories (less deficit = slower)
+  // For weight_gain: days decreases with calories (more surplus = faster)
+  const tdeeApprox = computeBMR(startWeightKg, heightCm, ageYears, sex) * 1.2;
+  let lo = isLosing ? minCalories : 1;
+  let hi = isLosing ? Math.floor(tdeeApprox) - 1 : Math.floor(tdeeApprox) + 5000;
+  for (let iter = 0; iter < 60; iter++) {
+    const mid = Math.round((lo + hi) / 2);
+    const days = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, mid, mode);
+    if (isLosing) {
+      if (days < targetDays) lo = mid + 1; else hi = mid;
+    } else {
+      if (days > targetDays) lo = mid + 1; else hi = mid;
+    }
+    if (lo >= hi) break;
+  }
+  const calories = Math.max(minCalories, lo);
+  const actualDays = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, calories, mode);
+  return { calories, actualDays };
 }
 
 // ─── Weight Projection Engine ──────────────────────────────────────────────────

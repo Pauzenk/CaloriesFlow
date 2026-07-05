@@ -173,25 +173,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (planInitialized.current || !optimalPlan) return;
     planInitialized.current = true;
-    if (settings?.goalDurationMonths && settings.goalDurationMonths > 0 && estimatedTDEE && watchedStartWeight && watchedGoalWeight) {
-      const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-      const totalDays = settings.goalDurationMonths * 30.44;
-      const dailyChange = (remaining * 7700) / totalDays;
-      const computedCalories = watchedMode === "weight_gain"
-        ? Math.round(estimatedTDEE + dailyChange)
-        : Math.round(estimatedTDEE - dailyChange);
-      // Only use saved months if they result in a realistic calorie target (≥ 800)
-      if (computedCalories >= 800) {
-        setPlanMonths(settings.goalDurationMonths);
-        form.setValue("dailyCalorieGoal", computedCalories);
-      } else {
-        if (optimalPlan.days) setPlanMonths(Math.max(1, Math.round(optimalPlan.days / 30.44)));
-        form.setValue("dailyCalorieGoal", optimalPlan.calorie);
-      }
-    } else {
-      if (optimalPlan.days) setPlanMonths(Math.max(1, Math.round(optimalPlan.days / 30.44)));
-      form.setValue("dailyCalorieGoal", optimalPlan.calorie);
-    }
+    // Always initialize from the recommended plan — stale saved months may be inconsistent
+    if (optimalPlan.days) setPlanMonths(Math.max(1, Math.round(optimalPlan.days / 30.44)));
+    form.setValue("dailyCalorieGoal", optimalPlan.calorie);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optimalPlan]);
 

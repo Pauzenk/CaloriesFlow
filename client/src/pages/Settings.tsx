@@ -173,17 +173,20 @@ export default function SettingsPage() {
   useEffect(() => {
     if (planInitialized.current || !optimalPlan) return;
     planInitialized.current = true;
-    if (settings?.goalDurationMonths && settings.goalDurationMonths > 0) {
-      setPlanMonths(settings.goalDurationMonths);
-      if (estimatedTDEE && watchedStartWeight && watchedGoalWeight) {
-        const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
-        const totalDays = settings.goalDurationMonths * 30.44;
-        const dailyChange = (remaining * 7700) / totalDays;
-        form.setValue("dailyCalorieGoal",
-          watchedMode === "weight_gain"
-            ? Math.round(estimatedTDEE + dailyChange)
-            : Math.round(estimatedTDEE - dailyChange),
-        );
+    if (settings?.goalDurationMonths && settings.goalDurationMonths > 0 && estimatedTDEE && watchedStartWeight && watchedGoalWeight) {
+      const remaining = Math.abs(watchedStartWeight - watchedGoalWeight);
+      const totalDays = settings.goalDurationMonths * 30.44;
+      const dailyChange = (remaining * 7700) / totalDays;
+      const computedCalories = watchedMode === "weight_gain"
+        ? Math.round(estimatedTDEE + dailyChange)
+        : Math.round(estimatedTDEE - dailyChange);
+      // Only use saved months if they result in a realistic calorie target (≥ 800)
+      if (computedCalories >= 800) {
+        setPlanMonths(settings.goalDurationMonths);
+        form.setValue("dailyCalorieGoal", computedCalories);
+      } else {
+        if (optimalPlan.days) setPlanMonths(Math.max(1, Math.round(optimalPlan.days / 30.44)));
+        form.setValue("dailyCalorieGoal", optimalPlan.calorie);
       }
     } else {
       if (optimalPlan.days) setPlanMonths(Math.max(1, Math.round(optimalPlan.days / 30.44)));
@@ -499,41 +502,41 @@ export default function SettingsPage() {
 
                   {/* ── Block 1: Your Recommended Plan (accented) ── */}
                   {watchedMode !== "maintenance" && recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
-                    <div className="bg-[#1C1714] text-[#F2EDE7] p-5" data-testid="panel-recommended">
+                    <div className="border-2 border-[#1C1714] p-5" data-testid="panel-recommended">
                       <p className="text-[9px] uppercase tracking-widest opacity-50 mb-3">
                         {isGoalBelowHealthyRange ? t("yourPlanTag") : t("recommendedTag")}
                       </p>
                       {/* Hero calorie number */}
                       <div className="mb-1">
-                        <span className="text-7xl tabular-nums tracking-tighter leading-none font-['Space_Mono']">
+                        <span className="text-5xl tabular-nums tracking-tighter leading-none font-['Space_Mono']">
                           {optimalPlan.calorie.toLocaleString()}
                         </span>
                       </div>
                       <p className="text-[10px] uppercase tracking-widest opacity-40 mb-4">{t("kcalPerDay")}</p>
                       {/* Supporting info */}
-                      <div className="border-t border-[#F2EDE7]/10 pt-3 flex gap-8 flex-wrap">
+                      <div className="border-t border-[#1C1714]/10 pt-3 flex gap-8 flex-wrap">
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
                             {watchedMode === "weight_loss" ? (lang === "ru" ? "Похудеть" : "Lose") : (lang === "ru" ? "Набрать" : "Gain")}
                           </p>
-                          <p className="text-sm tabular-nums">
+                          <p className="text-sm tabular-nums opacity-70">
                             {Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)} kg
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{lang === "ru" ? "Срок" : "Timeline"}</p>
-                          <p className="text-sm tabular-nums">~{recommendedMonths} {lang === "ru" ? "мес." : "mo"}</p>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{lang === "ru" ? "Срок" : "Timeline"}</p>
+                          <p className="text-sm tabular-nums opacity-70">~{recommendedMonths} {lang === "ru" ? "мес." : "mo"}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("planMonthlyLabel")}</p>
-                          <p className="text-sm tabular-nums">
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
+                          <p className="text-sm tabular-nums opacity-70">
                             ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / recommendedMonths).toFixed(1)} kg
-                            <span className="text-[10px] opacity-50 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
+                            <span className="text-[10px] opacity-60 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("planGoalDateLabel")}</p>
-                          <p className="text-sm">{goalDateFromMonths(recommendedMonths)}</p>
+                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
+                          <p className="text-sm opacity-70">{goalDateFromMonths(recommendedMonths)}</p>
                         </div>
                       </div>
                     </div>

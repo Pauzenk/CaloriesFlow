@@ -197,21 +197,15 @@ export default function SettingsPage() {
     if (watchedSex !== "male" && watchedSex !== "female") return;
     const mode = watchedMode === "weight_gain" ? "weight_gain" : "weight_loss";
     const targetDays = months * 30.44;
-    const { calories, actualDays } = solveCaloriesForTimeline(
+    // No calorie floor — solver returns the raw required intake; warning shown if < 1200
+    const { calories } = solveCaloriesForTimeline(
       targetDays, watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, mode,
+      1,
     );
-    // If 1200 floor was hit, update planMonths to reflect actual achievable timeline
-    const actualMonths = Math.max(1, Math.round(actualDays / 30.44));
-    setPlanMonths(actualMonths);
-    form.setValue("goalDurationMonths", actualMonths, { shouldDirty: true });
+    setPlanMonths(months);
+    form.setValue("goalDurationMonths", months, { shouldDirty: true });
     form.setValue("dailyCalorieGoal", calories, { shouldDirty: true });
   }
-
-  const planWarning = useMemo(() => {
-    if (!estimatedTDEE || watchedMode === "maintenance") return null;
-    if (watchedCalorieGoal > 0 && watchedCalorieGoal < 1200) return t("planUnsafeWarning");
-    return null;
-  }, [estimatedTDEE, watchedCalorieGoal, watchedMode, t]);
 
   // Iterative stats for the Adjust block — same model as the Recommended card
   const planStats = useMemo(() => {
@@ -231,11 +225,29 @@ export default function SettingsPage() {
     };
   }, [watchedCalorieGoal, watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, watchedMode]);
 
-  // Disable minus when at 1-month floor or when 1200 kcal floor is already hit
-  const minMonthsReached = useMemo(() => {
-    if (!planMonths || planMonths <= 1) return true;
-    return watchedMode === "weight_loss" && watchedCalorieGoal > 0 && watchedCalorieGoal <= 1200;
-  }, [planMonths, watchedCalorieGoal, watchedMode]);
+  const planWarning = useMemo(() => {
+    if (!estimatedTDEE || watchedMode === "maintenance") return null;
+    if (watchedCalorieGoal <= 0 || watchedCalorieGoal >= 1200) return null;
+    const shortfallPerWeek = (1200 - watchedCalorieGoal) * 7;
+    const n = Math.ceil(shortfallPerWeek / 300);
+    if (n > 7) {
+      return lang === "ru"
+        ? "Этот срок нереалистичен даже при ежедневных тренировках — попробуйте увеличить срок."
+        : "This timeline isn't realistic even with daily workouts — consider extending it.";
+    }
+    let goalDateStr = "";
+    if (planStats) {
+      const d = new Date();
+      d.setDate(d.getDate() + planStats.days);
+      goalDateStr = d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", year: "numeric" });
+    }
+    return lang === "ru"
+      ? `⚠ Ниже минимума 1 200 ккал/день. Чтобы достичь цели к ${goalDateStr} безопасно, добавьте активность: ~${n} тренировок/нед. (~300 ккал) покроют разницу при 1 200 ккал/день.`
+      : `⚠ Below the recommended minimum of 1,200 kcal/day. To reach your goal by ${goalDateStr} safely, add activity: ~${n} workouts/week (~300 kcal each) covers the difference at 1,200 kcal/day.`;
+  }, [estimatedTDEE, watchedCalorieGoal, watchedMode, planStats, lang]);
+
+  // Disable minus only at absolute minimum (1 month)
+  const minMonthsReached = !planMonths || planMonths <= 1;
 
   const recommendedMonths = optimalPlan?.days ? Math.max(1, Math.round(optimalPlan.days / 30.44)) : null;
 
@@ -490,7 +502,7 @@ export default function SettingsPage() {
                   {watchedMode !== "maintenance" && recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
                     <div className="border-2 border-[#1C1714] p-5" data-testid="panel-recommended">
                       <p className="text-[9px] uppercase tracking-widest opacity-50 mb-3">
-                        {isGoalBelowHealthyRange ? t("yourPlanTag") : t("recommendedTag")}
+                        {(isGoalBelowHealthyRange || (watchedCalorieGoal > 0 && watchedCalorieGoal < 1200)) ? t("yourPlanTag") : t("recommendedTag")}
                       </p>
                       {/* Hero calorie number */}
                       <div className="mb-1">

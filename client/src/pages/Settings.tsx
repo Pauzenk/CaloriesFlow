@@ -177,7 +177,16 @@ export default function SettingsPage() {
     return { calorie, days };
   }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode, watchedHeight, watchedAge, watchedSex, activityMultiplier]);
 
-  // Initialize plan once when optimalPlan first becomes available
+  // Reset adjuster when goal direction changes (loss ↔ gain ↔ maintenance)
+  const prevModeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevModeRef.current === null) { prevModeRef.current = watchedMode; return; }
+    if (prevModeRef.current === watchedMode) return;
+    prevModeRef.current = watchedMode;
+    planInitialized.current = false; // allow re-initialization from new optimalPlan
+  }, [watchedMode]);
+
+  // Initialize plan once when optimalPlan first becomes available (also re-runs after mode change)
   useEffect(() => {
     if (planInitialized.current || !optimalPlan) return;
     planInitialized.current = true;
@@ -234,6 +243,20 @@ export default function SettingsPage() {
 
   const planWarning = useMemo(() => {
     if (!estimatedTDEE || watchedMode === "maintenance") return null;
+
+    // ── Gain mode: warn only if surplus is very large (mostly fat gain) ──
+    if (watchedMode === "weight_gain") {
+      if (watchedCalorieGoal <= 0) return null;
+      const surplus = watchedCalorieGoal - estimatedTDEE;
+      if (surplus > 500) {
+        return lang === "ru"
+          ? "⚠ Такой темп набора приводит преимущественно к жировой массе — рассмотрите более длительный срок (~2 кг/мес или меньше)."
+          : "⚠ Gaining faster than ~2 kg/mo mostly adds fat — consider extending the timeline.";
+      }
+      return null;
+    }
+
+    // ── Loss mode: warn if below 1,200 kcal/day ──
     if (watchedCalorieGoal <= 0 || watchedCalorieGoal >= 1200) return null;
     const shortfallPerWeek = (1200 - watchedCalorieGoal) * 7;
     const n = Math.ceil(shortfallPerWeek / 300);
@@ -637,7 +660,7 @@ export default function SettingsPage() {
                           >
                             <span
                               className="text-3xl tabular-nums font-['Space_Mono']"
-                              style={{ color: watchedCalorieGoal > 0 && watchedCalorieGoal < 1200 ? "#9e4515" : "#1C1714" }}
+                              style={{ color: watchedMode === "weight_loss" && watchedCalorieGoal > 0 && watchedCalorieGoal < 1200 ? "#9e4515" : "#1C1714" }}
                             >
                               {watchedCalorieGoal > 0 ? watchedCalorieGoal.toLocaleString() : "—"}
                             </span>
@@ -657,7 +680,7 @@ export default function SettingsPage() {
                           <div>
                             <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
                             <p className="text-sm tabular-nums">
-                              ~{planStats.monthlyRate.toFixed(1)} kg
+                              {watchedMode === "weight_gain" ? "+" : "~"}{planStats.monthlyRate.toFixed(1)} kg
                               <span className="text-[10px] opacity-40 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
                             </p>
                           </div>

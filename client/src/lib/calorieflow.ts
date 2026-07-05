@@ -359,8 +359,9 @@ export function solveCaloriesForTimeline(
   // For weight_loss: days increases with calories (less deficit = slower)
   // For weight_gain: days decreases with calories (more surplus = faster)
   const tdeeApprox = computeBMR(startWeightKg, heightCm, ageYears, sex) * multiplier;
-  let lo = isLosing ? minCalories : 1;
-  let hi = isLosing ? Math.floor(tdeeApprox) - 1 : Math.floor(tdeeApprox) + 5000;
+  // For gain: lo must be above maintenance — sub-maintenance calories cause weight loss, not gain
+  let lo = isLosing ? minCalories : Math.floor(tdeeApprox) + 1;
+  let hi = isLosing ? Math.floor(tdeeApprox) - 1 : Math.floor(tdeeApprox) + 10000;
   for (let iter = 0; iter < 60; iter++) {
     const mid = Math.round((lo + hi) / 2);
     const days = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, mid, mode, multiplier);

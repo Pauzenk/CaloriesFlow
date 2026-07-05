@@ -458,6 +458,36 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* ── TDEE reference: Maintenance / Deficit ── */}
+            {canComputeTarget && estimatedTDEE && (
+              <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
+                <div data-testid="panel-tdee">
+                  <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("maintenance")}</div>
+                  <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE.toLocaleString()}</div>
+                  <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                </div>
+                {watchedMode === "maintenance" ? (
+                  <div data-testid="panel-suggested-goal">
+                    <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("modeMaintenance")}</div>
+                    <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE.toLocaleString()}</div>
+                    <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                  </div>
+                ) : watchedMode === "weight_gain" ? (
+                  <div data-testid="panel-suggested-goal">
+                    <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("surplus300")}</div>
+                    <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{(estimatedTDEE + 350).toLocaleString()}</div>
+                    <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                  </div>
+                ) : (
+                  <div data-testid="panel-suggested-goal">
+                    <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
+                    <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{(estimatedTDEE - 500).toLocaleString()}</div>
+                    <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ── Plan ── */}
             <div>
               <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
@@ -469,19 +499,31 @@ export default function SettingsPage() {
 
                   {/* ── Block 1: Your Recommended Plan (accented) ── */}
                   {watchedMode !== "maintenance" && recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
-                    <div className="bg-[#1C1714] text-[#F2EDE7] p-5 space-y-4" data-testid="panel-recommended">
-                      <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">
-                          {isGoalBelowHealthyRange ? t("yourPlanTag") : t("recommendedTag")}
-                        </p>
-                        <p className="text-base leading-snug">
-                          {(watchedMode === "weight_loss" ? t("planRecommendedLoss") : t("planRecommendedGain"))
-                            .replace("{kg}", String(Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)))
-                            .replace("{months}", String(recommendedMonths))
-                            .replace("{cal}", optimalPlan.calorie.toLocaleString())}
-                        </p>
+                    <div className="bg-[#1C1714] text-[#F2EDE7] p-5" data-testid="panel-recommended">
+                      <p className="text-[9px] uppercase tracking-widest opacity-50 mb-3">
+                        {isGoalBelowHealthyRange ? t("yourPlanTag") : t("recommendedTag")}
+                      </p>
+                      {/* Hero calorie number */}
+                      <div className="mb-1">
+                        <span className="text-7xl tabular-nums tracking-tighter leading-none font-['Space_Mono']">
+                          {optimalPlan.calorie.toLocaleString()}
+                        </span>
                       </div>
-                      <div className="flex gap-8">
+                      <p className="text-[10px] uppercase tracking-widest opacity-40 mb-4">{t("kcalPerDay")}</p>
+                      {/* Supporting info */}
+                      <div className="border-t border-[#F2EDE7]/10 pt-3 flex gap-8 flex-wrap">
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">
+                            {watchedMode === "weight_loss" ? (lang === "ru" ? "Похудеть" : "Lose") : (lang === "ru" ? "Набрать" : "Gain")}
+                          </p>
+                          <p className="text-sm tabular-nums">
+                            {Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)} kg
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{lang === "ru" ? "Срок" : "Timeline"}</p>
+                          <p className="text-sm tabular-nums">~{recommendedMonths} {lang === "ru" ? "мес." : "mo"}</p>
+                        </div>
                         <div>
                           <p className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("planMonthlyLabel")}</p>
                           <p className="text-sm tabular-nums">

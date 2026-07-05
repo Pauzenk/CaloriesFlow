@@ -174,9 +174,11 @@ export default function ProgressPage() {
       return null;
     const sex = settings.sexAtBirth;
     if (sex !== "male" && sex !== "female") return null;
-    const bmr = computeBMR(settings.startingWeightKg, settings.heightCm, settings.ageYears, sex);
+    // Use most recent known weight so today's maintenance reflects current metabolism
+    const weightForTDEE = lastLoggedKg ?? currentRealKg ?? settings.startingWeightKg;
+    const bmr = computeBMR(weightForTDEE, settings.heightCm, settings.ageYears, sex);
     return Math.round(computeTDEE(bmr, 1.2));
-  }, [settings]);
+  }, [settings, lastLoggedKg, currentRealKg]);
 
   const weightProgressPct = useMemo(() => {
     if (!settings?.startingWeightKg || !settings?.goalWeightKg || displayWeight === null) return 0;

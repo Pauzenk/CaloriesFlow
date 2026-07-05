@@ -30,6 +30,7 @@ import {
   computeBMI,
   getBMICategory,
   getHealthyWeightRange,
+  iterateDaysToGoal,
 } from "@/lib/calorieflow";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Lang } from "@/lib/i18n";
@@ -150,24 +151,23 @@ export default function SettingsPage() {
       return { calorie: estimatedTDEE, days: null };
     }
 
-    if (!watchedStartWeight || !watchedGoalWeight) return null;
+    if (!watchedStartWeight || !watchedGoalWeight || !watchedHeight || !watchedAge || !watchedSex) return null;
+    if (watchedSex !== "male" && watchedSex !== "female") return null;
     const weightDiff = Math.abs(watchedStartWeight - watchedGoalWeight);
     if (weightDiff <= 0) return null;
 
     if (watchedMode === "weight_gain") {
-      const optimalDays = Math.round((weightDiff * 7700) / 350);
-      return { calorie: estimatedTDEE + 350, days: optimalDays };
+      const calorie = estimatedTDEE + 350;
+      const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, calorie, "weight_gain");
+      return { calorie, days };
     }
 
-    // weight_loss default — keep months/calories consistent
+    // weight_loss — iterative simulation so slowing rate near goal is captured
     const idealCalorie = estimatedTDEE - 500;
-    if (idealCalorie >= 1200) {
-      return { calorie: idealCalorie, days: Math.round((weightDiff * 7700) / 500) };
-    }
-    // TDEE is low: floor at 1200, recompute days from actual deficit
-    const actualDeficit = Math.max(1, estimatedTDEE - 1200);
-    return { calorie: 1200, days: Math.round((weightDiff * 7700) / actualDeficit) };
-  }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode]);
+    const calorie = idealCalorie >= 1200 ? idealCalorie : 1200;
+    const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, calorie, "weight_loss");
+    return { calorie, days };
+  }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode, watchedHeight, watchedAge, watchedSex]);
 
   // Initialize plan once when optimalPlan first becomes available
   useEffect(() => {

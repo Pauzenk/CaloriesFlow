@@ -302,22 +302,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Eaten · Burned · Net breakdown */}
-          <div className="flex gap-4 mt-2.5 text-[10px] uppercase tracking-widest opacity-60" data-testid="row-eaten-burned-net">
-            <span>
-              {t("eatenLabel")}{" "}
-              <span className="tabular-nums opacity-100 text-[#1C1714]" data-testid="text-eaten">{totals.calories}</span>
-            </span>
-            <span>
-              · {t("burnedLabel")}{" "}
-              <span className="tabular-nums opacity-100 text-[#1C1714]" data-testid="text-burned">{totalActivityCalories}</span>
-            </span>
-            <span>
-              · {t("netLabel")}{" "}
-              <span className="tabular-nums opacity-100 text-[#1C1714]" data-testid="text-net">{netCalories}</span>
-            </span>
-          </div>
-
           <div className="mt-3 mb-1">
             <div className="w-full h-1.5 bg-[#1C1714]/10 overflow-hidden">
               <div

@@ -1,0 +1,36 @@
+Restore the ACTIVITY LEVEL setting in Parameters, but redefined as LIFESTYLE activity (daily movement), explicitly excluding workouts. Logged workouts remain a separate addition on top.
+
+=== 1. Restore the block ===
+
+Add back the ACTIVITY LEVEL selector in Parameters with three options:
+- SEDENTARY (×1.2) — "Desk job, mostly sitting"
+- LIGHT (×1.375) — "On your feet part of the day, regular walking"
+- ACTIVE (×1.55) — "Physically active job or lots of daily walking"
+
+CRITICAL: descriptions must refer to daily lifestyle movement ONLY. Do NOT mention exercise, workouts, or training frequency in any option label or description — workouts are tracked separately.
+
+Add a caption under the block: "Describes your everyday movement. Workouts are logged separately and add to your daily budget."
+
+=== 2. Calculation model ===
+
+maintenance = BMR (Mifflin-St Jeor) × selected lifestyle multiplier
+Logged workouts continue to add burned calories back to the daily budget on the day they are logged, exactly as now. This is not double-counting because the multiplier no longer includes exercise.
+
+Apply the multiplier consistently everywhere maintenance is used: daily Remaining, deficit on Progress, the iterative weight projection (recompute BMR from projected weight at each step as already implemented, then apply the multiplier), recommended plan, and the Adjust Your Plan calculator (all via the shared projection function).
+
+=== 3. Defaults & migration ===
+
+- Existing users: default to SEDENTARY (×1.2), matching the current behavior, so nobody's numbers change silently. 
+- Show a one-time subtle notice on Parameters: "New: set your lifestyle activity level".
+- New users: default SEDENTARY.
+
+=== 4. Keep intact ===
+
+- The sub-1,200 kcal warning with the workouts/week suggestion (recompute N against the new maintenance).
+- Editable timeline and calories fields, shared iterative projection.
+- Do not change visual style; reuse the previous selector's layout/styling.
+
+VERIFY:
+- Selecting LIGHT raises maintenance from BMR×1.2 to BMR×1.375 and updates Remaining, projections, and goal dates everywhere consistently.
+- Logging a workout still adds calories back on top of any selected level.
+- Existing accounts land on SEDENTARY with unchanged numbers.

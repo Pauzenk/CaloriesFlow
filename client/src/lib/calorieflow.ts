@@ -1,4 +1,5 @@
 import type { Meal, Settings, Weight } from "@shared/schema";
+import { ACTIVITY_MULTIPLIERS } from "@shared/schema";
 
 function localDateStr(d: Date): string {
   const y = d.getFullYear();
@@ -173,6 +174,7 @@ export function threeLineWeightSeries(
     settings;
   const effectiveMode = goalMode ?? settings.goalMode ?? "weight_loss";
   const needsGoalWeight = effectiveMode !== "maintenance";
+  const multiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel ?? "sedentary") as keyof typeof ACTIVITY_MULTIPLIERS] ?? 1.2;
 
   if (!heightCm || !ageYears || !sexAtBirth || !startingWeightKg)
     return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined };
@@ -224,7 +226,7 @@ export function threeLineWeightSeries(
 
     if (i > 0) {
       // PLANNED: recompute maintenance from current planned weight each day
-      const maintenancePlanned = computeBMR(plannedWeight, heightCm, ageYears, sexAtBirth) * 1.2;
+      const maintenancePlanned = computeBMR(plannedWeight, heightCm, ageYears, sexAtBirth) * multiplier;
       const deficitPlanned = effectiveMode === "maintenance"
         ? 0
         : maintenancePlanned - (dailyCalorieGoal ?? maintenancePlanned);
@@ -235,7 +237,7 @@ export function threeLineWeightSeries(
         const eaten = mealCal.get(dateStr);
         const burned = actCal.get(dateStr) ?? 0;
         if (eaten !== undefined) {
-          const maintenanceReal = computeBMR(realCurrentWeight, heightCm, ageYears, sexAtBirth) * 1.2;
+          const maintenanceReal = computeBMR(realCurrentWeight, heightCm, ageYears, sexAtBirth) * multiplier;
           const deficitReal = maintenanceReal - (eaten - burned);
           realCurrentWeight = realCurrentWeight - deficitReal / 7700;
         }
@@ -317,11 +319,12 @@ export function iterateDaysToGoal(
   sex: "male" | "female",
   dailyCalorieIntake: number,
   mode: "weight_loss" | "weight_gain",
+  multiplier = 1.2,
 ): number {
   let weight = startWeightKg;
   const isLosing = mode === "weight_loss";
   for (let day = 0; day < 3650; day++) {
-    const maintenance = computeBMR(weight, heightCm, ageYears, sex) * 1.2;
+    const maintenance = computeBMR(weight, heightCm, ageYears, sex) * multiplier;
     const deficit = maintenance - dailyCalorieIntake;
     weight = weight - deficit / 7700;
     if (isLosing && weight <= goalWeightKg) return day + 1;
@@ -344,22 +347,23 @@ export function solveCaloriesForTimeline(
   sex: "male" | "female",
   mode: "weight_loss" | "weight_gain",
   minCalories = 1200,
+  multiplier = 1.2,
 ): { calories: number; actualDays: number } {
   const isLosing = mode === "weight_loss";
   // Check whether the floor already takes longer than requested
-  const daysAtFloor = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, minCalories, mode);
+  const daysAtFloor = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, minCalories, mode, multiplier);
   if (isLosing && targetDays <= daysAtFloor) {
     return { calories: minCalories, actualDays: daysAtFloor };
   }
   // Binary search over integer calorie values
   // For weight_loss: days increases with calories (less deficit = slower)
   // For weight_gain: days decreases with calories (more surplus = faster)
-  const tdeeApprox = computeBMR(startWeightKg, heightCm, ageYears, sex) * 1.2;
+  const tdeeApprox = computeBMR(startWeightKg, heightCm, ageYears, sex) * multiplier;
   let lo = isLosing ? minCalories : 1;
   let hi = isLosing ? Math.floor(tdeeApprox) - 1 : Math.floor(tdeeApprox) + 5000;
   for (let iter = 0; iter < 60; iter++) {
     const mid = Math.round((lo + hi) / 2);
-    const days = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, mid, mode);
+    const days = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, mid, mode, multiplier);
     if (isLosing) {
       if (days < targetDays) lo = mid + 1; else hi = mid;
     } else {
@@ -368,7 +372,7 @@ export function solveCaloriesForTimeline(
     if (lo >= hi) break;
   }
   const calories = Math.max(minCalories, lo);
-  const actualDays = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, calories, mode);
+  const actualDays = iterateDaysToGoal(startWeightKg, goalWeightKg, heightCm, ageYears, sex, calories, mode, multiplier);
   return { calories, actualDays };
 }
 

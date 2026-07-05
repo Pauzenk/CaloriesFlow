@@ -34,7 +34,7 @@ const nullableNumber = (min: number, max: number) =>
     z.number().min(min).max(max).nullable().optional(),
   );
 
-export const ACTIVITY_LEVELS = ["sedentary", "lightly_active", "moderately_active", "very_active"] as const;
+export const ACTIVITY_LEVELS = ["sedentary", "light", "active"] as const;
 export type ActivityLevel = (typeof ACTIVITY_LEVELS)[number];
 
 export const GOAL_MODES = ["weight_loss", "maintenance", "weight_gain"] as const;
@@ -42,16 +42,14 @@ export type GoalMode = (typeof GOAL_MODES)[number];
 
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   sedentary: 1.2,
-  lightly_active: 1.375,
-  moderately_active: 1.55,
-  very_active: 1.725,
+  light: 1.375,
+  active: 1.55,
 };
 
 export const ACTIVITY_LEVEL_LABELS: Record<ActivityLevel, string> = {
   sedentary: "Sedentary (×1.2)",
-  lightly_active: "Lightly active (×1.375)",
-  moderately_active: "Moderately active (×1.55)",
-  very_active: "Very active (×1.725)",
+  light: "Light (×1.375)",
+  active: "Active (×1.55)",
 };
 
 export const settings = pgTable("settings", {
@@ -89,7 +87,14 @@ export const upsertSettingsSchema = createInsertSchema(settings)
     ageYears: nullableNumber(5, 120),
     sexAtBirth: z.enum(["male", "female"]).nullable().optional(),
     goalWeightKg: nullableNumber(30, 300),
-    activityLevel: z.enum(ACTIVITY_LEVELS).default("sedentary"),
+    activityLevel: z.preprocess(
+      (v) => {
+        if (v === "lightly_active") return "light";
+        if (v === "moderately_active" || v === "very_active") return "active";
+        return v ?? "sedentary";
+      },
+      z.enum(ACTIVITY_LEVELS).default("sedentary"),
+    ),
     goalDurationMonths: z
       .preprocess(
         (v) => (v === null || v === undefined || v === "" ? null : Number(v)),

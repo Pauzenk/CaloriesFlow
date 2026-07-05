@@ -19,7 +19,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Activity, Meal, Settings, Weight } from "@shared/schema";
-import { type GoalMode } from "@shared/schema";
+import { type GoalMode, ACTIVITY_MULTIPLIERS } from "@shared/schema";
 import {
   computeBMR,
   computeTDEE,
@@ -177,7 +177,8 @@ export default function ProgressPage() {
     // Use most recent known weight so today's maintenance reflects current metabolism
     const weightForTDEE = lastLoggedKg ?? currentRealKg ?? settings.startingWeightKg;
     const bmr = computeBMR(weightForTDEE, settings.heightCm, settings.ageYears, sex);
-    return Math.round(computeTDEE(bmr, 1.2));
+    const multiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel ?? "sedentary") as keyof typeof ACTIVITY_MULTIPLIERS] ?? 1.2;
+    return Math.round(computeTDEE(bmr, multiplier));
   }, [settings, lastLoggedKg, currentRealKg]);
 
   const weightProgressPct = useMemo(() => {

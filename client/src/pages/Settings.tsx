@@ -20,6 +20,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   upsertSettingsSchema,
+  ACTIVITY_MULTIPLIERS,
   type Settings,
   type UpsertSettings,
   type GoalMode,
@@ -54,6 +55,9 @@ export default function SettingsPage() {
   const [planMonths, setPlanMonths] = useState<number | null>(null);
   const planInitialized = useRef(false);
   const [restartOpen, setRestartOpen] = useState(false);
+  const [showActivityNotice, setShowActivityNotice] = useState(
+    () => !localStorage.getItem("activityLevelNoticeSeen"),
+  );
 
   const restart = useMutation({
     mutationFn: () => apiRequest("DELETE", "/api/account/data"),
@@ -110,15 +114,18 @@ export default function SettingsPage() {
   const watchedGoalWeight = form.watch("goalWeightKg");
   const watchedMode = (form.watch("goalMode") ?? "weight_loss") as GoalMode;
   const watchedCalorieGoal = form.watch("dailyCalorieGoal");
+  const watchedActivityLevel = form.watch("activityLevel") ?? "sedentary";
 
   // Use starting weight for all calculations — currentWeightKg is legacy and not user-facing
   const weightForCalc = watchedStartWeight && watchedStartWeight > 0 ? watchedStartWeight : 0;
 
+  const activityMultiplier = ACTIVITY_MULTIPLIERS[watchedActivityLevel as keyof typeof ACTIVITY_MULTIPLIERS] ?? 1.2;
+
   const estimatedTDEE = useMemo(() => {
     if (!watchedHeight || !watchedAge || !watchedSex || !weightForCalc) return null;
     const bmr = computeBMR(weightForCalc, watchedHeight, watchedAge, watchedSex as "male" | "female");
-    return Math.round(computeTDEE(bmr, 1.2));
-  }, [watchedHeight, watchedAge, watchedSex, weightForCalc]);
+    return Math.round(computeTDEE(bmr, activityMultiplier));
+  }, [watchedHeight, watchedAge, watchedSex, weightForCalc, activityMultiplier]);
 
   // BMI panel — computed from height + current/start weight
   const bmiData = useMemo(() => {
@@ -159,16 +166,16 @@ export default function SettingsPage() {
 
     if (watchedMode === "weight_gain") {
       const calorie = estimatedTDEE + 350;
-      const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, calorie, "weight_gain");
+      const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, calorie, "weight_gain", activityMultiplier);
       return { calorie, days };
     }
 
     // weight_loss — iterative simulation so slowing rate near goal is captured
     const idealCalorie = estimatedTDEE - 500;
     const calorie = idealCalorie >= 1200 ? idealCalorie : 1200;
-    const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, calorie, "weight_loss");
+    const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, calorie, "weight_loss", activityMultiplier);
     return { calorie, days };
-  }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode, watchedHeight, watchedAge, watchedSex]);
+  }, [estimatedTDEE, watchedStartWeight, watchedGoalWeight, watchedMode, watchedHeight, watchedAge, watchedSex, activityMultiplier]);
 
   // Initialize plan once when optimalPlan first becomes available
   useEffect(() => {
@@ -200,7 +207,7 @@ export default function SettingsPage() {
     // No calorie floor — solver returns the raw required intake; warning shown if < 1200
     const { calories } = solveCaloriesForTimeline(
       targetDays, watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, mode,
-      1,
+      1, activityMultiplier,
     );
     setPlanMonths(months);
     form.setValue("goalDurationMonths", months, { shouldDirty: true });
@@ -216,14 +223,14 @@ export default function SettingsPage() {
     const weightDiff = Math.abs(watchedStartWeight - watchedGoalWeight);
     if (weightDiff <= 0) return null;
     const mode = watchedMode === "weight_gain" ? "weight_gain" : "weight_loss";
-    const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, watchedCalorieGoal, mode);
+    const days = iterateDaysToGoal(watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, watchedCalorieGoal, mode, activityMultiplier);
     const months = Math.max(1, days / 30.44);
     return {
       days,
       months,
       monthlyRate: weightDiff / months,
     };
-  }, [watchedCalorieGoal, watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, watchedMode]);
+  }, [watchedCalorieGoal, watchedStartWeight, watchedGoalWeight, watchedHeight, watchedAge, watchedSex, watchedMode, activityMultiplier]);
 
   const planWarning = useMemo(() => {
     if (!estimatedTDEE || watchedMode === "maintenance") return null;
@@ -418,6 +425,48 @@ export default function SettingsPage() {
                         className={IN + " max-w-[220px]"} {...field} />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )} />
+
+                {/* ── Activity Level ── */}
+                <FormField control={form.control} name="activityLevel" render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between mb-2">
+                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("activityLevel")}</FormLabel>
+                      {showActivityNotice && (
+                        <span className="text-[9px] uppercase tracking-widest text-[#9e4515] border border-[#9e4515]/40 px-2 py-0.5 cursor-pointer"
+                          onClick={() => { setShowActivityNotice(false); localStorage.setItem("activityLevelNoticeSeen", "1"); }}
+                          data-testid="notice-activity-level">
+                          {t("activityLevelNewNotice")} ×
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-0 border border-[#1C1714]/20" data-testid="select-activity-level">
+                      {(["sedentary", "light", "active"] as const).map((lvl) => {
+                        const labels: Record<string, string> = { sedentary: t("actSedentary"), light: t("actLight"), active: t("actActive") };
+                        const descs: Record<string, string> = { sedentary: t("actDescSedentary"), light: t("actDescLight"), active: t("actDescActive") };
+                        const active = field.value === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            data-testid={`button-activity-${lvl}`}
+                            onClick={() => field.onChange(lvl)}
+                            className={`px-2 py-3 text-left border-r last:border-r-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
+                          >
+                            <div className={`text-[9px] uppercase tracking-widest font-bold mb-1 ${active ? "opacity-90" : "opacity-70"}`}>
+                              {labels[lvl]}
+                            </div>
+                            <div className={`text-[9px] leading-snug ${active ? "opacity-60" : "opacity-40"}`}>
+                              {descs[lvl]}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className={`text-[9px] mt-1.5 leading-snug ${watchedActivityLevel !== "sedentary" ? "opacity-60" : "opacity-40"}`}>
+                      {t("activityLevelCaption")}
+                    </p>
                   </FormItem>
                 )} />
 

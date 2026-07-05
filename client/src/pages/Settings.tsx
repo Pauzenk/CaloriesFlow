@@ -55,7 +55,7 @@ export default function SettingsPage() {
   const [planMonths, setPlanMonths] = useState<number | null>(null);
   const planInitialized = useRef(false);
   const [restartOpen, setRestartOpen] = useState(false);
-  const [showActivityNotice, setShowActivityNotice] = useState(
+  const [_showActivityNotice, _setShowActivityNotice] = useState(
     () => !localStorage.getItem("activityLevelNoticeSeen"),
   );
 
@@ -454,17 +454,8 @@ export default function SettingsPage() {
                 {/* ── Activity Level ── */}
                 <FormField control={form.control} name="activityLevel" render={({ field }) => (
                   <FormItem>
-                    <div className="flex items-center justify-between mb-2">
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("activityLevel")}</FormLabel>
-                      {showActivityNotice && (
-                        <span className="text-[9px] uppercase tracking-widest text-[#9e4515] border border-[#9e4515]/40 px-2 py-0.5 cursor-pointer"
-                          onClick={() => { setShowActivityNotice(false); localStorage.setItem("activityLevelNoticeSeen", "1"); }}
-                          data-testid="notice-activity-level">
-                          {t("activityLevelNewNotice")} ×
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-3 gap-0 border border-[#1C1714]/20" data-testid="select-activity-level">
+                    <FormLabel className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">{t("activityLevel")}</FormLabel>
+                    <div className="flex flex-col border border-[#1C1714]/20" data-testid="select-activity-level">
                       {(["sedentary", "light", "active"] as const).map((lvl) => {
                         const labels: Record<string, string> = { sedentary: t("actSedentary"), light: t("actLight"), active: t("actActive") };
                         const descs: Record<string, string> = { sedentary: t("actDescSedentary"), light: t("actDescLight"), active: t("actDescActive") };
@@ -475,9 +466,9 @@ export default function SettingsPage() {
                             type="button"
                             data-testid={`button-activity-${lvl}`}
                             onClick={() => field.onChange(lvl)}
-                            className={`px-2 py-3 text-left border-r last:border-r-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
+                            className={`flex items-center gap-4 px-4 py-3 text-left border-b last:border-b-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
                           >
-                            <div className={`text-[9px] uppercase tracking-widest font-bold mb-1 ${active ? "opacity-90" : "opacity-70"}`}>
+                            <div className={`text-[9px] uppercase tracking-widest font-bold w-32 shrink-0 ${active ? "opacity-90" : "opacity-70"}`}>
                               {labels[lvl]}
                             </div>
                             <div className={`text-[9px] leading-snug ${active ? "opacity-60" : "opacity-40"}`}>
@@ -487,9 +478,6 @@ export default function SettingsPage() {
                         );
                       })}
                     </div>
-                    <p className={`text-[9px] mt-1.5 leading-snug ${watchedActivityLevel !== "sedentary" ? "opacity-60" : "opacity-40"}`}>
-                      {t("activityLevelCaption")}
-                    </p>
                   </FormItem>
                 )} />
 

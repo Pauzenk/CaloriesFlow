@@ -153,7 +153,8 @@ export function suggestGoalMode(
 // ─── Three-Line Weight Chart Engine ────────────────────────────────────────────
 
 export type ThreeLinePoint = {
-  date: string;        // YYYY-MM-DD — x-axis key
+  date: string;        // YYYY-MM-DD — used for tooltip / click-inspect
+  dayIdx: number;      // days since journey start — numerical x-axis key
   planned: number;     // planned weight (full timeline)
   real?: number;       // calorie-deficit estimate, past only (daily granularity)
   isLogged?: boolean;  // true when an actual weight was logged on this exact date
@@ -258,6 +259,7 @@ export function threeLineWeightSeries(
     if (isPast || isWeeklyMilestone) {
       points.push({
         date: dateStr,
+        dayIdx: i,
         planned: +plannedWeight.toFixed(1),
         real: isPast ? +realWeight.toFixed(1) : undefined,
         isLogged: isPast && loggedWtMap.has(dateStr),

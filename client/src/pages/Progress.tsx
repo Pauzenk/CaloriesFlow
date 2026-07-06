@@ -402,18 +402,28 @@ export default function ProgressPage() {
                     >
                       <CartesianGrid strokeDasharray="none" vertical={false} stroke="#1C1714" strokeOpacity={0.06} />
                       <XAxis
-                        dataKey="date"
-                        ticks={tickDates}
+                        dataKey="dayIdx"
+                        type="number"
+                        domain={[0, "dataMax"]}
+                        ticks={(() => {
+                          if (!threeLinePoints.length) return [];
+                          const max = threeLinePoints[threeLinePoints.length - 1].dayIdx;
+                          const result: number[] = [];
+                          for (let i = 0; i <= max; i += 7) result.push(i);
+                          return result;
+                        })()}
                         tickLine={false}
                         axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                         tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
-                        tickFormatter={(d: string) => {
-                          if (d === settings?.journeyStartDate) return lang === "ru" ? "Нач." : "Start";
-                          const dt = new Date(d + "T00:00:00");
-                          return dt.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" });
+                        tickFormatter={(idx: number) => {
+                          if (!settings?.journeyStartDate) return "";
+                          if (idx === 0) return lang === "ru" ? "Нач." : "Start";
+                          const d = new Date(settings.journeyStartDate + "T00:00:00");
+                          d.setDate(d.getDate() + idx);
+                          return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" });
                         }}
                         interval={0}
-                        minTickGap={40}
+                        minTickGap={36}
                       />
                       <YAxis
                         tickLine={false}
@@ -455,9 +465,13 @@ export default function ProgressPage() {
                       )}
 
                       {/* Today vertical marker */}
-                      {todayDate && (
+                      {todayDate && settings?.journeyStartDate && (() => {
+                        const startMs = new Date(settings.journeyStartDate + "T00:00:00").getTime();
+                        const todayMs = new Date(todayDate + "T00:00:00").getTime();
+                        const todayDayIdx = Math.floor((todayMs - startMs) / 86400000);
+                        return (
                         <ReferenceLine
-                          x={todayDate}
+                          x={todayDayIdx}
                           stroke="#1C1714"
                           strokeOpacity={0.35}
                           strokeWidth={1}
@@ -470,7 +484,8 @@ export default function ProgressPage() {
                             fontFamily: "'Space Mono'",
                           }}
                         />
-                      )}
+                        );
+                      })()}
 
                       {/* WEIGHT line — calorie-deficit estimate, ends at today, dots at logged dates */}
                       <Line

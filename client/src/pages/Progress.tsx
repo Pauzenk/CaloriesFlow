@@ -416,11 +416,8 @@ export default function ProgressPage() {
                         axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                         tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
                         tickFormatter={(idx: number) => {
-                          if (!settings?.journeyStartDate) return "";
-                          if (idx === 0) return lang === "ru" ? "Нач." : "Start";
-                          const d = new Date(settings.journeyStartDate + "T00:00:00");
-                          d.setDate(d.getDate() + idx);
-                          return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" });
+                          if (idx === 0) return lang === "ru" ? "Нач" : "Start";
+                          return `w${Math.round(idx / 7)}`;
                         }}
                         interval={0}
                         minTickGap={36}

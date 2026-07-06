@@ -102,7 +102,7 @@ export default function ProgressPage() {
   const [period, setPeriod] = useState<Period>("week");
   const [weightInput, setWeightInput] = useState("");
   const [weightDate, setWeightDate] = useState(todayStr());
-  const [selectedWeekKey, setSelectedWeekKey] = useState<number | null>(null);
+  const [selectedWeekKey, setSelectedWeekKey] = useState<string | null>(null);
   const projectionContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -151,17 +151,12 @@ export default function ProgressPage() {
     (goalMode === "maintenance" || settings?.goalWeightKg)
   );
 
-  const { points: threeLinePoints, projectedGoalDate, currentRealKg, lastLoggedKg, todayWeekIdx } = useMemo(
+  const { points: threeLinePoints, projectedGoalDate, currentRealKg, lastLoggedKg, todayDate, tickDates } = useMemo(
     () =>
       settings && canProject
         ? threeLineWeightSeries(settings, meals, activities, weights, goalMode, lang)
-        : { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined, todayWeekIdx: 0 },
+        : { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined, todayDate: "", tickDates: [] },
     [settings, meals, activities, weights, goalMode, lang, canProject],
-  );
-
-  const todayWeekLabel = useMemo(
-    () => threeLinePoints.find((p) => p.weekIdx === todayWeekIdx)?.week ?? null,
-    [threeLinePoints, todayWeekIdx],
   );
 
   const currentEstimatedWeight = currentRealKg ?? null;
@@ -402,16 +397,23 @@ export default function ProgressPage() {
                         }
                         const point = threeLinePoints[chartState.activeTooltipIndex as number];
                         if (!point) { setSelectedWeekKey(null); return; }
-                        setSelectedWeekKey((prev) => (prev === point.weekIdx ? null : point.weekIdx));
+                        setSelectedWeekKey((prev) => (prev === point.date ? null : point.date));
                       }}
                     >
                       <CartesianGrid strokeDasharray="none" vertical={false} stroke="#1C1714" strokeOpacity={0.06} />
                       <XAxis
-                        dataKey="week"
+                        dataKey="date"
+                        ticks={tickDates}
                         tickLine={false}
                         axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                         tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
-                        interval="preserveStartEnd"
+                        tickFormatter={(d: string) => {
+                          if (d === settings?.journeyStartDate) return lang === "ru" ? "Нач." : "Start";
+                          const dt = new Date(d + "T00:00:00");
+                          return dt.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" });
+                        }}
+                        interval={0}
+                        minTickGap={40}
                       />
                       <YAxis
                         tickLine={false}
@@ -427,7 +429,9 @@ export default function ProgressPage() {
                           const pt = payload[0].payload as ThreeLinePoint;
                           return (
                             <div style={CHART_TOOLTIP.contentStyle} className="px-3 py-2.5 flex flex-col gap-1">
-                              <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">{pt.week}</p>
+                              <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">
+                                {new Date(pt.date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" })}
+                              </p>
                               {pt.real !== undefined && (
                                 <p style={{ color: "#1C1714" }}>
                                   {lang === "ru" ? "Вес" : "Weight"}{pt.isLogged ? " ●" : ""} : {pt.real.toFixed(1)} kg
@@ -451,9 +455,9 @@ export default function ProgressPage() {
                       )}
 
                       {/* Today vertical marker */}
-                      {todayWeekLabel && (
+                      {todayDate && (
                         <ReferenceLine
-                          x={todayWeekLabel}
+                          x={todayDate}
                           stroke="#1C1714"
                           strokeOpacity={0.35}
                           strokeWidth={1}
@@ -508,7 +512,7 @@ export default function ProgressPage() {
 
                 {/* Click-to-inspect detail panel */}
                 {selectedWeekKey !== null && (() => {
-                  const point = threeLinePoints.find((p) => p.weekIdx === selectedWeekKey);
+                  const point = threeLinePoints.find((p) => p.date === selectedWeekKey);
                   if (!point) return null;
                   return (
                     <div
@@ -516,8 +520,10 @@ export default function ProgressPage() {
                       className="mt-3 border border-[#1C1714] p-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 text-[#1C1714]"
                     >
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("weekLabel")}</p>
-                        <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">{point.week}</p>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{lang === "ru" ? "Дата" : "Date"}</p>
+                        <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">
+                          {new Date(point.date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" })}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{lang === "ru" ? "Вес" : "Weight"}</p>

@@ -1,0 +1,2 @@
+- [Chart x-axis migration](chart-xaxis-daily.md) — threeLineWeightSeries switched from weekIdx to daily date strings; Progress.tsx must use date key + tickDates for sparse XAxis ticks.
+- [Password hashing](password-hashing.md) — app uses scrypt (Node crypto) not bcryptjs; seed/test scripts must replicate the same `hex.salt` format.

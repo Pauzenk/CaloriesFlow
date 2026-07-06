@@ -19,6 +19,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Activity, Meal, Settings, Weight } from "@shared/schema";
+import type { ThreeLinePoint } from "@/lib/calorieflow";
 import { type GoalMode, ACTIVITY_MULTIPLIERS } from "@shared/schema";
 import {
   computeBMR,
@@ -150,12 +151,17 @@ export default function ProgressPage() {
     (goalMode === "maintenance" || settings?.goalWeightKg)
   );
 
-  const { points: threeLinePoints, projectedGoalDate, currentRealKg, lastLoggedKg } = useMemo(
+  const { points: threeLinePoints, projectedGoalDate, currentRealKg, lastLoggedKg, todayWeekIdx } = useMemo(
     () =>
       settings && canProject
         ? threeLineWeightSeries(settings, meals, activities, weights, goalMode, lang)
-        : { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined },
+        : { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined, todayWeekIdx: 0 },
     [settings, meals, activities, weights, goalMode, lang, canProject],
+  );
+
+  const todayWeekLabel = useMemo(
+    () => threeLinePoints.find((p) => p.weekIdx === todayWeekIdx)?.week ?? null,
+    [threeLinePoints, todayWeekIdx],
   );
 
   const currentEstimatedWeight = currentRealKg ?? null;
@@ -368,16 +374,12 @@ export default function ProgressPage() {
                 {/* Legend */}
                 <div className="flex flex-wrap gap-5 mb-3 text-[10px] uppercase tracking-widest opacity-50">
                   <span className="flex items-center gap-1.5">
+                    <span className="inline-block w-4 bg-[#1C1714]" style={{ height: 2 }} />
+                    {lang === "ru" ? "Вес" : "Weight"}
+                  </span>
+                  <span className="flex items-center gap-1.5">
                     <span className="inline-block w-4" style={{ height: 2, borderTop: "2px dashed #9e4515" }} />
                     {t("plannedLine")}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block w-4 bg-[#1C1714]" style={{ height: 2 }} />
-                    {t("realLine")}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="inline-block w-4 bg-[#4a7c59]" style={{ height: 2 }} />
-                    {t("loggedLine")}
                   </span>
                   {settings?.goalWeightKg && (
                     <span className="flex items-center gap-1.5">
@@ -392,7 +394,7 @@ export default function ProgressPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart
                       data={threeLinePoints}
-                      margin={{ top: 4, right: 24, left: 0, bottom: 4 }}
+                      margin={{ top: 16, right: 24, left: 0, bottom: 4 }}
                       onClick={(chartState) => {
                         if (!chartState || chartState.activeTooltipIndex == null) {
                           setSelectedWeekKey(null);
@@ -422,23 +424,22 @@ export default function ProgressPage() {
                         {...CHART_TOOLTIP}
                         content={({ active, payload }) => {
                           if (!active || !payload?.length) return null;
-                          const pt = payload[0].payload as { week: string; planned: number };
+                          const pt = payload[0].payload as ThreeLinePoint;
                           return (
                             <div style={CHART_TOOLTIP.contentStyle} className="px-3 py-2.5 flex flex-col gap-1">
                               <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">{pt.week}</p>
+                              {pt.real !== undefined && (
+                                <p style={{ color: "#1C1714" }}>
+                                  {lang === "ru" ? "Вес" : "Weight"}{pt.isLogged ? " ●" : ""} : {pt.real.toFixed(1)} kg
+                                </p>
+                              )}
                               <p style={{ color: "#9e4515" }}>{t("plannedLine")} : {pt.planned.toFixed(1)} kg</p>
-                              {currentRealKg !== undefined && (
-                                <p style={{ color: "#1C1714" }}>{t("realLine")} : {currentRealKg.toFixed(1)} kg</p>
-                              )}
-                              {lastLoggedKg !== undefined && (
-                                <p style={{ color: "#4a7c59" }}>{t("loggedLine")} : {lastLoggedKg.toFixed(1)} kg</p>
-                              )}
                             </div>
                           );
                         }}
                       />
 
-                      {/* Goal reference line — faint dashed ink */}
+                      {/* Goal reference — faint dashed horizontal */}
                       {settings?.goalWeightKg && (
                         <ReferenceLine
                           y={settings.goalWeightKg}
@@ -449,27 +450,49 @@ export default function ProgressPage() {
                         />
                       )}
 
-                      {/* Real estimate — flat horizontal ink line at current deficit estimate */}
-                      {currentRealKg !== undefined && (
+                      {/* Today vertical marker */}
+                      {todayWeekLabel && (
                         <ReferenceLine
-                          y={currentRealKg}
+                          x={todayWeekLabel}
                           stroke="#1C1714"
-                          strokeWidth={2}
-                          strokeOpacity={1}
+                          strokeOpacity={0.35}
+                          strokeWidth={1}
+                          label={{
+                            value: lang === "ru" ? "Сегодня" : "Today",
+                            position: "top",
+                            fontSize: 8,
+                            fill: "#1C1714",
+                            opacity: 0.45,
+                            fontFamily: "'Space Mono'",
+                          }}
                         />
                       )}
 
-                      {/* Last logged weight — flat horizontal green line */}
-                      {lastLoggedKg !== undefined && (
-                        <ReferenceLine
-                          y={lastLoggedKg}
-                          stroke="#4a7c59"
-                          strokeWidth={1.5}
-                          strokeOpacity={1}
-                        />
-                      )}
+                      {/* WEIGHT line — calorie-deficit estimate, ends at today, dots at logged dates */}
+                      <Line
+                        type="linear"
+                        dataKey="real"
+                        stroke="#1C1714"
+                        strokeWidth={1.5}
+                        connectNulls={false}
+                        dot={(props: any) => {
+                          if (!props.payload?.isLogged) return <g key={props.key} />;
+                          return (
+                            <circle
+                              key={props.key}
+                              cx={props.cx}
+                              cy={props.cy}
+                              r={3}
+                              fill="#1C1714"
+                              stroke="#F2EDE7"
+                              strokeWidth={1}
+                            />
+                          );
+                        }}
+                        activeDot={{ r: 3, fill: "#1C1714", stroke: "#F2EDE7", strokeWidth: 1 }}
+                      />
 
-                      {/* Planned line — dashed terracotta diagonal */}
+                      {/* PLAN line — dashed terracotta diagonal, full timeline */}
                       <Line
                         type="linear"
                         dataKey="planned"
@@ -497,20 +520,15 @@ export default function ProgressPage() {
                         <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">{point.week}</p>
                       </div>
                       <div>
+                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{lang === "ru" ? "Вес" : "Weight"}</p>
+                        <p className="text-base tabular-nums tracking-tight" data-testid="detail-real">
+                          {point.real !== undefined ? `${point.real.toFixed(1)} kg` : "—"}
+                          {point.isLogged && <span className="text-[9px] opacity-40 ml-1">●</span>}
+                        </p>
+                      </div>
+                      <div>
                         <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("plannedLine")}</p>
-                        <p className="text-base tabular-nums tracking-tight" data-testid="detail-planned">{point.planned.toFixed(1)} kg</p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("realLine")}</p>
-                        <p className="text-base tabular-nums tracking-tight opacity-80" data-testid="detail-real">
-                          {currentRealKg !== undefined ? `${currentRealKg.toFixed(1)} kg` : "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("loggedLine")}</p>
-                        <p className="text-base tabular-nums tracking-tight opacity-60" data-testid="detail-actual">
-                          {point.actualLog !== undefined ? `${point.actualLog.toFixed(1)} kg` : lastLoggedKg !== undefined ? `${lastLoggedKg.toFixed(1)} kg` : "—"}
-                        </p>
+                        <p className="text-base tabular-nums tracking-tight opacity-80" data-testid="detail-planned">{point.planned.toFixed(1)} kg</p>
                       </div>
                       <button
                         type="button"

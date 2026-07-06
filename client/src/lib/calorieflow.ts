@@ -155,11 +155,10 @@ export function suggestGoalMode(
 export type ThreeLinePoint = {
   weekIdx: number;
   week: string;
-  planned: number;    // planned weight (always present)
-  real?: number;      // real calorie-based estimate (extended forward as reference)
-  actual?: number;    // logged weight extended forward as reference line
-  actualLog?: number; // logged weight only where truly measured (for dots)
-  goal?: number;      // goal weight reference (constant)
+  planned: number;     // planned weight (always present — full timeline)
+  real?: number;       // calorie-based estimate, present only up to today's week
+  isLogged?: boolean;  // true if a measured weight was logged this week
+  goal?: number;       // goal weight reference (constant)
 };
 
 export function threeLineWeightSeries(
@@ -169,7 +168,7 @@ export function threeLineWeightSeries(
   weights: Weight[],
   goalMode?: string,
   lang?: string,
-): { points: ThreeLinePoint[]; projectedGoalDate: string | null; currentRealKg: number | undefined; lastLoggedKg: number | undefined } {
+): { points: ThreeLinePoint[]; projectedGoalDate: string | null; currentRealKg: number | undefined; lastLoggedKg: number | undefined; todayWeekIdx: number } {
   const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate, dailyCalorieGoal } =
     settings;
   const effectiveMode = goalMode ?? settings.goalMode ?? "weight_loss";
@@ -177,11 +176,11 @@ export function threeLineWeightSeries(
   const multiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel ?? "sedentary") as keyof typeof ACTIVITY_MULTIPLIERS] ?? 1.2;
 
   if (!heightCm || !ageYears || !sexAtBirth || !startingWeightKg)
-    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined };
+    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined, todayWeekIdx: 0 };
   if (needsGoalWeight && !goalWeightKg)
-    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined };
+    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined, todayWeekIdx: 0 };
   if (sexAtBirth !== "male" && sexAtBirth !== "female")
-    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined };
+    return { points: [], projectedGoalDate: null, currentRealKg: undefined, lastLoggedKg: undefined, todayWeekIdx: 0 };
 
   const mealCal = new Map<string, number>();
   for (const m of meals) mealCal.set(m.date, (mealCal.get(m.date) ?? 0) + m.calories);
@@ -271,40 +270,33 @@ export function threeLineWeightSeries(
   }
 
   const sorted = Array.from(buckets.entries()).sort(([a], [b]) => a - b);
-  const rawPoints: ThreeLinePoint[] = sorted.map(([weekIdx, b]) => {
+  const rawPoints = sorted.map(([weekIdx, b]) => {
     const planned = +b.plannedWeight.toFixed(1);
     const real = b.realEndKg;
-    const actualLog = b.actuals.length > 0
+    const hasLogged = b.actuals.length > 0;
+    const actualLog = hasLogged
       ? +(b.actuals.reduce((s, v) => s + v, 0) / b.actuals.length).toFixed(1)
       : undefined;
-    return {
-      weekIdx,
-      week: weekIdx === 0 ? nowLabel : `${wkLabel} ${weekIdx}`,
-      planned,
-      real,
-      actual: actualLog,
-      actualLog,
-      goal: goalWeightKg ?? undefined,
-    };
+    return { weekIdx, week: weekIdx === 0 ? nowLabel : `${wkLabel} ${weekIdx}`, planned, real, hasLogged, actualLog, goal: goalWeightKg ?? undefined };
   });
 
-  // Forward-pass carry-forward: extend each line only from the point where a value
-  // was last observed — never backward-fill from a later measurement.
-  // real:   extends into future as a flat reference (current estimated weight).
-  // actual: only extends to current week; not projected into future weeks.
+  // Forward-fill real only up to currentWeekIdx — future weeks have undefined real
   let lastRealKg: number | undefined;
   let lastActualKg: number | undefined;
-  const points = rawPoints.map(p => {
+  const points: ThreeLinePoint[] = rawPoints.map(p => {
     if (p.real !== undefined) lastRealKg = p.real;
-    if (p.actual !== undefined) lastActualKg = p.actual;
+    if (p.actualLog !== undefined) lastActualKg = p.actualLog;
     return {
-      ...p,
-      real: p.real ?? lastRealKg,
-      actual: p.weekIdx <= currentWeekIdx ? (p.actual ?? lastActualKg) : undefined,
+      weekIdx: p.weekIdx,
+      week: p.week,
+      planned: p.planned,
+      real: p.weekIdx <= currentWeekIdx ? (p.real ?? lastRealKg) : undefined,
+      isLogged: p.hasLogged,
+      goal: p.goal,
     };
   });
 
-  return { points, projectedGoalDate, currentRealKg: lastRealKg, lastLoggedKg: lastActualKg };
+  return { points, projectedGoalDate, currentRealKg: lastRealKg, lastLoggedKg: lastActualKg, todayWeekIdx: currentWeekIdx };
 }
 
 // ─── Iterative goal-days calculator ────────────────────────────────────────────

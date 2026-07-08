@@ -62,7 +62,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
                         type="button"
                         data-testid={`link-nav-${item.labelKey}`}
                         onClick={() => navigate(item.path)}
-                        className={`flex h-10 w-full items-center gap-3 px-3 text-left transition-colors ${
+                        className={`flex h-11 w-full items-center gap-3 px-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#1C1714] ${
                           active
                             ? "border-l-2 border-[#1C1714] bg-[#1C1714]/8 text-[#1C1714]"
                             : "border-l-2 border-transparent text-[#1C1714]/50 hover:bg-[#1C1714]/5 hover:text-[#1C1714]"
@@ -101,7 +101,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               </div>
               <span className="text-base font-bold text-[#1C1714]">CalorieFlow</span>
             </div>
-            <h2 className="hidden text-xl font-bold text-[#1C1714] md:block">{title}</h2>
+            <h2 className="hidden text-2xl font-bold text-[#1C1714] md:block">{title}</h2>
             <Button
               data-testid="button-logout"
               variant="ghost"
@@ -113,7 +113,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               <span className="hidden sm:inline">{t("logOut")}</span>
             </Button>
           </header>
-          <h2 className="px-4 pt-5 text-xl font-bold text-[#1C1714] md:hidden">{title}</h2>
+          <h2 className="px-4 pt-5 text-2xl font-bold text-[#1C1714] md:hidden">{title}</h2>
           <section className="flex-1 px-4 pb-10 pt-4 md:px-8">{children}</section>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               }`}
             >
               <Icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
+              <span className="text-xs font-medium">{t(item.labelKey)}</span>
             </button>
           );
         })}

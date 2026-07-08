@@ -209,7 +209,7 @@ export default function Dashboard() {
         {/* ── Setup banner (non-blocking) ── */}
         {profileIncomplete && (
           <div className="mb-6 flex items-center justify-between gap-4 border border-[#1C1714]/20 px-4 py-3 text-xs">
-            <span className="opacity-60">{t("setupForPersonalized")}</span>
+            <span className="text-[#6B6560]">{t("setupForPersonalized")}</span>
             <Link href="/settings" className="shrink-0">
               <button
                 type="button"
@@ -251,14 +251,14 @@ export default function Dashboard() {
               />
             </div>
             {dayNum !== null && (
-              <div className="text-[10px] uppercase tracking-widest opacity-50">{t("day")} {dayNum}</div>
+              <div className="text-xs uppercase tracking-widest text-[#6B6560]">{t("day")} {dayNum}</div>
             )}
             {!isToday && (
               <button
                 type="button"
                 data-testid="button-dashboard-goto-today"
                 onClick={() => { setSelectedDate(todayStr()); setEditState(null); setActivityEditState(null); }}
-                className="text-[9px] uppercase tracking-widest opacity-50 hover:opacity-100 underline transition-opacity mt-0.5"
+                className="text-xs uppercase tracking-widest text-[#6B6560] hover:text-[#1C1714] underline transition-colors mt-0.5"
               >
                 → {t("today")}
               </button>
@@ -281,7 +281,7 @@ export default function Dashboard() {
         <div className="pb-4 border-b-2 border-[#1C1714] mb-8">
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
+              <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">
                 {isToday ? t("todaysTally") : t("daysTally")}
               </p>
               <div className="text-5xl tracking-tighter leading-none" data-testid="text-today-calories">
@@ -290,7 +290,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="text-right">
-              <p className={`text-[10px] uppercase tracking-widest mb-1 ${netCalories > goal ? "text-red-500 opacity-80" : "opacity-60"}`}>
+              <p className={`text-xs uppercase tracking-widest mb-1 ${netCalories > goal ? "text-red-500" : "text-[#6B6560]"}`}>
                 {netCalories > goal ? t("surplusLabel") : t("remaining")}
               </p>
               <div
@@ -318,15 +318,15 @@ export default function Dashboard() {
           <div className="flex justify-between border-t border-[#1C1714]/20 pt-3 mt-3 text-sm">
             <div className="flex gap-4">
               <div>
-                <span className="opacity-50">PRO</span>{" "}
+                <span className="text-[#6B6560]">PRO</span>{" "}
                 <span data-testid="text-macro-proteins">{Math.round(totals.proteins)}g</span>
               </div>
               <div>
-                <span className="opacity-50">CARB</span>{" "}
+                <span className="text-[#6B6560]">CARB</span>{" "}
                 <span data-testid="text-macro-carbs">{Math.round(totals.carbs)}g</span>
               </div>
               <div>
-                <span className="opacity-50">FAT</span>{" "}
+                <span className="text-[#6B6560]">FAT</span>{" "}
                 <span data-testid="text-macro-fats">{Math.round(totals.fats)}g</span>
               </div>
             </div>
@@ -336,7 +336,7 @@ export default function Dashboard() {
         {/* ── Food Log ── */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4 border-b border-[#1C1714]/20 pb-2">
-            <div className="text-xs uppercase tracking-widest opacity-60">
+            <div className="text-xs uppercase tracking-widest text-[#6B6560]">
               {isToday ? t("dailyFoodLog") : `${t("foodLog")} — ${formatDisplayDate(selectedDate, t("today"), t("yesterday"), lang)}`}
             </div>
           </div>
@@ -348,8 +348,8 @@ export default function Dashboard() {
                   <Activity className="h-5 w-5 opacity-40" />
                 </div>
               </div>
-              <p className="text-xs uppercase tracking-widest opacity-60 mb-2">{t("noEntriesYet")}</p>
-              <p className="text-sm opacity-60 mb-6">{t("logFirstMeal")}</p>
+              <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-2">{t("noEntriesYet")}</p>
+              <p className="text-sm text-[#6B6560] mb-6">{t("logFirstMeal")}</p>
               <Link href={`/log?date=${selectedDate}`}>
                 <button
                   type="button"
@@ -367,7 +367,7 @@ export default function Dashboard() {
                 if (typeMeals.length === 0) return null;
                 return (
                   <div key={type} className="mb-3">
-                    <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1 pt-1">
+                    <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 pt-1">
                       {MEAL_LABELS[type] ?? type}
                     </div>
                     {typeMeals.map((m) => (
@@ -398,7 +398,7 @@ export default function Dashboard() {
                               <div className="grid grid-cols-4 gap-1">
                                 {(["calories", "proteins", "carbs", "fats"] as const).map((k) => (
                                   <div key={k}>
-                                    <div className="text-[8px] uppercase opacity-50 mb-0.5">
+                                    <div className="text-[11px] uppercase text-[#6B6560] mb-0.5">
                                       {k === "calories" ? "kcal" : k === "proteins" ? "pro" : k === "carbs" ? "crb" : "fat"}
                                     </div>
                                     <input
@@ -418,7 +418,7 @@ export default function Dashboard() {
                                 onClick={commitEdit}
                                 disabled={updateMeal.isPending}
                                 data-testid="button-confirm-edit"
-                                className="flex items-center gap-1 bg-[#1C1714] text-[#F2EDE7] px-3 py-1 text-[10px] uppercase tracking-widest hover:bg-[#1C1714]/80 disabled:opacity-40"
+                                className="flex items-center gap-1 bg-[#1C1714] text-[#F2EDE7] px-3 py-2.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 disabled:opacity-40 min-h-[44px]"
                               >
                                 <Check className="h-3 w-3" /> {t("save")}
                               </button>
@@ -426,7 +426,7 @@ export default function Dashboard() {
                                 type="button"
                                 onClick={() => setEditState(null)}
                                 data-testid="button-cancel-edit"
-                                className="flex items-center gap-1 border border-[#1C1714]/30 px-3 py-1 text-[10px] uppercase tracking-widest hover:border-[#1C1714]"
+                                className="flex items-center gap-1 border border-[#1C1714]/30 px-3 py-2.5 text-xs uppercase tracking-widest hover:border-[#1C1714] min-h-[44px]"
                               >
                                 <X className="h-3 w-3" /> {t("cancel")}
                               </button>
@@ -443,15 +443,15 @@ export default function Dashboard() {
                                 type="button"
                                 data-testid={`button-edit-meal-${m.id}`}
                                 onClick={() => startEdit(m)}
-                                className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                                className="h-11 w-11 flex items-center justify-center text-[#6B6560] hover:text-[#1C1714] transition-colors"
                               >
-                                <Pencil className="h-3 w-3" />
+                                <Pencil className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 type="button"
                                 data-testid={`button-delete-meal-${m.id}`}
                                 onClick={() => setPendingDeleteMeal(m.id)}
-                                className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9B4A2E] transition-all"
+                                className="h-11 w-11 flex items-center justify-center text-[#6B6560] hover:text-[#9B4A2E] transition-colors"
                                 aria-label="Delete meal"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -467,7 +467,7 @@ export default function Dashboard() {
 
               {dayActivities.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-[10px] uppercase tracking-widest opacity-50 mb-1 pt-1">{t("activity")}</div>
+                  <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 pt-1">{t("activity")}</div>
                   {dayActivities.map((a) => (
                     <div key={a.id} data-testid={`row-activity-${a.id}`}>
                       {activityEditState?.id === a.id ? (
@@ -495,7 +495,7 @@ export default function Dashboard() {
                             </select>
                             <div className="grid grid-cols-2 gap-1">
                               <div>
-                                <div className="text-[8px] uppercase opacity-50 mb-0.5">min</div>
+                                <div className="text-[11px] uppercase text-[#6B6560] mb-0.5">min</div>
                                 <input
                                   type="number"
                                   value={activityEditState.durationMinutes}
@@ -505,7 +505,7 @@ export default function Dashboard() {
                                 />
                               </div>
                               <div>
-                                <div className="text-[8px] uppercase opacity-50 mb-0.5">kcal</div>
+                                <div className="text-[11px] uppercase text-[#6B6560] mb-0.5">kcal</div>
                                 <input
                                   type="number"
                                   value={activityEditState.caloriesBurned}
@@ -522,7 +522,7 @@ export default function Dashboard() {
                               onClick={commitActivityEdit}
                               disabled={updateActivity.isPending}
                               data-testid="button-confirm-activity-edit"
-                              className="flex items-center gap-1 bg-[#1C1714] text-[#F2EDE7] px-3 py-1 text-[10px] uppercase tracking-widest hover:bg-[#1C1714]/80 disabled:opacity-40"
+                              className="flex items-center gap-1 bg-[#1C1714] text-[#F2EDE7] px-3 py-2.5 text-xs uppercase tracking-widest hover:bg-[#1C1714]/80 disabled:opacity-40 min-h-[44px]"
                             >
                               <Check className="h-3 w-3" /> {t("save")}
                             </button>
@@ -530,7 +530,7 @@ export default function Dashboard() {
                               type="button"
                               onClick={() => setActivityEditState(null)}
                               data-testid="button-cancel-activity-edit"
-                              className="flex items-center gap-1 border border-[#1C1714]/30 px-3 py-1 text-[10px] uppercase tracking-widest hover:border-[#1C1714]"
+                              className="flex items-center gap-1 border border-[#1C1714]/30 px-3 py-2.5 text-xs uppercase tracking-widest hover:border-[#1C1714] min-h-[44px]"
                             >
                               <X className="h-3 w-3" /> {t("cancel")}
                             </button>
@@ -540,7 +540,7 @@ export default function Dashboard() {
                         <div className="group flex items-center py-2.5 border-b border-dashed border-[#1C1714]/20 pl-2 border-l-2 border-l-[#1C1714]/30">
                           <div className="flex-1 px-2 min-w-0">
                             <div className="leading-tight truncate">{a.name}</div>
-                            <div className="text-[10px] uppercase opacity-50 tracking-widest mt-0.5">
+                            <div className="text-xs uppercase text-[#6B6560] tracking-widest mt-0.5">
                               {a.activityType} · {a.durationMinutes}min
                             </div>
                           </div>
@@ -550,16 +550,16 @@ export default function Dashboard() {
                               type="button"
                               data-testid={`button-edit-activity-${a.id}`}
                               onClick={() => setActivityEditState({ id: a.id, date: a.date, name: a.name, durationMinutes: String(a.durationMinutes), activityType: a.activityType, caloriesBurned: String(a.caloriesBurned) })}
-                              className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity"
+                              className="h-11 w-11 flex items-center justify-center text-[#6B6560] hover:text-[#1C1714] transition-colors"
                               aria-label="Edit activity"
                             >
-                              <Pencil className="h-3 w-3" />
+                              <Pencil className="h-3.5 w-3.5" />
                             </button>
                             <button
                               type="button"
                               data-testid={`button-delete-activity-${a.id}`}
                               onClick={() => setPendingDeleteActivity(a.id)}
-                              className="h-7 w-7 flex items-center justify-center opacity-50 hover:opacity-100 hover:text-[#9B4A2E] transition-all"
+                              className="h-11 w-11 flex items-center justify-center text-[#6B6560] hover:text-[#9B4A2E] transition-colors"
                               aria-label="Delete activity"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -574,12 +574,12 @@ export default function Dashboard() {
 
               {dayMeals.length === 0 && dayActivities.length === 0 && (
                 <div className="py-6 text-center border border-dashed border-[#1C1714]/20">
-                  <p className="text-xs opacity-50">{t("noEntriesFor")} {formatDisplayDate(selectedDate, t("today"), t("yesterday"), lang)}.</p>
+                  <p className="text-xs text-[#6B6560]">{t("noEntriesFor")} {formatDisplayDate(selectedDate, t("today"), t("yesterday"), lang)}.</p>
                 </div>
               )}
 
               <div className="flex justify-between items-center py-4 border-b-2 border-[#1C1714]">
-                <div className="uppercase tracking-widest text-xs opacity-60">{t("netCalories")}</div>
+                <div className="uppercase tracking-widest text-xs text-[#6B6560]">{t("netCalories")}</div>
                 <div className="tabular-nums" data-testid="text-subtotal">{netCalories}</div>
               </div>
 

@@ -428,7 +428,7 @@ function InlineChat({
           <p className="text-xs mb-3 leading-relaxed text-[#F2EDE7]/60">
             {chatMode === "activity" ? t("chatEmptyHintActivity") : t("chatEmptyHint")}
           </p>
-          <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/40 mb-1">{t("quickActions")}</div>
+          <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/60 mb-1">{t("quickActions")}</div>
           {suggestions.map((s) => (
             <button
               key={s}
@@ -530,12 +530,12 @@ function InlineChat({
                           data-testid={`button-log-all-${msg.id}`}
                           onClick={() => handleLogAll(msg.id, msg.estimates!)}
                           disabled={loggingAll === msg.id}
-                          className="w-full flex items-center justify-center gap-1.5 bg-[#F2EDE7] text-[#1C1714] py-2.5 text-[10px] uppercase tracking-widest hover:bg-[#F2EDE7]/90 transition-colors disabled:opacity-40"
+                          className="w-full flex items-center justify-center gap-1.5 bg-[#F2EDE7] text-[#1C1714] py-3 text-xs uppercase tracking-widest hover:bg-[#F2EDE7]/90 transition-colors disabled:opacity-40 min-h-[44px]"
                         >
                           {loggingAll === msg.id ? t("adding") : <><ArrowRight className="h-3 w-3" /> {t("addFullDayChat")}</>}
                         </button>
                         <div>
-                          <div className="text-[9px] uppercase tracking-widest text-[#F2EDE7]/30 mb-1.5">{t("regenSection")}</div>
+                          <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/60 mb-1.5">{t("regenSection")}</div>
                           <div className="flex flex-wrap gap-1.5">
                             {(lang === "ru"
                               ? [
@@ -567,7 +567,7 @@ function InlineChat({
                                       : `Regenerate only the ${key}`);
                                   textareaRef.current?.focus();
                                 }}
-                                className="border border-[#F2EDE7]/15 px-2.5 py-1 text-[9px] uppercase tracking-widest text-[#F2EDE7]/50 hover:border-[#F2EDE7]/40 hover:text-[#F2EDE7]/80 transition-colors"
+                                className="border border-[#F2EDE7]/15 px-2.5 py-1.5 text-xs uppercase tracking-widest text-[#F2EDE7]/60 hover:border-[#F2EDE7]/40 hover:text-[#F2EDE7]/90 transition-colors"
                               >
                                 ↻ {label}
                               </button>
@@ -585,7 +585,7 @@ function InlineChat({
                     data-testid={`chat-activity-estimate-${msg.id}`}
                     className="w-full border border-[#F2EDE7]/20 p-3"
                   >
-                    <div className="text-[9px] uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 flex items-center gap-1.5 opacity-50">
+                    <div className="text-xs uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 flex items-center gap-1.5 text-[#F2EDE7]/70">
                       <Activity className="h-3 w-3" /> {t("activityLogged2")}
                     </div>
                     <div className="text-xs mb-2 text-[#F2EDE7]/85">{msg.activityEstimate.name}</div>
@@ -596,7 +596,7 @@ function InlineChat({
                         { label: t("burnedLabel"), value: `${msg.activityEstimate.caloriesBurned} kcal` },
                       ].map(({ label, value }) => (
                         <div key={label} className="border border-[#F2EDE7]/10 py-1.5">
-                          <div className="text-[8px] uppercase tracking-widest opacity-50">{label}</div>
+                          <div className="text-[11px] uppercase tracking-widest text-[#F2EDE7]/60">{label}</div>
                           <div className="text-xs tabular-nums mt-0.5">{value}</div>
                         </div>
                       ))}
@@ -762,12 +762,12 @@ function EstimateCard({
       data-testid={`chat-estimate-${msgId}`}
       className="w-full border border-[#F2EDE7]/25 p-3"
     >
-      <div className="text-[9px] uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 opacity-50">
+      <div className="text-xs uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 text-[#F2EDE7]/70">
         {estimate.mealType ? estimate.mealType.charAt(0).toUpperCase() + estimate.mealType.slice(1) : "Estimate"}
       </div>
       <div className="text-xs mb-1.5 text-[#F2EDE7]/85">{estimate.name}</div>
       {estimate.portionAssumption && (
-        <div className="text-[9px] text-[#F2EDE7]/40 mb-2 leading-snug italic">
+        <div className="text-xs text-[#F2EDE7]/60 mb-2 leading-snug italic">
           {estimate.portionAssumption}
         </div>
       )}
@@ -779,7 +779,7 @@ function EstimateCard({
           { label: "FAT", key: "fats" as const, step: "0.1", isInt: false },
         ] as const).map(({ label, key, step, isInt }) => (
           <div key={label} className="border border-[#F2EDE7]/10 py-1.5 px-0.5">
-            <div className="text-[8px] uppercase tracking-widest opacity-50 mb-0.5">{label}</div>
+            <div className="text-[11px] uppercase tracking-widest text-[#F2EDE7]/60 mb-0.5">{label}</div>
             <input
               type="number"
               step={step}
@@ -802,7 +802,7 @@ function EstimateCard({
           type="button"
           data-testid={`button-meal-type-picker-${msgId}`}
           onClick={onToggleMealType}
-          className="w-full flex items-center justify-between border border-[#F2EDE7]/20 px-3 py-1.5 text-[10px] uppercase tracking-widest text-[#F2EDE7]/70 hover:border-[#F2EDE7]/40 transition-colors"
+          className="w-full flex items-center justify-between border border-[#F2EDE7]/20 px-3 py-2 text-xs uppercase tracking-widest text-[#F2EDE7]/80 hover:border-[#F2EDE7]/50 transition-colors min-h-[44px]"
         >
           <span>{mealType}</span>
           <ChevronDown className="h-3 w-3 opacity-50" />
@@ -815,7 +815,7 @@ function EstimateCard({
                 type="button"
                 data-testid={`option-meal-type-${mt}-${msgId}`}
                 onClick={() => onMealTypeChange(mt)}
-                className={`w-full text-left px-3 py-2 text-[10px] uppercase tracking-widest transition-colors ${
+                className={`w-full text-left px-3 py-3 text-xs uppercase tracking-widest transition-colors ${
                   mt === mealType
                     ? "bg-[#F2EDE7]/10 text-[#F2EDE7]"
                     : "text-[#F2EDE7]/60 hover:bg-[#F2EDE7]/5 hover:text-[#F2EDE7]"
@@ -833,7 +833,7 @@ function EstimateCard({
         data-testid={`button-use-estimate-${msgId}`}
         onClick={() => onLog(mealType, { ...estimate, ...vals })}
         disabled={isLogging}
-        className="w-full flex items-center justify-center gap-1.5 border border-[#F2EDE7]/40 text-[#F2EDE7] py-2 text-[10px] uppercase tracking-widest hover:bg-[#F2EDE7] hover:text-[#1C1714] transition-colors disabled:opacity-40"
+        className="w-full flex items-center justify-center gap-1.5 border border-[#F2EDE7]/40 text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#F2EDE7] hover:text-[#1C1714] transition-colors disabled:opacity-40 min-h-[44px]"
       >
         {isLogging ? t("adding") : <><ArrowRight className="h-3 w-3" /> {t("logThisMeal")}</>}
       </button>
@@ -917,7 +917,7 @@ export default function LogMeal() {
           </Link>
           <div className="h-4 w-px bg-[#F2EDE7]/15" />
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/50 leading-none mb-0.5">
+            <p className="text-xs uppercase tracking-widest text-[#F2EDE7]/60 leading-none mb-0.5">
               {chatMode === "activity" ? t("addActivity") : t("addMeal")}
             </p>
             <p className="text-base tracking-tighter text-[#F2EDE7] leading-none">
@@ -928,13 +928,13 @@ export default function LogMeal() {
 
         {/* Day summary */}
         <div className="text-right">
-          <div className="text-[10px] uppercase tracking-widest text-[#F2EDE7]/40 leading-none mb-0.5">{t("loggedLabel")}</div>
+          <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/60 leading-none mb-0.5">{t("loggedLabel")}</div>
           <div className="text-sm tabular-nums text-[#F2EDE7]">
             {caloriesLogged}
             <span className="opacity-40 text-xs ml-1">/ {calorieGoal}</span>
           </div>
           {remaining > 0 && (
-            <div className="text-[10px] text-[#F2EDE7]/40 tabular-nums">{remaining} {t("remainingLabel")}</div>
+            <div className="text-xs text-[#F2EDE7]/60 tabular-nums">{remaining} {t("remainingLabel")}</div>
           )}
         </div>
       </div>

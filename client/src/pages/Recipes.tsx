@@ -100,12 +100,12 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
           type="button"
           onClick={onBack}
           data-testid="button-recipe-detail-back"
-          className="flex items-center gap-1.5 text-xs uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+          className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#6B6560] hover:text-[#1C1714] transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> {backLabel}
         </button>
         <div className="h-4 w-px bg-[#1C1714]/15" />
-        <span className="text-[10px] uppercase tracking-widest opacity-40">{mealLabel}</span>
+        <span className="text-xs uppercase tracking-widest text-[#6B6560]">{mealLabel}</span>
       </div>
       <div className="flex-1 overflow-y-auto pb-16 md:pb-0">
         {meal.imageUrl && (
@@ -122,13 +122,13 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
             {meal.name}
           </h1>
           <div className="flex gap-4 text-xs mb-8 mt-3 pb-4 border-b border-[#1C1714]/15">
-            <span><span className="opacity-50">Kcal</span> <span className="tabular-nums font-bold">{meal.calories}</span></span>
-            <span><span className="opacity-50">PRO</span> <span className="tabular-nums">{meal.proteins}g</span></span>
-            <span><span className="opacity-50">CARB</span> <span className="tabular-nums">{meal.carbs}g</span></span>
-            <span><span className="opacity-50">FAT</span> <span className="tabular-nums">{meal.fats}g</span></span>
+            <span><span className="text-[#6B6560]">Kcal</span> <span className="tabular-nums font-bold">{meal.calories}</span></span>
+            <span><span className="text-[#6B6560]">PRO</span> <span className="tabular-nums">{meal.proteins}g</span></span>
+            <span><span className="text-[#6B6560]">CARB</span> <span className="tabular-nums">{meal.carbs}g</span></span>
+            <span><span className="text-[#6B6560]">FAT</span> <span className="tabular-nums">{meal.fats}g</span></span>
           </div>
           <section className="mb-8">
-            <h2 className="text-[10px] uppercase tracking-widest opacity-50 mb-3">{ingredientsLabel}</h2>
+            <h2 className="text-xs uppercase tracking-widest text-[#6B6560] mb-3">{ingredientsLabel}</h2>
             <ul className="space-y-2">
               {meal.ingredients.map((ing, i) => (
                 <li key={i} className="flex gap-3 text-sm leading-snug">
@@ -139,11 +139,11 @@ function RecipeDetail({ meal, onBack, mealLabel, ingredientsLabel, preparationLa
             </ul>
           </section>
           <section>
-            <h2 className="text-[10px] uppercase tracking-widest opacity-50 mb-3">{preparationLabel}</h2>
+            <h2 className="text-xs uppercase tracking-widest text-[#6B6560] mb-3">{preparationLabel}</h2>
             <ol className="space-y-4">
               {meal.instructions.map((step, i) => (
                 <li key={i} className="flex gap-4 text-sm leading-relaxed">
-                  <span className="shrink-0 h-6 w-6 flex items-center justify-center border border-[#1C1714]/30 text-[10px] tabular-nums mt-0.5 opacity-60">
+                  <span className="shrink-0 h-6 w-6 flex items-center justify-center border border-[#1C1714]/30 text-xs tabular-nums mt-0.5 text-[#6B6560]">
                     {i + 1}
                   </span>
                   <span>{step.replace(/^Step\s*\d+[:.]\s*/i, "").replace(/^Шаг\s*\d+[:.]\s*/i, "")}</span>
@@ -168,19 +168,19 @@ function MealCard({
   regenLabel: string; regenningLabel: string;
   addToLogLabel: string; addingLabel: string;
 }) {
-  const BTN = "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] uppercase tracking-widest border transition-colors disabled:opacity-40";
+  const BTN = "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs uppercase tracking-widest border transition-colors disabled:opacity-40";
   return (
     <div className="border border-[#1C1714]/15 hover:border-[#1C1714]/30 transition-colors" data-testid={`card-recipe-${meal.mealType}`}>
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <div className="text-[9px] uppercase tracking-widest opacity-40 mb-1">{mealLabel}</div>
+            <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">{mealLabel}</div>
             <button type="button" onClick={onDetail} data-testid={`button-recipe-detail-${meal.mealType}`}
               className="group flex items-center gap-1.5 w-full text-left hover:opacity-70 transition-opacity">
-              <span className="text-base tracking-tight leading-snug">{meal.name}</span>
+              <span className="text-lg font-bold tracking-tight leading-snug">{meal.name}</span>
               <ChevronRight className="h-3.5 w-3.5 opacity-30 group-hover:opacity-70 shrink-0 transition-opacity" />
             </button>
-            <div className="flex gap-3 mt-2 text-[10px] opacity-50 tabular-nums">
+            <div className="flex gap-3 mt-2 text-xs text-[#6B6560] tabular-nums">
               <span>{meal.calories} kcal</span>
               <span>P {meal.proteins}g</span>
               <span>C {meal.carbs}g</span>
@@ -425,7 +425,7 @@ export default function RecipesPage() {
             {/* Empty state — no plan generated yet */}
             {!isGenerating && (!meals || meals.length === 0) ? (
               <div className="flex flex-col items-center justify-center py-20 gap-5">
-                <p className="text-[10px] uppercase tracking-widest opacity-40">{t("generatePlanPrompt")}</p>
+                <p className="text-xs uppercase tracking-widest text-[#6B6560]">{t("generatePlanPrompt")}</p>
                 <button
                   type="button"
                   onClick={() => generateFullDay()}
@@ -440,8 +440,8 @@ export default function RecipesPage() {
                 {/* Action bar */}
                 <div className="flex items-center justify-between mb-5">
                   {meals && !isGenerating ? (
-                    <div className="text-[10px] tabular-nums opacity-50">
-                      {totalPlanned} <span className="opacity-60">/ {calorieGoal} kcal</span>
+                    <div className="text-xs tabular-nums text-[#6B6560]">
+                      {totalPlanned} <span className="text-[#6B6560]">/ {calorieGoal} kcal</span>
                     </div>
                   ) : (
                     <div />
@@ -451,7 +451,7 @@ export default function RecipesPage() {
                     onClick={() => generateFullDay()}
                     disabled={isGenerating}
                     data-testid="button-regenerate-all"
-                    className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-1.5 text-[10px] uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40"
+                    className="flex items-center gap-1.5 border border-[#1C1714]/30 px-3 py-2 text-xs uppercase tracking-widest hover:border-[#1C1714] hover:bg-[#1C1714]/5 transition-colors disabled:opacity-40 min-h-[44px]"
                   >
                     <RefreshCw className={`h-3 w-3 ${isGenerating ? "animate-spin" : ""}`} />
                     {isGenerating ? t("generating") : t("newPlan")}
@@ -499,7 +499,7 @@ export default function RecipesPage() {
                   </button>
                 )}
 
-                <p className="text-center text-[9px] uppercase tracking-widest opacity-25 mt-6">{t("tapMealHint")}</p>
+                <p className="text-center text-xs uppercase tracking-widest text-[#6B6560] mt-6">{t("tapMealHint")}</p>
               </>
             )}
           </>

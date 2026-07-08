@@ -230,7 +230,7 @@ export default function ProgressPage() {
             <p className="text-sm leading-snug opacity-80">{t("invalidBodyParams")}</p>
             <a
               href="/settings"
-              className="shrink-0 border border-[#9e4515] text-[#9e4515] px-4 py-2 text-[10px] uppercase tracking-widest hover:bg-[#9e4515]/5 transition-colors"
+              className="shrink-0 border border-[#9e4515] text-[#9e4515] px-4 py-2.5 text-xs uppercase tracking-widest hover:bg-[#9e4515]/5 transition-colors min-h-[44px]"
             >
               {t("editParameters")}
             </a>
@@ -241,9 +241,9 @@ export default function ProgressPage() {
         <div className="border-2 border-[#1C1714] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-1">
+              <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">
                 {t("currentWeightTitle")}
-                <span className="ml-2 opacity-60">({isActualWeight ? t("actual") : t("estimated")})</span>
+                <span className="ml-2">({isActualWeight ? t("actual") : t("estimated")})</span>
               </p>
               <div className="flex items-end gap-2">
                 <span className="text-4xl tabular-nums tracking-tighter leading-none" data-testid="text-estimated-weight">
@@ -251,13 +251,13 @@ export default function ProgressPage() {
                     ? `${!isActualWeight ? "≈" : ""}${displayWeight.toFixed(1)}`
                     : "—"}
                 </span>
-                <span className="text-xl opacity-40 mb-0.5">kg</span>
+                <span className="text-xl text-[#6B6560] mb-0.5">kg</span>
                 {settings?.goalWeightKg && (
                   <span className="text-sm opacity-35 mb-0.5">/ {settings.goalWeightKg} {t("goalWeightSuffix")}</span>
                 )}
               </div>
               {displayWeight !== null && (
-                <p className="text-[10px] opacity-40 mt-1">
+                <p className="text-xs text-[#6B6560] mt-1">
                   {isActualWeight && mostRecentActualWeight
                     ? `${t("loggedOn")} ${formatGoalDate(mostRecentActualWeight.date, lang)}`
                     : t("modelEstimateCaption")}
@@ -273,7 +273,7 @@ export default function ProgressPage() {
               }}
             >
               <div className="flex-1">
-                <label className="block text-[9px] uppercase tracking-widest opacity-50 mb-1.5 font-['Space_Mono']">
+                <label className="block text-xs uppercase tracking-widest text-[#6B6560] mb-1.5 font-['Space_Mono']">
                   {t("logWeightLabel")}
                 </label>
                 <Input
@@ -314,17 +314,17 @@ export default function ProgressPage() {
         <div className="border border-[#1C1714] p-5">
           <div className="flex items-start justify-between mb-4 pb-3 border-b border-dashed border-[#1C1714]/20">
             <div>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("journeyStatement")}</p>
+              <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("journeyStatement")}</p>
               <p className="text-4xl tabular-nums tracking-tighter leading-none" data-testid="text-journey-day">
                 {t("day")} {dayNum}
               </p>
             </div>
             {canProject && settings?.goalWeightKg && (
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("goal")}</p>
+                <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("goal")}</p>
                 <p className="text-lg tabular-nums">{settings.goalWeightKg} kg</p>
                 {projectedGoalDate && (
-                  <p className="text-[10px] opacity-35 mt-0.5">{relativeTime(projectedGoalDate, lang)}</p>
+                  <p className="text-xs text-[#6B6560] mt-0.5">{relativeTime(projectedGoalDate, lang)}</p>
                 )}
               </div>
             )}
@@ -345,7 +345,7 @@ export default function ProgressPage() {
                   data-testid="bar-journey-progress"
                 />
               </div>
-              <div className="flex justify-between mt-1.5 text-[10px] opacity-50">
+              <div className="flex justify-between mt-1.5 text-xs text-[#6B6560]">
                 <span>{t("startLabel")}</span>
                 <span>{weightProgressPct}{t("ofGoalWeight")}</span>
               </div>
@@ -357,8 +357,8 @@ export default function ProgressPage() {
         {/* ══ Weight Projection ══ */}
         <div>
           <div className="border-b-2 border-[#1C1714] pb-4 mb-6">
-            <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("weightSection")}</p>
-            <div className="text-3xl tracking-tighter leading-none">
+            <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("weightSection")}</p>
+            <div className="text-xl font-bold tracking-tight leading-tight">
               {canProject ? t("projection") : t("logWeightPrompt")}
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function ProgressPage() {
             {canProject && threeLinePoints.length > 0 ? (
               <>
                 {/* Legend */}
-                <div className="flex flex-wrap gap-5 mb-3 text-[10px] uppercase tracking-widest opacity-50">
+                <div className="flex flex-wrap gap-5 mb-3 text-xs uppercase tracking-widest text-[#6B6560]">
                   <span className="flex items-center gap-1.5">
                     <span className="inline-block w-4 bg-[#1C1714]" style={{ height: 2 }} />
                     {lang === "ru" ? "Вес" : "Weight"}
@@ -436,7 +436,7 @@ export default function ProgressPage() {
                           const pt = payload[0].payload as ThreeLinePoint;
                           return (
                             <div style={CHART_TOOLTIP.contentStyle} className="px-3 py-2.5 flex flex-col gap-1">
-                              <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">
+                              <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">
                                 {new Date(pt.date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" })}
                               </p>
                               {pt.real !== undefined && (
@@ -532,27 +532,27 @@ export default function ProgressPage() {
                       className="mt-3 border border-[#1C1714] p-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 text-[#1C1714]"
                     >
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{lang === "ru" ? "Дата" : "Date"}</p>
+                        <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Дата" : "Date"}</p>
                         <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">
                           {new Date(point.date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" })}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{lang === "ru" ? "Вес" : "Weight"}</p>
+                        <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Вес" : "Weight"}</p>
                         <p className="text-base tabular-nums tracking-tight" data-testid="detail-real">
                           {point.real !== undefined ? `${point.real.toFixed(1)} kg` : "—"}
-                          {point.isLogged && <span className="text-[9px] opacity-40 ml-1">●</span>}
+                          {point.isLogged && <span className="text-[11px] text-[#6B6560] ml-1">●</span>}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("plannedLine")}</p>
+                        <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("plannedLine")}</p>
                         <p className="text-base tabular-nums tracking-tight opacity-80" data-testid="detail-planned">{point.planned.toFixed(1)} kg</p>
                       </div>
                       <button
                         type="button"
                         data-testid="button-close-week-detail"
                         onClick={() => setSelectedWeekKey(null)}
-                        className="col-span-2 sm:col-span-4 text-[9px] uppercase tracking-widest opacity-30 hover:opacity-60 transition-opacity text-left mt-1"
+                        className="col-span-2 sm:col-span-4 text-xs uppercase tracking-widest text-[#6B6560] hover:text-[#1C1714] transition-colors text-left mt-1"
                       >
                         {t("tapToDismiss")}
                       </button>
@@ -570,8 +570,8 @@ export default function ProgressPage() {
         <div>
           <div className="flex flex-col gap-3 border-b-2 border-[#1C1714] pb-4 mb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">{t("intakeRecord")}</p>
-              <div className="text-3xl tracking-tighter leading-none">{t("goalVsActual")}</div>
+              <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("intakeRecord")}</p>
+              <div className="text-xl font-bold tracking-tight leading-tight">{t("goalVsActual")}</div>
             </div>
             <div className="flex border border-[#1C1714]/30">
               {(["day", "week", "month"] as const).map((p) => (
@@ -581,7 +581,7 @@ export default function ProgressPage() {
                   data-testid={`toggle-period-${p}`}
                   onClick={() => setPeriod(p)}
                   className={`px-4 py-2 text-xs uppercase tracking-widest transition-colors ${
-                    period === p ? "bg-[#1C1714] text-[#F2EDE7]" : "opacity-50 hover:opacity-80"
+                    period === p ? "bg-[#1C1714] text-[#F2EDE7]" : "text-[#6B6560] hover:text-[#1C1714]"
                   }`}
                 >
                   {periodLabels[p]}
@@ -590,7 +590,7 @@ export default function ProgressPage() {
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap gap-5 text-[10px] uppercase tracking-widest opacity-60">
+          <div className="mb-3 flex flex-wrap gap-5 text-xs uppercase tracking-widest text-[#6B6560]">
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-[2px] w-4 border-t-2 border-dashed border-[#1C1714]" />
               {t("goal")} ({goal.toLocaleString()} kcal)
@@ -646,26 +646,26 @@ export default function ProgressPage() {
           <div className="mt-5 border border-[#1C1714]">
             <div className="grid grid-cols-3 divide-x divide-[#1C1714]/10">
               <div className="px-3 py-4 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("calorieDeficit")}</p>
+                <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">{t("calorieDeficit")}</p>
                 <p
                   className={`text-base tabular-nums font-medium ${periodDeficit < 0 ? "text-red-600" : ""}`}
                   data-testid="text-period-deficit"
                 >
                   {Math.abs(periodDeficit).toLocaleString()}
                 </p>
-                <p className={`text-[10px] mt-0.5 ${periodDeficit < 0 ? "text-red-500 opacity-70" : "opacity-40"}`}>
+                <p className={`text-xs mt-0.5 ${periodDeficit < 0 ? "text-red-500" : "text-[#6B6560]"}`}>
                   {periodDeficit >= 0 ? t("deficitLabel") : t("surplusLabel")}
                 </p>
               </div>
               <div className="px-3 py-4 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">{t("avgPerDay")}</p>
+                <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">{t("avgPerDay")}</p>
                 <p className="text-base tabular-nums font-medium" data-testid="text-period-avg">
                   {avgPerDay.toLocaleString()}
                 </p>
-                <p className="text-[10px] opacity-40 mt-0.5">kcal</p>
+                <p className="text-xs text-[#6B6560] mt-0.5">kcal</p>
               </div>
               <div className="px-3 py-4 text-center">
-                <p className="text-[9px] uppercase tracking-widest opacity-60 mb-1">
+                <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">
                   {goalMode === "weight_gain" ? t("estGained") : goalMode === "maintenance" ? t("estStable") : t("estLost")}
                 </p>
                 <p className="text-base tabular-nums font-medium" data-testid="text-period-kg-lost">
@@ -675,13 +675,13 @@ export default function ProgressPage() {
                     ? estimatedKgLost.toFixed(2)
                     : `+${Math.abs(estimatedKgLost).toFixed(2)}`}
                 </p>
-                <p className="text-[10px] opacity-40 mt-0.5">kg</p>
+                <p className="text-xs text-[#6B6560] mt-0.5">kg</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="text-center text-[10px] uppercase tracking-widest opacity-30">{t("endOfRecord")}</div>
+        <div className="text-center text-xs uppercase tracking-widest text-[#6B6560]">{t("endOfRecord")}</div>
       </div>
     </AppShell>
   );

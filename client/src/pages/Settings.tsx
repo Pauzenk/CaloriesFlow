@@ -322,7 +322,7 @@ export default function SettingsPage() {
         {/* ── Welcome banner for new users ── */}
         {profileEmpty && (
           <div className="mb-8 border border-[#1C1714] px-5 py-4">
-            <p className="text-[10px] uppercase tracking-widest opacity-50 mb-1">{t("setupRequired")}</p>
+            <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">{t("setupRequired")}</p>
             <p className="text-sm leading-relaxed opacity-75">{t("welcomeSetup")}</p>
           </div>
         )}
@@ -332,10 +332,10 @@ export default function SettingsPage() {
 
             {/* ── Language ── */}
             <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
+              <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("language")}
               </div>
-              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("languageHint")}</p>
+              <p className="text-xs text-[#6B6560] mb-4 mt-2">{t("languageHint")}</p>
               <div className="flex gap-2">
                 {(["en", "ru"] as const).map((l) => (
                   <button
@@ -357,15 +357,15 @@ export default function SettingsPage() {
 
             {/* ── Body Metrics ── */}
             <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
+              <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("bodyMetrics")}
               </div>
-              <p className="text-[10px] opacity-50 mb-4 mt-2">{t("bodyMetricsHint")}</p>
+              <p className="text-xs text-[#6B6560] mb-4 mt-2">{t("bodyMetricsHint")}</p>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="startingWeightKg" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("startWeight")}</FormLabel>
+                      <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560]">{t("startWeight")}</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.1" inputMode="decimal"
                           data-testid="input-starting-weight"
@@ -379,7 +379,7 @@ export default function SettingsPage() {
                   )} />
                   <FormField control={form.control} name="goalWeightKg" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">
+                      <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560]">
                         {watchedMode === "maintenance" ? t("goalOptional") : t("goalWeight")}
                       </FormLabel>
                       <FormControl>
@@ -391,7 +391,7 @@ export default function SettingsPage() {
                       </FormControl>
                       <FormMessage />
                       {isGoalBelowHealthyRange && bmiData && (
-                        <p className="text-[10px] text-amber-600 mt-1" data-testid="warn-below-healthy-range">
+                        <p className="text-sm text-amber-600 mt-1" data-testid="warn-below-healthy-range">
                           {t("belowHealthyRangeWarning")} ({bmiData.range.minKg}–{bmiData.range.maxKg} kg)
                         </p>
                       )}
@@ -401,7 +401,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <FormField control={form.control} name="heightCm" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("height")}</FormLabel>
+                      <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560]">{t("height")}</FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="175" data-testid="input-height"
                           className={IN + " tabular-nums"} value={field.value ?? ""}
@@ -412,7 +412,7 @@ export default function SettingsPage() {
                   )} />
                   <FormField control={form.control} name="ageYears" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("age")}</FormLabel>
+                      <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560]">{t("age")}</FormLabel>
                       <FormControl>
                         <Input type="number" placeholder="30" data-testid="input-age"
                           className={IN + " tabular-nums"} value={field.value ?? ""}
@@ -423,7 +423,7 @@ export default function SettingsPage() {
                   )} />
                   <FormField control={form.control} name="sexAtBirth" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("sex")}</FormLabel>
+                      <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560]">{t("sex")}</FormLabel>
                       <Select value={field.value ?? ""} onValueChange={(v) => field.onChange(v === "" ? null : v)}>
                         <FormControl>
                           <SelectTrigger data-testid="select-sex"
@@ -442,7 +442,7 @@ export default function SettingsPage() {
                 </div>
                 <FormField control={form.control} name="journeyStartDate" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[10px] uppercase tracking-widest opacity-60">{t("journeyStartDate")}</FormLabel>
+                    <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560]">{t("journeyStartDate")}</FormLabel>
                     <FormControl>
                       <Input type="date" data-testid="input-start-date"
                         className={IN + " max-w-[220px]"} {...field} />
@@ -454,7 +454,7 @@ export default function SettingsPage() {
                 {/* ── Activity Level ── */}
                 <FormField control={form.control} name="activityLevel" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">{t("activityLevel")}</FormLabel>
+                    <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560] block mb-2">{t("activityLevel")}</FormLabel>
                     <div className="flex flex-col border border-[#1C1714]/20" data-testid="select-activity-level">
                       {(["sedentary", "light", "active"] as const).map((lvl) => {
                         const labels: Record<string, string> = { sedentary: t("actSedentary"), light: t("actLight"), active: t("actActive") };
@@ -468,10 +468,10 @@ export default function SettingsPage() {
                             onClick={() => field.onChange(lvl)}
                             className={`flex items-center gap-4 px-4 py-3 text-left border-b last:border-b-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
                           >
-                            <div className={`text-[9px] uppercase tracking-widest font-bold w-32 shrink-0 ${active ? "opacity-90" : "opacity-70"}`}>
+                            <div className={`text-xs uppercase tracking-widest font-bold w-32 shrink-0 ${active ? "opacity-90" : "text-[#6B6560]"}`}>
                               {labels[lvl]}
                             </div>
-                            <div className={`text-[9px] leading-snug ${active ? "opacity-60" : "opacity-40"}`}>
+                            <div className={`text-xs leading-snug ${active ? "opacity-80" : "text-[#6B6560]"}`}>
                               {descs[lvl]}
                             </div>
                           </button>
@@ -484,10 +484,10 @@ export default function SettingsPage() {
                 {/* ── BMI Panel ── */}
                 {bmiData && (
                   <div className="border border-[#1C1714]/20 p-4 space-y-3" data-testid="panel-bmi">
-                    <div className="text-[9px] uppercase tracking-widest opacity-50">{t("bmiPanel")}</div>
+                    <div className="text-xs uppercase tracking-widest text-[#6B6560]">{t("bmiPanel")}</div>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("bmi")}</div>
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("bmi")}</div>
                         <div
                           className={`text-2xl tabular-nums tracking-tighter font-bold ${BMI_COLORS[bmiData.category]}`}
                           data-testid="text-bmi"
@@ -496,7 +496,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">
                           {lang === "ru" ? "Категория" : "Category"}
                         </div>
                         <div
@@ -507,7 +507,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-[9px] uppercase tracking-widest opacity-40 mb-0.5">{t("healthyRange")}</div>
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("healthyRange")}</div>
                         <div className="text-sm tabular-nums opacity-70 mt-1">
                           {bmiData.range.minKg}–{bmiData.range.maxKg} kg
                         </div>
@@ -523,27 +523,27 @@ export default function SettingsPage() {
             {canComputeTarget && estimatedTDEE && (
               <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
                 <div data-testid="panel-tdee">
-                  <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("maintenance")}</div>
+                  <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("maintenance")}</div>
                   <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE.toLocaleString()}</div>
-                  <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                  <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
                 </div>
                 {watchedMode === "maintenance" ? (
                   <div data-testid="panel-suggested-goal">
-                    <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("modeMaintenance")}</div>
+                    <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("modeMaintenance")}</div>
                     <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE.toLocaleString()}</div>
-                    <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                    <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
                   </div>
                 ) : watchedMode === "weight_gain" ? (
                   <div data-testid="panel-suggested-goal">
-                    <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("surplus300")}</div>
+                    <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("surplus300")}</div>
                     <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{(estimatedTDEE + 350).toLocaleString()}</div>
-                    <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                    <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
                   </div>
                 ) : (
                   <div data-testid="panel-suggested-goal">
-                    <div className="text-[10px] uppercase tracking-widest opacity-50 mb-0.5">{t("deficit500")}</div>
+                    <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("deficit500")}</div>
                     <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{(estimatedTDEE - 500).toLocaleString()}</div>
-                    <div className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</div>
+                    <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
                   </div>
                 )}
               </div>
@@ -551,7 +551,7 @@ export default function SettingsPage() {
 
             {/* ── Plan ── */}
             <div>
-              <div className="text-xs uppercase tracking-widest opacity-60 mb-1 border-b border-[#1C1714]/20 pb-2">
+              <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("dailyTarget")}
               </div>
 
@@ -561,7 +561,7 @@ export default function SettingsPage() {
                   {/* ── Block 1: Your Recommended Plan (accented) ── */}
                   {watchedMode !== "maintenance" && recommendedMonths && optimalPlan && watchedStartWeight && watchedGoalWeight && (
                     <div className="border-2 border-[#1C1714] p-5" data-testid="panel-recommended">
-                      <p className="text-[9px] uppercase tracking-widest opacity-50 mb-3">
+                      <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-3">
                         {(isGoalBelowHealthyRange || (watchedCalorieGoal > 0 && watchedCalorieGoal < 1200)) ? t("yourPlanTag") : t("recommendedTag")}
                       </p>
                       {/* Hero calorie number */}
@@ -570,31 +570,31 @@ export default function SettingsPage() {
                           {optimalPlan.calorie.toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-[10px] uppercase tracking-widest opacity-40 mb-4">{t("kcalPerDay")}</p>
+                      <p className="text-xs text-[#6B6560] mb-4">{t("kcalPerDay")}</p>
                       {/* Supporting info */}
                       <div className="border-t border-[#1C1714]/10 pt-3 flex gap-8 flex-wrap">
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">
+                          <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">
                             {watchedMode === "weight_loss" ? (lang === "ru" ? "Похудеть" : "Lose") : (lang === "ru" ? "Набрать" : "Gain")}
                           </p>
-                          <p className="text-sm tabular-nums opacity-70">
+                          <p className="text-sm tabular-nums">
                             {Math.abs(watchedStartWeight - watchedGoalWeight).toFixed(1)} kg
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{lang === "ru" ? "Срок" : "Timeline"}</p>
-                          <p className="text-sm tabular-nums opacity-70">~{recommendedMonths} {lang === "ru" ? "мес." : "mo"}</p>
+                          <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Срок" : "Timeline"}</p>
+                          <p className="text-sm tabular-nums">~{recommendedMonths} {lang === "ru" ? "мес." : "mo"}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
-                          <p className="text-sm tabular-nums opacity-70">
+                          <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("planMonthlyLabel")}</p>
+                          <p className="text-sm tabular-nums">
                             ~{(Math.abs(watchedStartWeight - watchedGoalWeight) / (optimalPlan!.days! / 30.44)).toFixed(1)} kg
-                            <span className="text-[10px] opacity-60 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
+                            <span className="text-xs text-[#6B6560] ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
                           </p>
                         </div>
                         <div>
-                          <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
-                          <p className="text-sm opacity-70">{goalDateFromDays(optimalPlan!.days!)}</p>
+                          <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("planGoalDateLabel")}</p>
+                          <p className="text-sm">{goalDateFromDays(optimalPlan!.days!)}</p>
                         </div>
                       </div>
                     </div>
@@ -603,11 +603,11 @@ export default function SettingsPage() {
                   {/* ── Block 2: Adjust Your Plan (lighter) ── */}
                   {watchedMode !== "maintenance" && (
                     <div className="border border-[#1C1714]/30 p-5 space-y-4" data-testid="panel-planner">
-                      <p className="text-[9px] uppercase tracking-widest opacity-50">{t("adjustYourPlan")}</p>
+                      <p className="text-xs uppercase tracking-widest text-[#6B6560]">{t("adjustYourPlan")}</p>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
+                          <label className="text-xs uppercase tracking-widest text-[#6B6560] block mb-2">
                             {t("planMonthsLabel")}
                           </label>
                           <div className="flex border border-[#1C1714]/40 h-14">
@@ -639,7 +639,7 @@ export default function SettingsPage() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] uppercase tracking-widest opacity-60 block mb-2">
+                          <label className="text-xs uppercase tracking-widest text-[#6B6560] block mb-2">
                             {t("planCaloriesLabel")}
                           </label>
                           <div
@@ -653,12 +653,12 @@ export default function SettingsPage() {
                               {watchedCalorieGoal > 0 ? watchedCalorieGoal.toLocaleString() : "—"}
                             </span>
                           </div>
-                          <p className="text-[10px] opacity-40 mt-1">{t("kcalPerDay")}</p>
+                          <p className="text-xs text-[#6B6560] mt-1">{t("kcalPerDay")}</p>
                         </div>
                       </div>
 
                       {planWarning && (
-                        <div className="border border-[#9e4515] px-4 py-3 text-[10px] text-[#9e4515] leading-snug" data-testid="text-plan-warning">
+                        <div className="border border-[#9e4515] px-4 py-3 text-sm text-[#9e4515] leading-snug" data-testid="text-plan-warning">
                           {planWarning}
                         </div>
                       )}
@@ -666,14 +666,14 @@ export default function SettingsPage() {
                       {planStats && (
                         <div className="flex gap-8 pt-1 border-t border-[#1C1714]/10">
                           <div>
-                            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planMonthlyLabel")}</p>
+                            <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("planMonthlyLabel")}</p>
                             <p className="text-sm tabular-nums">
                               {watchedMode === "weight_gain" ? "+" : "~"}{planStats.monthlyRate.toFixed(1)} kg
-                              <span className="text-[10px] opacity-40 ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
+                              <span className="text-xs text-[#6B6560] ml-1">/ {lang === "ru" ? "мес." : "mo"}</span>
                             </p>
                           </div>
                           <div>
-                            <p className="text-[9px] uppercase tracking-widest opacity-50 mb-0.5">{t("planGoalDateLabel")}</p>
+                            <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("planGoalDateLabel")}</p>
                             <p className="text-sm">{goalDateFromDays(planStats.days)}</p>
                           </div>
                         </div>
@@ -684,16 +684,16 @@ export default function SettingsPage() {
                   {/* Maintenance mode: just show TDEE */}
                   {watchedMode === "maintenance" && estimatedTDEE && (
                     <div className="bg-[#1C1714] text-[#F2EDE7] p-5" data-testid="panel-maintenance">
-                      <p className="text-[9px] uppercase tracking-widest opacity-50 mb-1">{t("modeMaintenance")}</p>
+                      <p className="text-xs uppercase tracking-widest text-[#F2EDE7]/70 mb-1">{t("modeMaintenance")}</p>
                       <p className="text-3xl tabular-nums">{estimatedTDEE.toLocaleString()}</p>
-                      <p className="text-[10px] opacity-40 mt-0.5">{t("kcalPerDay")}</p>
+                      <p className="text-xs text-[#F2EDE7]/60 mt-0.5">{t("kcalPerDay")}</p>
                     </div>
                   )}
 
                 </div>
               ) : (
                 <div className="border border-dashed border-[#1C1714]/20 px-5 py-6 text-center mt-4">
-                  <p className="text-[10px] opacity-40 leading-relaxed">{t("fillMetricsHint")}</p>
+                  <p className="text-xs text-[#6B6560] leading-relaxed">{t("fillMetricsHint")}</p>
                 </div>
               )}
             </div>
@@ -715,7 +715,7 @@ export default function SettingsPage() {
                 >
                   {save.isPending ? t("saving") : t("saveChanges")}
                 </button>
-                <span className="text-[10px] uppercase tracking-widest opacity-40">{t("unsavedChanges")}</span>
+                <span className="text-xs uppercase tracking-widest text-[#6B6560]">{t("unsavedChanges")}</span>
               </div>
             </div>
 
@@ -724,13 +724,13 @@ export default function SettingsPage() {
 
         {/* ── Danger Zone ── */}
         <div className="border-t border-[#1C1714]/20 pt-8 mt-8">
-          <p className="text-[9px] uppercase tracking-widest opacity-40 mb-5">{t("dangerZone")}</p>
+          <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-5">{t("dangerZone")}</p>
           <button
             type="button"
             data-testid="button-restart"
             onClick={() => setRestartOpen(true)}
             disabled={restart.isPending}
-            className="text-[10px] uppercase tracking-widest text-[#9B4A2E] border border-[#9B4A2E]/40 px-6 py-2.5 hover:bg-[#9B4A2E]/10 transition-colors disabled:opacity-40"
+            className="text-xs uppercase tracking-widest text-[#9B4A2E] border border-[#9B4A2E]/40 px-6 py-2.5 hover:bg-[#9B4A2E]/10 transition-colors disabled:opacity-40 min-h-[44px]"
           >
             {restart.isPending ? "…" : t("restartLabel")}
           </button>

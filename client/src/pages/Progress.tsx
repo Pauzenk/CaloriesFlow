@@ -167,8 +167,10 @@ export default function ProgressPage() {
     return sorted[0];
   }, [weights]);
 
-  const displayWeight = mostRecentActualWeight?.weightKg ?? currentEstimatedWeight;
-  const isActualWeight = !!mostRecentActualWeight;
+  // Drifted estimate is the primary value: logged weight + calorie-deficit drift since that log.
+  // Fall back to raw last-logged weight only when body params prevent projection.
+  const displayWeight = currentEstimatedWeight ?? mostRecentActualWeight?.weightKg ?? null;
+  const isActualWeight = currentEstimatedWeight === null && !!mostRecentActualWeight;
 
   const estimatedTDEE = useMemo(() => {
     if (!settings?.heightCm || !settings?.ageYears || !settings?.sexAtBirth || !settings?.startingWeightKg)
@@ -370,7 +372,7 @@ export default function ProgressPage() {
                 <div className="flex flex-wrap gap-5 mb-3 text-xs uppercase tracking-widest text-[#6B6560]">
                   <span className="flex items-center gap-1.5">
                     <span className="inline-block w-4 bg-[#1C1714]" style={{ height: 2 }} />
-                    {lang === "ru" ? "Вес" : "Weight"}
+                    {lang === "ru" ? "Тек. вес" : "Est. Weight"}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="inline-block w-4" style={{ height: 2, borderTop: "2px dashed #9e4515" }} />
@@ -389,7 +391,7 @@ export default function ProgressPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart
                       data={threeLinePoints}
-                      margin={{ top: 16, right: 24, left: 0, bottom: 4 }}
+                      margin={{ top: 16, right: 44, left: 0, bottom: 4 }}
                       onClick={(chartState) => {
                         if (!chartState || chartState.activeTooltipIndex == null) {
                           setSelectedWeekKey(null);
@@ -439,11 +441,6 @@ export default function ProgressPage() {
                               <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">
                                 {new Date(pt.date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" })}
                               </p>
-                              {pt.real !== undefined && (
-                                <p style={{ color: "#1C1714" }}>
-                                  {lang === "ru" ? "Вес" : "Weight"}{pt.isLogged ? " ●" : ""} : {pt.real.toFixed(1)} kg
-                                </p>
-                              )}
                               <p style={{ color: "#9e4515" }}>{t("plannedLine")} : {pt.planned.toFixed(1)} kg</p>
                             </div>
                           );
@@ -484,29 +481,22 @@ export default function ProgressPage() {
                         );
                       })()}
 
-                      {/* WEIGHT line — calorie-deficit estimate, ends at today, dots at logged dates */}
-                      <Line
-                        type="linear"
-                        dataKey="real"
-                        stroke="#1C1714"
-                        strokeWidth={1.5}
-                        connectNulls={false}
-                        dot={(props: any) => {
-                          if (!props.payload?.isLogged) return <g key={props.key} />;
-                          return (
-                            <circle
-                              key={props.key}
-                              cx={props.cx}
-                              cy={props.cy}
-                              r={3}
-                              fill="#1C1714"
-                              stroke="#F2EDE7"
-                              strokeWidth={1}
-                            />
-                          );
-                        }}
-                        activeDot={{ r: 3, fill: "#1C1714", stroke: "#F2EDE7", strokeWidth: 1 }}
-                      />
+                      {/* CURRENT ESTIMATED WEIGHT — flat horizontal line, synced with header */}
+                      {displayWeight !== null && (
+                        <ReferenceLine
+                          y={displayWeight}
+                          stroke="#1C1714"
+                          strokeWidth={1.5}
+                          label={{
+                            value: displayWeight.toFixed(1),
+                            position: "right",
+                            fontSize: 9,
+                            fill: "#1C1714",
+                            fontFamily: "'Space Mono'",
+                            fontWeight: "bold",
+                          }}
+                        />
+                      )}
 
                       {/* PLAN line — dashed terracotta diagonal, full timeline */}
                       <Line
@@ -535,13 +525,6 @@ export default function ProgressPage() {
                         <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Дата" : "Date"}</p>
                         <p className="text-base tabular-nums tracking-tight" data-testid="detail-week-label">
                           {new Date(point.date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Вес" : "Weight"}</p>
-                        <p className="text-base tabular-nums tracking-tight" data-testid="detail-real">
-                          {point.real !== undefined ? `${point.real.toFixed(1)} kg` : "—"}
-                          {point.isLogged && <span className="text-[11px] text-[#6B6560] ml-1">●</span>}
                         </p>
                       </div>
                       <div>

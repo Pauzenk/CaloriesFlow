@@ -102,7 +102,16 @@ export default function SettingsPage() {
         goalMode: (settings.goalMode as GoalMode) ?? "weight_loss",
         workoutCountingMode: (settings.workoutCountingMode as "include_in_activity_level" | "track_separately") ?? "include_in_activity_level",
       });
-      if (settings.goalDurationMonths) setPlanMonths(settings.goalDurationMonths);
+      if (settings.goalDurationMonths) {
+        setPlanMonths(settings.goalDurationMonths);
+        // User already has a saved plan duration — don't let the recommended-plan
+        // effect below overwrite it with a freshly computed recommendation.
+        planInitialized.current = true;
+        // Align the mode-change tracker with the loaded mode so the mode-reset
+        // effect doesn't mistake this initial load for a genuine mode change
+        // (which would wipe out planInitialized and override the saved plan).
+        prevModeRef.current = (settings.goalMode as GoalMode) ?? "weight_loss";
+      }
     }
   }, [settings]);
 

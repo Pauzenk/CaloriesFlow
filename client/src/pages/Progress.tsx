@@ -442,6 +442,9 @@ export default function ProgressPage() {
                                 {new Date(pt.date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" })}
                               </p>
                               <p style={{ color: "#9e4515" }}>{t("plannedLine")} : {pt.planned.toFixed(1)} kg</p>
+                              {pt.real !== undefined && (
+                                <p style={{ color: "#1C1714" }}>{t("realLine")} : {pt.real.toFixed(1)} kg</p>
+                              )}
                             </div>
                           );
                         }}
@@ -531,6 +534,12 @@ export default function ProgressPage() {
                         <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("plannedLine")}</p>
                         <p className="text-base tabular-nums tracking-tight opacity-80" data-testid="detail-planned">{point.planned.toFixed(1)} kg</p>
                       </div>
+                      {point.real !== undefined && (
+                        <div>
+                          <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("realLine")}</p>
+                          <p className="text-base tabular-nums tracking-tight opacity-80" data-testid="detail-estimated">{point.real.toFixed(1)} kg</p>
+                        </div>
+                      )}
                       <button
                         type="button"
                         data-testid="button-close-week-detail"

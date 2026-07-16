@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -231,6 +231,15 @@ export default function AuthPage() {
                     >
                       Sign up
                     </button>
+                  </p>
+                  <p className="text-center text-xs text-[#6B6560]">
+                    <Link
+                      href="/forgot-password"
+                      data-testid="link-forgot-password"
+                      className="underline text-[#3c3a40] font-semibold hover:text-[#1C1714]"
+                    >
+                      Forgot your password?
+                    </Link>
                   </p>
                 </form>
               </Form>

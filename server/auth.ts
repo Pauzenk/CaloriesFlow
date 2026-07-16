@@ -206,6 +206,72 @@ export function setupAuth(app: Express) {
   app.get("/api/auth/providers", (_req, res) => {
     res.json({ google: !!(googleClientId && googleClientSecret) });
   });
+
+  // ── Forgot-password flow ─────────────────────────────────────────────────────
+  // In-memory store: email → { code, expiresAt }
+  const pendingCodes = new Map<string, { code: string; expiresAt: number }>();
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    const { email } = req.body as { email?: string };
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    const normalised = email.trim().toLowerCase();
+    // Always respond 200 to avoid user enumeration
+    const user = await storage.getUserByEmail(normalised);
+    if (user) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      pendingCodes.set(normalised, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
+      // Log code to console — replace with real email send in production
+      console.log(`[forgot-password] code for ${normalised}: ${code}`);
+    }
+    res.json({ ok: true });
+  });
+
+  app.post("/api/auth/verify-code", (req, res) => {
+    const { email, code } = req.body as { email?: string; code?: string };
+    if (!email || !code) return res.status(400).json({ message: "Email and code are required" });
+    const normalised = email.trim().toLowerCase();
+    const entry = pendingCodes.get(normalised);
+    if (!entry || Date.now() > entry.expiresAt) {
+      return res.status(400).json({ message: "Code expired or not found" });
+    }
+    if (entry.code !== code.trim()) {
+      return res.status(400).json({ message: "Invalid code" });
+    }
+    // Mark as verified — extend expiry for the reset step
+    pendingCodes.set(normalised, { code: `verified:${code}`, expiresAt: Date.now() + 15 * 60 * 1000 });
+    res.json({ ok: true });
+  });
+
+  app.post("/api/auth/reset-password", async (req, res, next) => {
+    const { email, code, password } = req.body as { email?: string; code?: string; password?: string };
+    if (!email || !code || !password) {
+      return res.status(400).json({ message: "Email, code, and password are required" });
+    }
+    if (typeof password !== "string" || password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+    const normalised = email.trim().toLowerCase();
+    const entry = pendingCodes.get(normalised);
+    if (!entry || Date.now() > entry.expiresAt || entry.code !== `verified:${code.trim()}`) {
+      return res.status(400).json({ message: "Code invalid or expired — please restart the flow" });
+    }
+    try {
+      const user = await storage.getUserByEmail(normalised);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const hashed = await hashPassword(password);
+      await storage.updateUserPassword(user.id, hashed);
+      pendingCodes.delete(normalised);
+      const safe = sanitizeUser(user);
+      req.login(safe, (err) => {
+        if (err) return next(err);
+        res.json(safe);
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {

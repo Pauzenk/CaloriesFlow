@@ -51,6 +51,7 @@ export interface IStorage {
   updateActivity(userId: string, id: string, data: InsertActivity): Promise<Activity | undefined>;
   deleteActivity(userId: string, id: string): Promise<boolean>;
 
+  updateUserPassword(userId: string, hashedPassword: string): Promise<void>;
   resetUserData(userId: string): Promise<void>;
 }
 
@@ -210,6 +211,10 @@ export class DbStorage implements IStorage {
       .where(and(eq(activities.id, id), eq(activities.userId, userId)))
       .returning();
     return result.length > 0;
+  }
+
+  async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId));
   }
 
   async resetUserData(userId: string): Promise<void> {

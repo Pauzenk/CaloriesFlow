@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&amp;display=swap" rel="stylesheet">
+<style>
+body { margin:0; background:#E7E0D7; }
+a { color:#1C1714; } a:hover { color:#6B6560; }
+</style>
+</helmet>
+<section style="display:flex; flex-wrap:wrap; gap:56px; align-items:flex-start; padding:56px; font-family:'Space Mono',monospace;">
+
+  <!-- ══ 1g SETTINGS ══ -->
+  <div id="1g" style="display:flex; flex-direction:column; gap:12px;">
+    <div style="display:flex; align-items:center; gap:10px;"><span style="font-weight:700; font-size:12px; background:#1C1714; color:#F2EDE7; padding:3px 9px;">1g</span><span style="font-size:12px; letter-spacing:2px; text-transform:uppercase; color:#6B6560;">Settings — /settings</span></div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+      <div style="height:100%; display:flex; flex-direction:column; background:#F2EDE7; font-family:'Space Mono',monospace; color:#1C1714;">
+        <div style="padding-top:62px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #D4CFC8; padding-left:16px; padding-right:16px; padding-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="height:32px; width:32px; overflow:hidden; background:#3c3a40;"><div style="display: flex; width: 100%; align-items: center; justify-content: center; background: #3c3a40; color: #ffffff; text-align: center; height: 100%"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="text-align: center"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></div></div>
+            <span style="font-size:16px; font-weight:700;">CalorieFlow</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:#6B6560;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg></div>
+        </div><div style="flex: 1; overflow-y: auto; padding: 18px 16px 90px; display: flex; flex-direction: column; gap: 12px">
+          
+          
+          <div style="width: 100%">
+            <div>
+            
+            
+            <div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 32px"><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px"><h2 style="margin:0 0 -14px; font-size:22px; font-weight:700;">Parameters</h2><div style="font-size: 11px; color: #6B6560; margin-bottom: 14px">Interface language for the whole app</div></div><div style="display: flex; gap: 8px; flex-direction: column">
+              <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #6B6560; border-bottom: 1px solid rgba(28,23,20,0.2); padding-bottom: 8px; margin-bottom: 8px"><span style="color: rgb(27, 23, 20); font-weight: 600;">Language</span></div><div style="box-sizing: border-box; display: flex; flex-direction: row; gap: 12px"><div style="padding: 10px 20px; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; border: 1px solid rgba(28,23,20,0.3)">Русский</div><div style="padding: 10px 20px; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; background: #1C1714; color: #F2EDE7; border: 1px solid #1C1714">English</div></div>
+              
+            </div><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px"><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #1B1714; border-bottom: 1px solid rgba(28,23,20,0.2); padding-bottom: 8px; margin-bottom: 8px; font-weight: 600">ACTIVITY LEVEL</div><div style="margin-bottom: 14px">
+              
+              <div style="display:flex; flex-direction:column; border:1px solid rgba(28,23,20,0.2);">
+                <div style="display:flex; align-items:center; gap:14px; padding:12px 14px; border-bottom:1px solid rgba(28,23,20,0.2); background:#1C1714; color:#F2EDE7;"><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; font-weight:700; width:90px; flex-shrink:0; opacity:0.9;">Sedentary</div><div style="font-size:11px; line-height:1.45; opacity:0.8;">Desk job, little exercise</div></div>
+                <div style="display:flex; align-items:center; gap:14px; padding:12px 14px; border-bottom:1px solid rgba(28,23,20,0.2);"><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; font-weight:700; width:90px; flex-shrink:0; color:#6B6560;">Light</div><div style="font-size:11px; line-height:1.45; color:#6B6560;">Exercise 1–3× a week</div></div>
+                <div style="display:flex; align-items:center; gap:14px; padding:12px 14px;"><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; font-weight:700; width:90px; flex-shrink:0; color:#6B6560;">Active</div><div style="font-size:11px; line-height:1.45; color:#6B6560;">Exercise 4+× a week</div></div>
+              </div>
+            </div></div></div><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px"><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 16px"><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 0px"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #1B1714; border-bottom: 1px solid rgba(28,23,20,0.2); padding-bottom: 8px; margin-bottom: 8px; font-weight: 600">Body Metrics</div><div style="font-size: 11px; color: #6B6560; margin-bottom: 14px">Used to calculate your daily calorie target</div></div><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 4px"><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px">
+              <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:6px;">Start Weight (kg)</div><div style="border:1px solid rgba(28,23,20,0.3); height:36px; display:flex; align-items:center; padding:0 10px; font-size:13px;">82.0</div></div>
+              <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:6px;">Goal Weight (kg)</div><div style="border:1px solid rgba(28,23,20,0.3); height:36px; display:flex; align-items:center; padding:0 10px; font-size:13px;">68.0</div></div>
+            </div><div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px">
+              <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:6px;">Height</div><div style="border:1px solid rgba(28,23,20,0.3); height:36px; display:flex; align-items:center; padding:0 10px; font-size:13px;">175</div></div>
+              <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:6px;">Age</div><div style="border:1px solid rgba(28,23,20,0.3); height:36px; display:flex; align-items:center; padding:0 10px; font-size:13px;">30</div></div>
+              <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:6px;">Sex</div><div style="border:1px solid rgba(28,23,20,0.3); height:36px; display:flex; align-items:center; justify-content:space-between; padding:0 10px; font-size:13px;">Male <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+            </div><div style="margin-bottom: 14px"><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:6px;">Journey Start Date</div><div style="border:1px solid rgba(28,23,20,0.3); height:36px; display:flex; align-items:center; padding:0 10px; font-size:13px; max-width:200px;">2026-06-04</div></div></div></div></div><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px"><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px"><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 16px"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #1B1714; border-bottom: 1px solid rgba(28,23,20,0.2); padding-bottom: 8px; margin-bottom: 8px; font-weight: 600">PARAMETRES</div><div style="border: 1px solid rgba(28,23,20,0.3); padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex-direction: column">
+            <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Maintenance</div><div style="font-size:22px;">2,340</div><div style="font-size:11px; color:#6B6560; margin-top:2px;">kcal / day</div></div>
+            <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Deficit −500</div><div style="font-size:22px; color:#9e4515;">1,840</div><div style="font-size:11px; color:#6B6560; margin-top:2px;">kcal / day</div></div>
+          </div><div style="border: 1px solid rgba(28,23,20,0.2); padding: 16px; display: flex; flex-direction: column; gap: 12px">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#6B6560;">Body Mass Index</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">BMI</div><div style="font-size:22px; font-weight:700; letter-spacing:-1px; color:#b45309;">26.8</div></div>
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Category</div><div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin-top:4px; color:#b45309;">Overweight</div></div>
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Healthy Range</div><div style="font-size:13px; opacity:0.7; margin-top:4px;">57–76 kg</div></div>
+              </div>
+            </div></div></div></div><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 8px"><div style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #1B1714; border-bottom: 1px solid rgba(28,23,20,0.2); padding-bottom: 8px; margin-bottom: 8px; font-weight: 600">PLAN</div><div style="border: 2px solid #1C1714; padding: 18px; margin-bottom: 14px">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:12px;">Recommended</div>
+              <div style="font-size:42px; letter-spacing:-2px; line-height:1;">1,840</div>
+              <div style="font-size:11px; color:#6B6560; margin:6px 0 16px;">kcal / day</div>
+              <div style="border-top:1px solid rgba(28,23,20,0.1); padding-top:12px; display:flex; gap:24px; flex-wrap:wrap;">
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Lose</div><div style="font-size:13px;">14.0 kg</div></div>
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Timeline</div><div style="font-size:13px;">~8 mo</div></div>
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Monthly</div><div style="font-size:13px;">~1.8 kg <span style="font-size:11px; color:#6B6560;">/ mo</span></div></div>
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Goal Date</div><div style="font-size:13px;">Mar 2027</div></div>
+              </div>
+            </div><div style="border: 1px solid rgba(28,23,20,0.3); padding: 18px; display: flex; flex-direction: column; gap: 16px">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#6B6560;">Adjust Your Plan</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div>
+                  <div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:8px;">Months to Goal</div>
+                  <div style="display:flex; border:1px solid rgba(28,23,20,0.4); height:54px;">
+                    <div style="padding:0 12px; border-right:1px solid rgba(28,23,20,0.2); display:flex; align-items:center; font-size:16px; font-weight:700;">−</div>
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; font-size:26px;">8</div>
+                    <div style="padding:0 12px; border-left:1px solid rgba(28,23,20,0.2); display:flex; align-items:center; font-size:16px; font-weight:700;">+</div>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:8px;">Daily Calories</div>
+                  <div style="display:flex; align-items:center; justify-content:center; height:54px; border:1px solid rgba(28,23,20,0.2); background:rgba(28,23,20,0.03); font-size:26px;">1,840</div>
+                  <div style="font-size:11px; color:#6B6560; margin-top:4px;">kcal / day</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:24px; padding-top:6px; border-top:1px solid rgba(28,23,20,0.1);">
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Monthly</div><div style="font-size:13px;">~1.8 kg <span style="font-size:11px; color:#6B6560;">/ mo</span></div></div>
+                <div><div style="font-size:10px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:2px;">Goal Date</div><div style="font-size:13px;">Mar 2027</div></div>
+              </div>
+            </div></div><div style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px"><div style="border-top: 2px solid #1C1714; background: #F2EDE7; padding: 14px 0; display: flex; align-items: center; gap: 8px; flex-direction: column-reverse">
+            <div style="border:2px solid #1C1714; padding:12px 32px; font-size:11px; text-transform:uppercase; letter-spacing:2px;">Save Changes</div>
+            <span style="font-size: 10px; text-transform: none; letter-spacing: 2px; color: #6B6560">Unsaved changes</span>
+          </div></div><div>
+            
+            <div style="position:absolute; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:space-around; border-top:1px solid rgba(28,23,20,0.1); background:#F2EDE7; padding:6px 0 34px; z-index:40;">
+          <a href="#1b" style="display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 12px; text-decoration:none; color:#6B6560;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg><span style="font-size:11px; font-weight:500;">Dashboard</span></a>
+          <a href="#1d" style="display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 12px; text-decoration:none; color:#6B6560;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18"></path><path d="M17 6h6v6"></path></svg><span style="font-size:11px; font-weight:500;">Progress</span></a>
+          <a href="#1e" style="display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 12px; text-decoration:none; color:#6B6560;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6.13a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0c.44.44.8.96 1.05 1.54A4 4 0 0 1 18 13.87V21H6Z"></path><path d="M6 17h12"></path></svg><span style="font-size:11px; font-weight:500;">Recipes</span></a>
+          <a href="#1g" style="display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 12px; text-decoration:none; color:#3c3a40;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.34.66.99 1.1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span style="font-size:11px; font-weight:500;">Settings</span></a>
+        </div>
+            
+          <div style="border-top: 1px solid rgba(28,23,20,0.2); padding-top: 24px; margin-top: -10px; display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 24px">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#6B6560; margin-bottom:16px;">Danger Zone</div>
+            <div style="display:inline-block; font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#9B4A2E; border:1px solid rgba(155,74,46,0.4); padding:12px 22px;">Restart Journey</div>
+          </div></div></div>
+          </div>
+            
+            
+            
+            
+            
+            
+          </div>
+          
+          
+          
+          
+        </div>
+        
+        
+      </div>
+    </x-import>
+  </div>
+
+</section>
+</x-dc>
+</body>
+</html>

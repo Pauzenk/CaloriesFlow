@@ -328,6 +328,12 @@ export default function SettingsPage() {
     <AppShell title={t("settingsTitle")}>
       <div className="w-full font-['Space_Mono'] text-[#1C1714] max-w-2xl">
 
+        {/* ── Page heading ── */}
+        <div className="flex flex-col gap-3 mb-8">
+          <h2 className="text-[22px] font-bold text-[#1C1714] m-0">{lang === "ru" ? "Параметры" : "Parameters"}</h2>
+          <p className="text-[11px] text-[#6B6560]">{t("languageHint")}</p>
+        </div>
+
         {/* ── Welcome banner for new users ── */}
         {profileEmpty && (
           <div className="mb-8 border border-[#1C1714] px-5 py-4">
@@ -341,11 +347,10 @@ export default function SettingsPage() {
 
             {/* ── Language ── */}
             <div>
-              <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 border-b border-[#1C1714]/20 pb-2">
+              <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("language")}
               </div>
-              <p className="text-xs text-[#6B6560] mb-4 mt-2">{t("languageHint")}</p>
-              <div className="flex gap-2">
+              <div className="flex gap-3 mt-4">
                 {(["en", "ru"] as const).map((l) => (
                   <button
                     key={l}
@@ -364,9 +369,45 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* ── Activity Level ── */}
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
+                {t("activityLevel")}
+              </div>
+              <div className="mt-4">
+                <FormField control={form.control} name="activityLevel" render={({ field }) => (
+                  <FormItem>
+                    <div className="flex flex-col border border-[#1C1714]/20" data-testid="select-activity-level">
+                      {(["sedentary", "light", "active"] as const).map((lvl) => {
+                        const labels: Record<string, string> = { sedentary: t("actSedentary"), light: t("actLight"), active: t("actActive") };
+                        const descs: Record<string, string> = { sedentary: t("actDescSedentary"), light: t("actDescLight"), active: t("actDescActive") };
+                        const active = field.value === lvl;
+                        return (
+                          <button
+                            key={lvl}
+                            type="button"
+                            data-testid={`button-activity-${lvl}`}
+                            onClick={() => field.onChange(lvl)}
+                            className={`flex items-center gap-4 px-4 py-3 text-left border-b last:border-b-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
+                          >
+                            <div className={`text-xs uppercase tracking-widest font-bold w-32 shrink-0 ${active ? "opacity-90" : "text-[#6B6560]"}`}>
+                              {labels[lvl]}
+                            </div>
+                            <div className={`text-xs leading-snug ${active ? "opacity-80" : "text-[#6B6560]"}`}>
+                              {descs[lvl]}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </FormItem>
+                )} />
+              </div>
+            </div>
+
             {/* ── Body Metrics ── */}
             <div>
-              <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 border-b border-[#1C1714]/20 pb-2">
+              <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
                 {t("bodyMetrics")}
               </div>
               <p className="text-xs text-[#6B6560] mb-4 mt-2">{t("bodyMetricsHint")}</p>
@@ -460,108 +501,75 @@ export default function SettingsPage() {
                   </FormItem>
                 )} />
 
-                {/* ── Activity Level ── */}
-                <FormField control={form.control} name="activityLevel" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs uppercase tracking-widest text-[#6B6560] block mb-2">{t("activityLevel")}</FormLabel>
-                    <div className="flex flex-col border border-[#1C1714]/20" data-testid="select-activity-level">
-                      {(["sedentary", "light", "active"] as const).map((lvl) => {
-                        const labels: Record<string, string> = { sedentary: t("actSedentary"), light: t("actLight"), active: t("actActive") };
-                        const descs: Record<string, string> = { sedentary: t("actDescSedentary"), light: t("actDescLight"), active: t("actDescActive") };
-                        const active = field.value === lvl;
-                        return (
-                          <button
-                            key={lvl}
-                            type="button"
-                            data-testid={`button-activity-${lvl}`}
-                            onClick={() => field.onChange(lvl)}
-                            className={`flex items-center gap-4 px-4 py-3 text-left border-b last:border-b-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
-                          >
-                            <div className={`text-xs uppercase tracking-widest font-bold w-32 shrink-0 ${active ? "opacity-90" : "text-[#6B6560]"}`}>
-                              {labels[lvl]}
-                            </div>
-                            <div className={`text-xs leading-snug ${active ? "opacity-80" : "text-[#6B6560]"}`}>
-                              {descs[lvl]}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </FormItem>
-                )} />
-
-                {/* ── BMI Panel ── */}
-                {bmiData && (
-                  <div className="border border-[#1C1714]/20 p-4 space-y-3" data-testid="panel-bmi">
-                    <div className="text-xs uppercase tracking-widest text-[#6B6560]">{t("bmiPanel")}</div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("bmi")}</div>
-                        <div
-                          className={`text-2xl tabular-nums tracking-tighter font-bold ${BMI_COLORS[bmiData.category]}`}
-                          data-testid="text-bmi"
-                        >
-                          {bmiData.bmi}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">
-                          {lang === "ru" ? "Категория" : "Category"}
-                        </div>
-                        <div
-                          className={`text-xs font-bold uppercase tracking-wider mt-1 ${BMI_COLORS[bmiData.category]}`}
-                          data-testid="text-bmi-category"
-                        >
-                          {bmiCategoryLabel[bmiData.category]}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("healthyRange")}</div>
-                        <div className="text-sm tabular-nums opacity-70 mt-1">
-                          {bmiData.range.minKg}–{bmiData.range.maxKg} kg
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* ── TDEE reference: Maintenance / Deficit ── */}
+            {/* ── PARAMETRES: Maintenance / Deficit + BMI ── */}
             {canComputeTarget && estimatedTDEE && (
-              <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
-                <div data-testid="panel-tdee">
-                  <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("maintenance")}</div>
-                  <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE.toLocaleString()}</div>
-                  <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
+                  {lang === "ru" ? "Параметры" : "Parametres"}
                 </div>
-                {watchedMode === "maintenance" ? (
-                  <div data-testid="panel-suggested-goal">
-                    <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("modeMaintenance")}</div>
-                    <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE.toLocaleString()}</div>
-                    <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                <div className="mt-4 space-y-3">
+                  <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
+                    <div data-testid="panel-tdee">
+                      <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("maintenance")}</div>
+                      <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE.toLocaleString()}</div>
+                      <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                    </div>
+                    {watchedMode === "maintenance" ? (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("modeMaintenance")}</div>
+                        <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE.toLocaleString()}</div>
+                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    ) : watchedMode === "weight_gain" ? (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("surplus300")}</div>
+                        <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{(estimatedTDEE + 350).toLocaleString()}</div>
+                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    ) : (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("deficit500")}</div>
+                        <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{(estimatedTDEE - 500).toLocaleString()}</div>
+                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    )}
                   </div>
-                ) : watchedMode === "weight_gain" ? (
-                  <div data-testid="panel-suggested-goal">
-                    <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("surplus300")}</div>
-                    <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{(estimatedTDEE + 350).toLocaleString()}</div>
-                    <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
-                  </div>
-                ) : (
-                  <div data-testid="panel-suggested-goal">
-                    <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("deficit500")}</div>
-                    <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{(estimatedTDEE - 500).toLocaleString()}</div>
-                    <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
-                  </div>
-                )}
+
+                  {/* ── BMI Panel ── */}
+                  {bmiData && (
+                    <div className="border border-[#1C1714]/20 p-4 space-y-3" data-testid="panel-bmi">
+                      <div className="text-xs uppercase tracking-widest text-[#6B6560]">{t("bmiPanel")}</div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("bmi")}</div>
+                          <div className={`text-2xl tabular-nums tracking-tighter font-bold ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi">
+                            {bmiData.bmi}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Категория" : "Category"}</div>
+                          <div className={`text-xs font-bold uppercase tracking-wider mt-1 ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi-category">
+                            {bmiCategoryLabel[bmiData.category]}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("healthyRange")}</div>
+                          <div className="text-sm tabular-nums opacity-70 mt-1">{bmiData.range.minKg}–{bmiData.range.maxKg} kg</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {/* ── Plan ── */}
             <div>
-              <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-1 border-b border-[#1C1714]/20 pb-2">
-                {t("dailyTarget")}
+              <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
+                {lang === "ru" ? "План" : "Plan"}
               </div>
 
               {canComputeTarget ? (
@@ -732,14 +740,14 @@ export default function SettingsPage() {
         </Form>
 
         {/* ── Danger Zone ── */}
-        <div className="border-t border-[#1C1714]/20 pt-8 mt-8">
-          <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-5">{t("dangerZone")}</p>
+        <div className="border-t border-[#1C1714]/20 pt-6 mt-8 flex items-center justify-between gap-4">
+          <p className="text-xs uppercase tracking-widest text-[#6B6560]">{t("dangerZone")}</p>
           <button
             type="button"
             data-testid="button-restart"
             onClick={() => setRestartOpen(true)}
             disabled={restart.isPending}
-            className="text-xs uppercase tracking-widest text-[#9B4A2E] border border-[#9B4A2E]/40 px-6 py-2.5 hover:bg-[#9B4A2E]/10 transition-colors disabled:opacity-40 min-h-[44px]"
+            className="text-xs uppercase tracking-widest text-[#9B4A2E] border border-[#9B4A2E]/40 px-6 py-3 hover:bg-[#9B4A2E]/10 transition-colors disabled:opacity-40 min-h-[44px] shrink-0"
           >
             {restart.isPending ? "…" : t("restartLabel")}
           </button>

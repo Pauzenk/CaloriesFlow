@@ -250,7 +250,7 @@ export default function ForgotPasswordPage() {
                       onChange={(e) => handleDigitChange(i, e.target.value)}
                       onKeyDown={(e) => handleDigitKeyDown(i, e)}
                       className={[
-                        "flex-1 h-12 bg-[#FAF8F6] text-center text-[20px] font-bold text-[#1C1714] focus:outline-none font-['Space_Mono'] transition-colors",
+                        "min-w-0 w-0 flex-1 h-12 bg-[#FAF8F6] text-center text-[20px] font-bold text-[#1C1714] focus:outline-none font-['Space_Mono'] transition-colors",
                         codeError
                           ? "border border-[#9B4A2E]"
                           : d

@@ -6,9 +6,42 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { Resend } from "resend";
 import { pool } from "./db";
 import { storage } from "./storage";
 import { insertUserSchema, loginSchema, type AuthUser, type User } from "@shared/schema";
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+async function sendVerificationEmail(toEmail: string, code: string): Promise<void> {
+  if (!resend) {
+    console.log(`[forgot-password] No RESEND_API_KEY — code for ${toEmail}: ${code}`);
+    return;
+  }
+  await resend.emails.send({
+    from: "CalorieFlow <onboarding@resend.dev>",
+    to: toEmail,
+    subject: "Your CalorieFlow verification code",
+    html: `
+      <div style="font-family:'Space Mono',monospace;background:#F2EDE7;padding:40px 24px;min-height:100vh;">
+        <div style="max-width:400px;margin:0 auto;background:#ffffff;border:1px solid #D4CFC8;padding:32px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+            <div style="width:36px;height:36px;background:#3c3a40;display:flex;align-items:center;justify-content:center;">
+              <span style="color:#fff;font-size:18px;">🌿</span>
+            </div>
+            <span style="font-size:20px;font-weight:700;color:#1C1714;letter-spacing:-0.5px;">CalorieFlow</span>
+          </div>
+          <h2 style="font-size:22px;font-weight:700;color:#1C1714;margin:0 0 8px;">Your verification code</h2>
+          <p style="font-size:13px;color:#6B6560;margin:0 0 28px;line-height:1.6;">Use this code to reset your password. It expires in 10 minutes.</p>
+          <div style="border:1px solid #1C1714;padding:20px;text-align:center;margin-bottom:28px;">
+            <span style="font-size:36px;font-weight:700;letter-spacing:12px;color:#1C1714;">${code}</span>
+          </div>
+          <p style="font-size:11px;color:#6B6560;margin:0;line-height:1.6;">If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      </div>
+    `,
+  });
+}
 
 const scryptAsync = promisify(scrypt);
 
@@ -222,8 +255,7 @@ export function setupAuth(app: Express) {
     if (user) {
       const code = String(Math.floor(100000 + Math.random() * 900000));
       pendingCodes.set(normalised, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
-      // Log code to console — replace with real email send in production
-      console.log(`[forgot-password] code for ${normalised}: ${code}`);
+      await sendVerificationEmail(normalised, code);
     }
     res.json({ ok: true });
   });

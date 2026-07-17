@@ -329,7 +329,7 @@ export default function SettingsPage() {
       <div className="w-full font-['Space_Mono'] text-[#1C1714] max-w-2xl">
 
         {/* ── Page heading ── */}
-        <div className="flex flex-col mb-8 gap-[0px]">
+        <div className="flex flex-col gap-3 mb-8">
           <h2 className="text-[22px] font-bold text-[#1C1714] m-0">{lang === "ru" ? "Параметры" : "Parameters"}</h2>
           <p className="text-[11px] text-[#6B6560]">{t("languageHint")}</p>
         </div>
@@ -508,7 +508,7 @@ export default function SettingsPage() {
             {canComputeTarget && estimatedTDEE && (
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
-                  {lang === "ru" ? "Индекс BMI" : "BMI index"}
+                  {lang === "ru" ? "Параметры" : "Parametres"}
                 </div>
                 <div className="mt-4 space-y-3">
                   <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">

@@ -538,30 +538,6 @@ export default function SettingsPage() {
                     )}
                   </div>
 
-                  {/* ── BMI Panel ── */}
-                  {bmiData && (
-                    <div className="border border-[#1C1714]/20 p-4 space-y-3" data-testid="panel-bmi">
-                      <div className="text-xs uppercase tracking-widest text-[#6B6560]">{t("bmiPanel")}</div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("bmi")}</div>
-                          <div className={`text-2xl tabular-nums tracking-tighter font-bold ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi">
-                            {bmiData.bmi}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Категория" : "Category"}</div>
-                          <div className={`text-xs font-bold uppercase tracking-wider mt-1 ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi-category">
-                            {bmiCategoryLabel[bmiData.category]}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("healthyRange")}</div>
-                          <div className="text-sm tabular-nums opacity-70 mt-1">{bmiData.range.minKg}–{bmiData.range.maxKg} kg</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}

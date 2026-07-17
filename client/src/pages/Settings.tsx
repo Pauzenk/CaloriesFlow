@@ -508,7 +508,7 @@ export default function SettingsPage() {
             {canComputeTarget && estimatedTDEE && (
               <div>
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
-                  {lang === "ru" ? "ИМТ" : "BMI"}
+                  {lang === "ru" ? "Параметры" : "Parametres"}
                 </div>
                 <div className="mt-4 space-y-3">
                   <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">

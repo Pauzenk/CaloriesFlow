@@ -113,7 +113,6 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
               <span className="hidden sm:inline">{t("logOut")}</span>
             </Button>
           </header>
-          <h2 className="px-4 pt-5 text-2xl font-bold text-[#1C1714] md:hidden">{title}</h2>
           <section className="flex-1 px-4 pb-10 pt-4 md:px-8">{children}</section>
         </div>
       </div>

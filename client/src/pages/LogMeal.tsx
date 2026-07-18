@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
-  Send, Bot, User as UserIcon, ArrowRight, Activity,
+  Send, Bot, User as UserIcon, ArrowRight, Activity as ActivityIcon,
   ArrowLeft, Camera, X, ChevronDown, Check, Trash2,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MEAL_TYPES, type Meal, type Settings } from "@shared/schema";
+import { MEAL_TYPES, type Meal, type Settings, type Activity as DbActivity } from "@shared/schema";
 import { AppShell } from "@/components/AppShell";
 import { SetupPrompt } from "@/components/SetupPrompt";
 import { mealsForDate, todayStr } from "@/lib/calorieflow";
@@ -34,6 +34,7 @@ type NutritionEstimate = {
   fats: number;
   mealType?: string;
   portionAssumption?: string;
+  explanation?: string;
 };
 
 type ActivityEstimate = {
@@ -41,6 +42,8 @@ type ActivityEstimate = {
   durationMinutes: number;
   caloriesBurned: number;
   activityType: "cardio" | "strength" | "other";
+  met?: number;
+  explanation?: string;
 };
 
 type ChatMessage = {
@@ -89,6 +92,7 @@ function InlineChat({
   calorieGoal,
   caloriesLogged,
   chatMode,
+  userWeightKg,
 }: {
   onLogMeal: (estimate: NutritionEstimate, mealType: string) => Promise<string>;
   storageKey: string;
@@ -96,6 +100,7 @@ function InlineChat({
   calorieGoal: number;
   caloriesLogged: number;
   chatMode: "meal" | "activity";
+  userWeightKg?: number;
 }) {
   const { toast } = useToast();
   const { lang, t } = useLanguage();
@@ -163,7 +168,7 @@ function InlineChat({
       const fd = new FormData();
       fd.append("messages", JSON.stringify(history));
       fd.append("message", userText);
-      fd.append("context", JSON.stringify({ calorieGoal, caloriesLogged, remainingCalories: remaining, logDate, language: lang, chatMode }));
+      fd.append("context", JSON.stringify({ calorieGoal, caloriesLogged, remainingCalories: remaining, logDate, language: lang, chatMode, ...(userWeightKg ? { userWeightKg } : {}) }));
       if (photo) fd.append("photo", photo);
       const res = await fetch("/api/meals/chat", { method: "POST", credentials: "include", body: fd });
       if (!res.ok) {
@@ -245,11 +250,8 @@ function InlineChat({
 
       return finalData ?? ({ reply: streamText } as ChatResponse);
     },
-    onSuccess: (data) => {
-      if (data?.activityEstimate) {
-        logActivity.mutate(data.activityEstimate);
-        toast({ title: t("activityLogged") });
-      }
+    onSuccess: () => {
+      // Activity logging is now manual via "Log this activity" button
     },
     onError: () => {
       // errors are shown inline in the chat thread — no extra toast needed
@@ -301,6 +303,26 @@ function InlineChat({
     const reader = new FileReader();
     reader.onload = (ev) => setPendingPhoto({ file, dataUrl: ev.target?.result as string });
     reader.readAsDataURL(file);
+  }
+
+  async function handleLogActivity(msgId: number, est: ActivityEstimate) {
+    setLoggingId(msgId);
+    try {
+      await logActivity.mutateAsync(est);
+      setMessages((prev) =>
+        prev.map((m) => m.id === msgId ? { ...m, confirmed: true } : m)
+      );
+      setMessages((prev) => [...prev, {
+        id: nextId(), role: "assistant",
+        text: `${t("activityLogged")} — ${est.name} (−${est.caloriesBurned} kcal)`,
+        confirmed: true,
+      }]);
+      toast({ title: `−${est.caloriesBurned} kcal · ${est.name}` });
+    } catch {
+      toast({ title: lang === "ru" ? "Не удалось добавить активность" : "Failed to log activity", variant: "destructive" });
+    } finally {
+      setLoggingId(null);
+    }
   }
 
   async function handleLogMeal(msgId: number, estimate: NutritionEstimate, mealType: string) {
@@ -486,6 +508,13 @@ function InlineChat({
                   </div>
                 )}
 
+                {/* Explanation bubble for food estimate */}
+                {msg.estimate && !msg.confirmed && msg.estimate.explanation && (
+                  <div className="px-3 py-2 text-xs leading-relaxed border bg-[rgba(242,237,231,0.06)] border-[#F2EDE7]/15 text-[#F2EDE7]/70">
+                    {msg.estimate.explanation}
+                  </div>
+                )}
+
                 {/* Single meal estimate card */}
                 {msg.estimate && !msg.confirmed && (
                   <EstimateCard
@@ -580,26 +609,41 @@ function InlineChat({
                 )}
 
                 {/* Activity card */}
-                {msg.activityEstimate && (
-                  <div
-                    data-testid={`chat-activity-estimate-${msg.id}`}
-                    className="w-full border border-[#F2EDE7]/20 p-3"
-                  >
-                    <div className="text-xs uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 flex items-center gap-1.5 text-[#F2EDE7]/70">
-                      <Activity className="h-3 w-3" /> {t("activityLogged2")}
-                    </div>
-                    <div className="text-xs mb-2 text-[#F2EDE7]/85">{msg.activityEstimate.name}</div>
-                    <div className="grid grid-cols-3 gap-1.5 text-center">
-                      {[
-                        { label: t("typeLabel"), value: msg.activityEstimate.activityType },
-                        { label: t("durationLabel"), value: `${msg.activityEstimate.durationMinutes}min` },
-                        { label: t("burnedLabel"), value: `${msg.activityEstimate.caloriesBurned} kcal` },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="border border-[#F2EDE7]/10 py-1.5">
-                          <div className="text-[11px] uppercase tracking-widest text-[#F2EDE7]/60">{label}</div>
-                          <div className="text-xs tabular-nums mt-0.5">{value}</div>
-                        </div>
-                      ))}
+                {msg.activityEstimate && !msg.confirmed && (
+                  <div className="flex flex-col gap-2 w-full">
+                    {msg.activityEstimate.explanation && (
+                      <div className="px-3 py-2 text-xs leading-relaxed border bg-[rgba(242,237,231,0.06)] border-[#F2EDE7]/15 text-[#F2EDE7]/70">
+                        {msg.activityEstimate.explanation}
+                      </div>
+                    )}
+                    <div
+                      data-testid={`chat-activity-estimate-${msg.id}`}
+                      className="w-full border border-[#F2EDE7]/20 p-3"
+                    >
+                      <div className="text-xs uppercase tracking-widest mb-2 pb-1.5 border-b border-[#F2EDE7]/15 flex items-center gap-1.5 text-[#F2EDE7]/70">
+                        <ActivityIcon className="h-3 w-3" /> {msg.activityEstimate.name}
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5 text-center mb-3">
+                        {[
+                          { label: "Kcal", value: `−${msg.activityEstimate.caloriesBurned}` },
+                          { label: t("durationLabel"), value: `${msg.activityEstimate.durationMinutes}m` },
+                          { label: "METs", value: msg.activityEstimate.met != null ? msg.activityEstimate.met.toFixed(1) : msg.activityEstimate.activityType },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="border border-[#F2EDE7]/10 py-1.5">
+                            <div className="text-[11px] uppercase tracking-widest text-[#F2EDE7]/60">{label}</div>
+                            <div className="text-xs tabular-nums mt-0.5">{value}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        data-testid={`button-log-activity-${msg.id}`}
+                        onClick={() => handleLogActivity(msg.id, msg.activityEstimate!)}
+                        disabled={loggingId === msg.id}
+                        className="w-full flex items-center justify-center gap-1.5 border border-[#F2EDE7]/40 text-[#F2EDE7] py-3 text-xs uppercase tracking-widest hover:bg-[#F2EDE7] hover:text-[#1C1714] transition-colors disabled:opacity-40 min-h-[44px]"
+                      >
+                        {loggingId === msg.id ? t("adding") : <><ArrowRight className="h-3 w-3" /> {lang === "ru" ? "Добавить активность" : "Log this activity"}</>}
+                      </button>
                     </div>
                   </div>
                 )}
@@ -657,22 +701,24 @@ function InlineChat({
             className="flex-1 resize-none border border-[#F2EDE7]/20 bg-[#F2EDE7]/5 text-[#F2EDE7] px-3 py-2 text-xs font-['Space_Mono'] placeholder:opacity-40 focus:outline-none focus:border-[#F2EDE7]/50"
           />
           <div className="flex shrink-0 flex-col gap-1">
-            <label
-              data-testid="button-chat-attach-photo"
-              className="flex h-8 w-8 cursor-pointer items-center justify-center border border-[#F2EDE7]/20 hover:border-[#F2EDE7]/50 hover:bg-[#F2EDE7]/5 transition-colors"
-              title="Attach photo"
-            >
-              <Camera className="h-3.5 w-3.5 text-[#F2EDE7] opacity-60" />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                capture="environment"
-                className="sr-only"
-                onChange={onFileChange}
-                data-testid="input-chat-photo-file"
-              />
-            </label>
+            {chatMode !== "activity" && (
+              <label
+                data-testid="button-chat-attach-photo"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center border border-[#F2EDE7]/20 hover:border-[#F2EDE7]/50 hover:bg-[#F2EDE7]/5 transition-colors"
+                title="Attach photo"
+              >
+                <Camera className="h-3.5 w-3.5 text-[#F2EDE7] opacity-60" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  capture="environment"
+                  className="sr-only"
+                  onChange={onFileChange}
+                  data-testid="input-chat-photo-file"
+                />
+              </label>
+            )}
             {messages.length > 0 && (
               <button
                 type="button"
@@ -844,7 +890,7 @@ function EstimateCard({
 // ── Main LogMeal Page ────────────────────────────────────────────────────────
 
 export default function LogMeal() {
-  const { lang: _lang, t } = useLanguage();
+  const { lang, t } = useLanguage();
   const logDate = (() => {
     const params = new URLSearchParams(window.location.search);
     const d = params.get("date");
@@ -859,12 +905,16 @@ export default function LogMeal() {
 
   const { data: meals = [] } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
   const { data: settingsData, isSuccess: settingsLoaded } = useQuery<Settings>({ queryKey: ["/api/settings"] });
+  const { data: activities = [] } = useQuery<DbActivity[]>({ queryKey: ["/api/activities"] });
 
   const calorieGoal = settingsData?.dailyCalorieGoal || 2000;
+  const userWeightKg = settingsData?.currentWeightKg ?? settingsData?.startingWeightKg ?? undefined;
   const hasProfile = !!(settingsData?.heightCm && settingsData?.ageYears && settingsData?.startingWeightKg);
   const dayMeals = mealsForDate(meals, logDate);
   const caloriesLogged = dayMeals.reduce((s, m) => s + m.calories, 0);
   const remaining = Math.max(0, calorieGoal - caloriesLogged);
+  const dayActivities = activities.filter((a) => a.date === logDate);
+  const caloriesBurned = dayActivities.reduce((s, a) => s + a.caloriesBurned, 0);
 
   const isToday = logDate === todayStr();
   const dateLabel = new Date(logDate + "T00:00:00").toLocaleDateString("en-US", {
@@ -926,17 +976,30 @@ export default function LogMeal() {
           </div>
         </div>
 
-        {/* Day summary */}
-        <div className="text-right">
-          <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/60 leading-none mb-0.5">{t("loggedLabel")}</div>
-          <div className="text-sm tabular-nums text-[#F2EDE7]">
-            {caloriesLogged}
-            <span className="opacity-40 text-xs ml-1">/ {calorieGoal}</span>
+        {/* Day summary — burned for activity mode, logged for meal mode */}
+        {chatMode === "activity" ? (
+          <div className="text-right">
+            <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/60 leading-none mb-0.5">{lang === "ru" ? "сожжено" : "burned today"}</div>
+            <div className="text-sm tabular-nums text-[#F2EDE7]">
+              {caloriesBurned > 0 ? `−${caloriesBurned}` : "0"}
+              <span className="opacity-40 text-xs ml-1">kcal</span>
+            </div>
+            {dayActivities.length > 0 && (
+              <div className="text-xs text-[#F2EDE7]/60 tabular-nums">{dayActivities.length} {lang === "ru" ? "активн." : "activit."}</div>
+            )}
           </div>
-          {remaining > 0 && (
-            <div className="text-xs text-[#F2EDE7]/60 tabular-nums">{remaining} {t("remainingLabel")}</div>
-          )}
-        </div>
+        ) : (
+          <div className="text-right">
+            <div className="text-xs uppercase tracking-widest text-[#F2EDE7]/60 leading-none mb-0.5">{t("loggedLabel")}</div>
+            <div className="text-sm tabular-nums text-[#F2EDE7]">
+              {caloriesLogged}
+              <span className="opacity-40 text-xs ml-1">/ {calorieGoal}</span>
+            </div>
+            {remaining > 0 && (
+              <div className="text-xs text-[#F2EDE7]/60 tabular-nums">{remaining} {t("remainingLabel")}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Chat */}
@@ -948,6 +1011,7 @@ export default function LogMeal() {
           calorieGoal={calorieGoal}
           caloriesLogged={caloriesLogged}
           chatMode={chatMode}
+          userWeightKg={userWeightKg}
         />
       </div>
     </div>

@@ -1,2 +1,4 @@
 - [Chart x-axis migration](chart-xaxis-daily.md) — threeLineWeightSeries switched from weekIdx to daily date strings; Progress.tsx must use date key + tickDates for sparse XAxis ticks.
 - [Password hashing](password-hashing.md) — app uses scrypt (Node crypto) not bcryptjs; seed/test scripts must replicate the same `hex.salt` format.
+- [Server startup DB resilience](server-startup-db.md) — migrations must be wrapped in try-catch; DB (helium host) can be slow to accept connections at startup.
+- [Activity icon name conflict](activity-icon-conflict.md) — lucide-react exports `Activity` icon; `Activity` schema type must be aliased (e.g. `DbActivity`) to avoid duplicate identifier errors in LogMeal.tsx.

@@ -34,6 +34,7 @@ const photoAnalysisSchema = z.object({
   carbs: z.number().min(0).max(2000),
   fats: z.number().min(0).max(2000),
   portionAssumption: z.string().max(200).optional(),
+  explanation: z.string().max(500).optional(),
 });
 
 const imageCache = new Map<string, string>();
@@ -327,6 +328,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
       let contextNote = "";
       let chatLanguage = "en";
+      let userWeightKg = 75;
       try {
         const rawCtx = typeof req.body.context === "string" ? req.body.context : null;
         if (rawCtx) {
@@ -335,8 +337,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
           const logged = typeof ctx.caloriesLogged === "number" ? ctx.caloriesLogged : null;
           const rem = typeof ctx.remainingCalories === "number" ? ctx.remainingCalories : null;
           if (typeof ctx.language === "string") chatLanguage = ctx.language;
+          if (typeof ctx.userWeightKg === "number" && ctx.userWeightKg > 20 && ctx.userWeightKg < 400) {
+            userWeightKg = Math.round(ctx.userWeightKg);
+          }
           if (goal !== null && logged !== null && rem !== null) {
-            contextNote = `\n\nUSER'S DAY CONTEXT: Daily calorie goal = ${goal} kcal | Already logged = ${logged} kcal | Remaining = ${rem} kcal.`;
+            contextNote = `\n\nUSER'S DAY CONTEXT: Daily calorie goal = ${goal} kcal | Already logged = ${logged} kcal | Remaining = ${rem} kcal | Body weight = ${userWeightKg} kg.`;
           }
         }
       } catch { /* ignore */ }
@@ -372,10 +377,11 @@ CALIBRATION REFERENCES:
 - Avocado toast (1 slice sourdough + ½ avocado): 290 kcal | P 7 g | C 30 g | F 16 g
 
 ━━━ ACTIVITY ESTIMATION RULES ━━━
-Use standard MET values to estimate calories burned. Assume 75 kg bodyweight if unknown.
-Formula: calories = MET × 75 kg × (durationMinutes / 60)
+Use standard MET values to estimate calories burned. User body weight = ${userWeightKg} kg.
+Formula: calories = MET × ${userWeightKg} kg × (durationMinutes / 60)
 Common MET values: walking (3.5), light cycling (6), running/jogging (8), HIIT/cardio (10), strength training (5), swimming (7), yoga (2.5).
 - activityType must be one of: "cardio", "strength", "other"
+- Include "met" (the MET value used) and "explanation" (1-sentence formula breakdown, e.g. "MET 8.0 × ${userWeightKg} kg × 30 min = 300 kcal") in activityEstimate.
 
 ━━━ RECIPE / MEAL PLAN RULES (TYPE D) ━━━
 When the user asks for meal ideas or a full-day plan:
@@ -386,8 +392,10 @@ When the user asks for meal ideas or a full-day plan:
 - Return multiple estimates using the "estimates" array format below. Include "mealType" in each estimate.
 
 ━━━ RESPONSE RULES ━━━
-- Output ONLY the JSON block. No text before or after it. The card UI will display the result — no explanation needed.
+- Output ONLY the JSON block. No text before or after it. The card UI will display the result.
 - NEVER ask clarifying questions about portion size, ingredients, or meal details. If the portion is unspecified, use a realistic standard portion. If the food is ambiguous, pick the most common interpretation.
+- For food (TYPE A/C): include "explanation" in the estimate — a concise 1-2 sentence ingredient breakdown (e.g. "Oats 80g (300 kcal) + milk 200ml (95 kcal) + banana 100g (89 kcal) = 484 kcal total").
+- For activity (TYPE B): include "met" (MET value used) and "explanation" in activityEstimate — one sentence with the formula (e.g. "MET 8.0 × 75 kg × 30 min = 300 kcal burned").
 - If the user says "add it", "log it", "log this", "yes", "save it", "add to lunch", or any short affirmative/action phrase referring to food or an activity you already estimated in this conversation: re-emit the same estimate in JSON so it can be added to the log. Re-read your previous message to reconstruct the numbers.
 - Numbers: calories = integer, proteins/carbs/fats = 1 decimal place, caloriesBurned = integer.
 - ALWAYS include "portionAssumption" in every food estimate — state the assumed portion and weight in grams (e.g., "1 medium banana, ~118 g" or "1 cup cooked oatmeal (~240 g) + 1 tbsp honey").
@@ -401,17 +409,17 @@ YOUR ENTIRE RESPONSE must be exactly ONE JSON block — nothing before it, nothi
 
 For single food:
 \`\`\`json
-{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"portionAssumption":"<e.g. 1 medium muffin, ~110 g>"}}
+{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"portionAssumption":"<e.g. 1 medium muffin, ~110 g>","explanation":"<e.g. Oats 80g (300 kcal) + milk 200ml (95 kcal) = 395 kcal total>"}}
 \`\`\`
 
 For activity only:
 \`\`\`json
-{"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other"}}
+{"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other","met":<num>,"explanation":"<e.g. MET 8.0 × 75 kg × 30 min = 300 kcal burned>"}}
 \`\`\`
 
 For both food and activity:
 \`\`\`json
-{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>},"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other"}}
+{"estimate":{"name":"<meal name>","calories":<int>,"proteins":<num>,"carbs":<num>,"fats":<num>,"explanation":"<ingredient breakdown>"},"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other","met":<num>,"explanation":"<MET formula>"}}
 \`\`\`
 
 For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
@@ -450,6 +458,8 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
           durationMinutes: z.number().int().min(0).max(1440),
           caloriesBurned: z.number().int().min(0).max(10000),
           activityType: z.enum(["cardio", "strength", "other"]).default("other"),
+          met: z.number().min(0).max(50).optional(),
+          explanation: z.string().max(400).optional(),
         });
 
         const recipeEstimateSchema = photoAnalysisSchema.extend({

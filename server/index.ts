@@ -60,8 +60,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const { runMigrations } = await import("./migrate");
-  await runMigrations();
+  try {
+    const { runMigrations } = await import("./migrate");
+    await runMigrations();
+  } catch (err) {
+    console.warn("[migrate] DB migration skipped (DB unavailable at startup):", err instanceof Error ? err.message : String(err));
+  }
 
   await registerRoutes(httpServer, app);
 

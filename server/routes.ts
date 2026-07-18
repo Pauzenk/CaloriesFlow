@@ -49,7 +49,7 @@ function randomCuisine(): string {
 }
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
-  setupAuth(app);
+  await setupAuth(app);
 
   app.get("/api/ai/status", requireAuth, (_req, res) => {
     res.json({ hasApiKey: !!process.env.OPENAI_API_KEY });

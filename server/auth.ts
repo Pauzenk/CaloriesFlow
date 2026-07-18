@@ -69,16 +69,25 @@ function sanitizeUser(user: User): AuthUser {
   return { id: user.id, email: user.email, name: user.name };
 }
 
-export function setupAuth(app: Express) {
+export async function setupAuth(app: Express) {
   if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET must be set in production");
   }
-  const PgStore = connectPgSimple(session);
-  const sessionStore = new PgStore({
-    pool,
-    createTableIfMissing: true,
-    tableName: "user_sessions",
-  });
+
+  let sessionStore: session.Store;
+  try {
+    await pool.query("SELECT 1");
+    const PgStore = connectPgSimple(session);
+    sessionStore = new PgStore({
+      pool,
+      createTableIfMissing: true,
+      tableName: "user_sessions",
+    });
+    console.log("[auth] Using PostgreSQL session store");
+  } catch (err) {
+    console.warn("[auth] DB unavailable, using in-memory session store:", err instanceof Error ? err.message : String(err));
+    sessionStore = new session.MemoryStore();
+  }
 
   const sessionSecret = process.env.SESSION_SECRET || "dev-secret-change-me";
 

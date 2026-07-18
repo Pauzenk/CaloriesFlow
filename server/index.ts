@@ -70,15 +70,27 @@ app.use((req, res, next) => {
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    if (res.headersSent) return next(err);
 
-    console.error("Internal Server Error:", err);
+    const isDbError = (e: any) => {
+      const msg: string = e?.message ?? "";
+      return (
+        msg.includes("Connection terminated") ||
+        msg.includes("timeout expired") ||
+        msg.includes("connect ECONNREFUSED") ||
+        e?.code === "ECONNREFUSED" ||
+        e?.code === "57P01"
+      );
+    };
 
-    if (res.headersSent) {
-      return next(err);
+    if (isDbError(err) || isDbError(err?.cause)) {
+      console.error("[db-error]", err?.message ?? err);
+      return res.status(503).json({ message: "The database is temporarily unavailable. Please wait a moment and try again." });
     }
 
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    console.error("Internal Server Error:", err);
     return res.status(status).json({ message });
   });
 

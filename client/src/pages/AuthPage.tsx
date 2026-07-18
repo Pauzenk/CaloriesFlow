@@ -24,8 +24,24 @@ const registerSchema = z.object({
 });
 
 function describeError(err: unknown): string {
-  if (err instanceof Error) return err.message;
+  if (err instanceof Error) {
+    const match = err.message.match(/^\d+:\s*([\s\S]+)$/);
+    if (match) {
+      try {
+        const json = JSON.parse(match[1]);
+        return json.message || match[1];
+      } catch {
+        return match[1];
+      }
+    }
+    return err.message;
+  }
   return "Something went wrong";
+}
+
+function isServiceUnavailable(err: unknown): boolean {
+  if (err instanceof Error) return err.message.startsWith("503:");
+  return false;
 }
 
 function GoogleIcon() {
@@ -73,17 +89,31 @@ export default function AuthPage() {
     defaultValues: { name: "", email: "", password: "" },
   });
 
+  const [dbDown, setDbDown] = useState(false);
+
   const onLogin = loginForm.handleSubmit((values) => {
+    setDbDown(false);
     login.mutate(values, {
-      onError: (err: unknown) =>
-        toast({ title: "Login failed", description: describeError(err), variant: "destructive" }),
+      onError: (err: unknown) => {
+        if (isServiceUnavailable(err)) {
+          setDbDown(true);
+        } else {
+          toast({ title: "Login failed", description: describeError(err), variant: "destructive" });
+        }
+      },
     });
   });
 
   const onRegister = registerForm.handleSubmit((values) => {
+    setDbDown(false);
     register.mutate(values, {
-      onError: (err: unknown) =>
-        toast({ title: "Sign up failed", description: describeError(err), variant: "destructive" }),
+      onError: (err: unknown) => {
+        if (isServiceUnavailable(err)) {
+          setDbDown(true);
+        } else {
+          toast({ title: "Sign up failed", description: describeError(err), variant: "destructive" });
+        }
+      },
     });
   });
 
@@ -130,6 +160,13 @@ export default function AuthPage() {
 
           <h2 className="text-2xl font-bold text-[#1C1714]">Welcome</h2>
           <p className="mt-1 text-sm text-[#6B6560]">Log in or create an account to continue.</p>
+
+          {dbDown && (
+            <div className="mt-4 rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" data-testid="status-db-unavailable">
+              <p className="font-semibold">Service temporarily unavailable</p>
+              <p className="mt-0.5">The database is restarting. Please wait a moment and try again.</p>
+            </div>
+          )}
 
           {/* Google sign-in */}
           {googleEnabled && (

@@ -76,7 +76,12 @@ export async function setupAuth(app: Express) {
 
   let sessionStore: session.Store;
   try {
-    await pool.query("SELECT 1");
+    await Promise.race([
+      pool.query("SELECT 1"),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DB startup check timed out")), 5000)
+      ),
+    ]);
     const PgStore = connectPgSimple(session);
     sessionStore = new PgStore({
       pool,
@@ -85,7 +90,7 @@ export async function setupAuth(app: Express) {
     });
     console.log("[auth] Using PostgreSQL session store");
   } catch (err) {
-    console.warn("[auth] DB unavailable, using in-memory session store:", err instanceof Error ? err.message : String(err));
+    console.warn("[auth] Using in-memory session store (DB slow/unavailable at startup):", err instanceof Error ? err.message : String(err));
     sessionStore = new session.MemoryStore();
   }
 

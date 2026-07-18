@@ -404,22 +404,16 @@ export default function ProgressPage() {
                     >
                       <CartesianGrid strokeDasharray="none" vertical={false} stroke="#1C1714" strokeOpacity={0.06} />
                       <XAxis
-                        dataKey="dayIdx"
-                        type="number"
-                        domain={[0, "dataMax"]}
-                        ticks={(() => {
-                          if (!threeLinePoints.length) return [];
-                          const max = threeLinePoints[threeLinePoints.length - 1].dayIdx;
-                          const result: number[] = [];
-                          for (let i = 0; i <= max; i += 7) result.push(i);
-                          return result;
-                        })()}
+                        dataKey="date"
+                        type="category"
+                        ticks={tickDates}
                         tickLine={false}
                         axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                         tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
-                        tickFormatter={(idx: number) => {
-                          if (idx === 0) return lang === "ru" ? "Нач" : "Start";
-                          return `w${Math.round(idx / 7)}`;
+                        tickFormatter={(date: string) => {
+                          if (!date) return "";
+                          const d = new Date(date + "T00:00:00");
+                          return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" });
                         }}
                         interval={0}
                         minTickGap={36}
@@ -462,13 +456,9 @@ export default function ProgressPage() {
                       )}
 
                       {/* Today vertical marker */}
-                      {todayDate && settings?.journeyStartDate && (() => {
-                        const startMs = new Date(settings.journeyStartDate + "T00:00:00").getTime();
-                        const todayMs = new Date(todayDate + "T00:00:00").getTime();
-                        const todayDayIdx = Math.floor((todayMs - startMs) / 86400000);
-                        return (
+                      {todayDate && (
                         <ReferenceLine
-                          x={todayDayIdx}
+                          x={todayDate}
                           stroke="#1C1714"
                           strokeOpacity={0.35}
                           strokeWidth={1}
@@ -481,8 +471,7 @@ export default function ProgressPage() {
                             fontFamily: "'Space Mono'",
                           }}
                         />
-                        );
-                      })()}
+                      )}
 
                       {/* CURRENT ESTIMATED WEIGHT — flat horizontal line, synced with header */}
                       {displayWeight !== null && (

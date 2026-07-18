@@ -369,6 +369,68 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* ── BMI Index ── */}
+            {canComputeTarget && estimatedTDEE && (
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
+                  {lang === "ru" ? "Индекс BMI" : "BMI index"}
+                </div>
+                <div className="mt-4 space-y-3">
+                  <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
+                    <div data-testid="panel-tdee">
+                      <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("maintenance")}</div>
+                      <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE.toLocaleString()}</div>
+                      <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                    </div>
+                    {watchedMode === "maintenance" ? (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("modeMaintenance")}</div>
+                        <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE.toLocaleString()}</div>
+                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    ) : watchedMode === "weight_gain" ? (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("surplus300")}</div>
+                        <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{(estimatedTDEE + 350).toLocaleString()}</div>
+                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    ) : (
+                      <div data-testid="panel-suggested-goal">
+                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("deficit500")}</div>
+                        <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{(estimatedTDEE - 500).toLocaleString()}</div>
+                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── BMI Panel ── */}
+                  {bmiData && (
+                    <div className="border border-[#1C1714]/20 p-4 space-y-3" data-testid="panel-bmi">
+                      <div className="text-xs uppercase tracking-widest text-[#6B6560]">{t("bmiPanel")}</div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("bmi")}</div>
+                          <div className={`text-2xl tabular-nums tracking-tighter font-bold ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi">
+                            {bmiData.bmi}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Категория" : "Category"}</div>
+                          <div className={`text-xs font-bold uppercase tracking-wider mt-1 ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi-category">
+                            {bmiCategoryLabel[bmiData.category]}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("healthyRange")}</div>
+                          <div className="text-sm tabular-nums opacity-70 mt-1">{bmiData.range.minKg}–{bmiData.range.maxKg} kg</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* ── Activity Level ── */}
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
@@ -503,68 +565,6 @@ export default function SettingsPage() {
 
               </div>
             </div>
-
-            {/* ── PARAMETRES: Maintenance / Deficit + BMI ── */}
-            {canComputeTarget && estimatedTDEE && (
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
-                  {lang === "ru" ? "Индекс BMI" : "BMI index"}
-                </div>
-                <div className="mt-4 space-y-3">
-                  <div className="border border-[#1C1714]/30 p-4 grid grid-cols-2 gap-4" data-testid="panel-estimates">
-                    <div data-testid="panel-tdee">
-                      <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("maintenance")}</div>
-                      <div className="text-2xl tabular-nums" data-testid="text-tdee">{estimatedTDEE.toLocaleString()}</div>
-                      <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
-                    </div>
-                    {watchedMode === "maintenance" ? (
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("modeMaintenance")}</div>
-                        <div className="text-2xl tabular-nums text-emerald-700" data-testid="text-suggested-goal">{estimatedTDEE.toLocaleString()}</div>
-                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
-                      </div>
-                    ) : watchedMode === "weight_gain" ? (
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("surplus300")}</div>
-                        <div className="text-2xl tabular-nums text-blue-600" data-testid="text-suggested-goal">{(estimatedTDEE + 350).toLocaleString()}</div>
-                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
-                      </div>
-                    ) : (
-                      <div data-testid="panel-suggested-goal">
-                        <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("deficit500")}</div>
-                        <div className="text-2xl tabular-nums text-[#9e4515]" data-testid="text-suggested-goal">{(estimatedTDEE - 500).toLocaleString()}</div>
-                        <div className="text-xs text-[#6B6560] mt-0.5">{t("kcalPerDay")}</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── BMI Panel ── */}
-                  {bmiData && (
-                    <div className="border border-[#1C1714]/20 p-4 space-y-3" data-testid="panel-bmi">
-                      <div className="text-xs uppercase tracking-widest text-[#6B6560]">{t("bmiPanel")}</div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("bmi")}</div>
-                          <div className={`text-2xl tabular-nums tracking-tighter font-bold ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi">
-                            {bmiData.bmi}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{lang === "ru" ? "Категория" : "Category"}</div>
-                          <div className={`text-xs font-bold uppercase tracking-wider mt-1 ${BMI_COLORS[bmiData.category]}`} data-testid="text-bmi-category">
-                            {bmiCategoryLabel[bmiData.category]}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs uppercase tracking-widest text-[#6B6560] mb-0.5">{t("healthyRange")}</div>
-                          <div className="text-sm tabular-nums opacity-70 mt-1">{bmiData.range.minKg}–{bmiData.range.maxKg} kg</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* ── Plan ── */}
             <div>

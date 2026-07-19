@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
-import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, LogOut, ChefHat } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Settings as SettingsIcon, LogOut, ChefHat, Flame } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,8 +43,8 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <aside className="hidden w-64 shrink-0 flex-col border-r border-[#1C1714]/10 bg-[#F2EDE7] md:flex">
           <div className="flex h-full flex-col px-4 py-6">
             <header className="ml-2 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden bg-[#3c3a40]">
-                <img src="/logo.png" alt="CalorieFlow" className="h-full w-full object-cover" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#3c3a40] text-white">
+                <Flame className="h-4 w-4" />
               </div>
               <div className="flex flex-col">
                 <h1 className="text-lg font-bold leading-tight tracking-tight text-[#1C1714]">CalorieFlow</h1>
@@ -96,8 +96,8 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           {/* Top header */}
           <header className="flex items-center justify-between border-b border-[#D4CFC8] bg-[#F2EDE7] px-4 py-4 md:px-10 md:py-5">
             <div className="flex items-center gap-2 md:hidden">
-              <div className="flex h-8 w-8 items-center justify-center overflow-hidden bg-[#3c3a40]">
-                <img src="/logo.png" alt="CalorieFlow" className="h-full w-full object-cover" />
+              <div className="flex h-8 w-8 items-center justify-center bg-[#3c3a40] text-white">
+                <Flame className="h-4 w-4" />
               </div>
               <span className="text-base font-bold text-[#1C1714]">CalorieFlow</span>
             </div>

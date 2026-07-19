@@ -368,6 +368,15 @@ TYPE D — RECIPE IDEAS / MEAL PLAN: The user asks for recipe suggestions, meal 
 1. Identify every ingredient and its realistic portion size in grams.
 2. Apply standard nutrition values (USDA): protein = 4 kcal/g, carbs = 4 kcal/g, fat = 9 kcal/g.
 3. Sum contributions; sanity-check the total.
+
+━━━ PHOTO ANALYSIS RULES (when an image is provided) ━━━
+Examine the photo carefully before estimating:
+- Use visual cues (plate diameter ~26 cm, bowl ~16 cm, fork/spoon for scale, hand size) to estimate portion dimensions.
+- Identify EVERY visible ingredient separately — protein source, starch/grain, vegetables, sauces, toppings, garnishes.
+- Estimate the gram weight of each ingredient individually based on its volume and density.
+- Account for cooking method: grilled chicken is denser than boiled; pasta absorbs water (~2×); fried items have added oil.
+- If the portion looks smaller or larger than standard, adjust accordingly — do NOT default to generic "one serving".
+- List each ingredient with its estimated grams and calories in the "explanation" field, then sum them.
 CALIBRATION REFERENCES:
 - Medium apple (182 g): 95 kcal | P 0.5 g | C 25 g | F 0.3 g
 - Grilled chicken breast (150 g): 248 kcal | P 46 g | C 0 g | F 5 g

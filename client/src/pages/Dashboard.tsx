@@ -16,6 +16,8 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { SetupPrompt } from "@/components/SetupPrompt";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import type { Meal, Settings } from "@shared/schema";
 import { MEAL_TYPES } from "@shared/schema";
 import type { Activity as ActivityType } from "@shared/schema";
@@ -73,6 +75,7 @@ export default function Dashboard() {
   const [pendingDeleteActivity, setPendingDeleteActivity] = useState<string | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const { t, lang } = useLanguage();
+  const { toast } = useToast();
 
   const { data: settings, isLoading: sLoading } = useQuery<Settings>({ queryKey: ["/api/settings"] });
   const { data: meals = [], isLoading: mLoading } = useQuery<Meal[]>({ queryKey: ["/api/meals"] });
@@ -558,7 +561,34 @@ export default function Dashboard() {
                             <button
                               type="button"
                               data-testid={`button-delete-activity-${a.id}`}
-                              onClick={() => setPendingDeleteActivity(a.id)}
+                              onClick={() => {
+                                const snapshot = { ...a };
+                                deleteActivity.mutate(a.id);
+                                toast({
+                                  title: lang === "ru" ? `Активность удалена` : "Activity removed",
+                                  description: `${snapshot.name} · −${snapshot.caloriesBurned} kcal`,
+                                  duration: 5000,
+                                  action: (
+                                    <ToastAction
+                                      altText={t("undoLabel")}
+                                      onClick={async () => {
+                                        try {
+                                          await apiRequest("POST", "/api/activities", {
+                                            date: snapshot.date,
+                                            name: snapshot.name,
+                                            durationMinutes: snapshot.durationMinutes,
+                                            caloriesBurned: snapshot.caloriesBurned,
+                                            activityType: snapshot.activityType,
+                                          });
+                                          queryClient.invalidateQueries({ queryKey: ["/api/activities", selectedDate] });
+                                        } catch { /* silent */ }
+                                      }}
+                                    >
+                                      {t("undoLabel")}
+                                    </ToastAction>
+                                  ),
+                                });
+                              }}
                               className="h-11 w-11 flex items-center justify-center text-[#6B6560] hover:text-[#9B4A2E] transition-colors"
                               aria-label="Delete activity"
                             >

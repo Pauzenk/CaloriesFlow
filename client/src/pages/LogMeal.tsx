@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   Send, Bot, User as UserIcon, ArrowRight, Activity as ActivityIcon,
-  ArrowLeft, Camera, X, ChevronDown, Check, Trash2,
+  ArrowLeft, Camera, ImageIcon, X, ChevronDown, Check, Trash2,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -123,6 +123,7 @@ function InlineChat({
   const [showMealTypeFor, setShowMealTypeFor] = useState<number | null>(null);
   const [clearChatOpen, setClearChatOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -282,6 +283,7 @@ function InlineChat({
     setInput("");
     setPendingPhoto(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
     chat.mutate({ history, userText: text, photo: photoFile });
   }
 
@@ -308,7 +310,8 @@ function InlineChat({
   async function handleLogActivity(msgId: number, est: ActivityEstimate) {
     setLoggingId(msgId);
     try {
-      await logActivity.mutateAsync(est);
+      const created = await logActivity.mutateAsync(est);
+      const activityId = created?.id as string | undefined;
       setMessages((prev) =>
         prev.map((m) => m.id === msgId ? { ...m, confirmed: true } : m)
       );
@@ -317,7 +320,23 @@ function InlineChat({
         text: `${t("activityLogged")} — ${est.name} (−${est.caloriesBurned} kcal)`,
         confirmed: true,
       }]);
-      toast({ title: `−${est.caloriesBurned} kcal · ${est.name}` });
+      toast({
+        title: `−${est.caloriesBurned} kcal · ${est.name}`,
+        duration: 5000,
+        action: activityId ? (
+          <ToastAction
+            altText={t("undoLabel")}
+            onClick={async () => {
+              try {
+                await apiRequest("DELETE", `/api/activities/${activityId}`);
+                queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+              } catch { /* silent */ }
+            }}
+          >
+            {t("undoLabel")}
+          </ToastAction>
+        ) : undefined,
+      });
     } catch {
       toast({ title: lang === "ru" ? "Не удалось добавить активность" : "Failed to log activity", variant: "destructive" });
     } finally {
@@ -702,22 +721,39 @@ function InlineChat({
           />
           <div className="flex shrink-0 flex-col gap-1">
             {chatMode !== "activity" && (
-              <label
-                data-testid="button-chat-attach-photo"
-                className="flex h-8 w-8 cursor-pointer items-center justify-center border border-[#F2EDE7]/20 hover:border-[#F2EDE7]/50 hover:bg-[#F2EDE7]/5 transition-colors"
-                title="Attach photo"
-              >
-                <Camera className="h-3.5 w-3.5 text-[#F2EDE7] opacity-60" />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  capture="environment"
-                  className="sr-only"
-                  onChange={onFileChange}
-                  data-testid="input-chat-photo-file"
-                />
-              </label>
+              <>
+                <label
+                  data-testid="button-chat-camera"
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center border border-[#F2EDE7]/20 hover:border-[#F2EDE7]/50 hover:bg-[#F2EDE7]/5 transition-colors"
+                  title={lang === "ru" ? "Сделать фото" : "Take photo"}
+                >
+                  <Camera className="h-3.5 w-3.5 text-[#F2EDE7] opacity-60" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={onFileChange}
+                    data-testid="input-chat-photo-file"
+                  />
+                </label>
+                <label
+                  data-testid="button-chat-gallery"
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center border border-[#F2EDE7]/20 hover:border-[#F2EDE7]/50 hover:bg-[#F2EDE7]/5 transition-colors"
+                  title={lang === "ru" ? "Выбрать из галереи" : "Upload from gallery"}
+                >
+                  <ImageIcon className="h-3.5 w-3.5 text-[#F2EDE7] opacity-60" />
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="sr-only"
+                    onChange={onFileChange}
+                    data-testid="input-chat-gallery-file"
+                  />
+                </label>
+              </>
             )}
             {messages.length > 0 && (
               <button

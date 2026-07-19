@@ -331,7 +331,6 @@ export default function SettingsPage() {
         {/* ── Page heading ── */}
         <div className="flex flex-col mb-8 gap-[0px]">
           <h2 className="text-[22px] font-bold text-[#1C1714] m-0">{lang === "ru" ? "Параметры" : "Parameters"}</h2>
-          <p className="text-[11px] text-[#6B6560]">{t("languageHint")}</p>
         </div>
 
         {/* ── Welcome banner for new users ── */}

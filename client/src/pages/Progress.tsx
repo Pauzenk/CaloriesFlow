@@ -27,7 +27,6 @@ import {
   dailyCaloriesSeries,
   daysSince,
   lastNDates,
-  sumMacros,
   todayStr,
   threeLineWeightSeries,
 } from "@/lib/calorieflow";

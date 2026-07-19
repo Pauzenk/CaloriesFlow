@@ -134,14 +134,8 @@ export default function ProgressPage() {
   const series = dailyCaloriesSeries(meals, dates, activities);
   const chartData = series.map((s) => ({ ...s, goal }));
 
-  const periodMeals = meals.filter((m) => dates.includes(m.date));
-  const periodTotals = sumMacros(periodMeals);
-  const periodBurned = activities.filter((a) => dates.includes(a.date)).reduce((s, a) => s + a.caloriesBurned, 0);
-  const netPeriodCalories = Math.max(0, periodTotals.calories - periodBurned);
-  const daysWithLogs = Math.max(1, dates.filter((d) => meals.some((m) => m.date === d)).length);
-  const avgPerDay = Math.round(netPeriodCalories / daysWithLogs);
-  const periodDeficit = goal * daysWithLogs - netPeriodCalories;
-  const estimatedKgLost = periodDeficit / 7700;
+  const loggedDates = dates.filter((d) => meals.some((m) => m.date === d));
+  const daysWithLogs = loggedDates.length;
 
   const canProject = !!(
     settings?.heightCm &&
@@ -204,6 +198,27 @@ export default function ProgressPage() {
     const multiplier = ACTIVITY_MULTIPLIERS[(settings.activityLevel ?? "sedentary") as keyof typeof ACTIVITY_MULTIPLIERS] ?? 1.2;
     return Math.round(computeTDEE(bmr, multiplier));
   }, [settings, lastLoggedKg, currentRealKg]);
+
+  // ── Goal vs Actual stats: always compare intake to maintenance, never to goal
+  const statsAvgIntake = daysWithLogs > 0
+    ? Math.round(meals.filter((m) => loggedDates.includes(m.date)).reduce((s, m) => s + m.calories, 0) / daysWithLogs)
+    : null;
+
+  const statsAvgMaintenance: number | null = daysWithLogs > 0 && estimatedTDEE
+    ? Math.round(
+        loggedDates.reduce((s, d) => {
+          const dayBurns = activities.filter((a) => a.date === d).reduce((sb, a) => sb + a.caloriesBurned, 0);
+          return s + estimatedTDEE + dayBurns;
+        }, 0) / daysWithLogs
+      )
+    : null;
+
+  // negative = deficit (ate less than maintenance), positive = surplus
+  const statsDailyGap = statsAvgIntake !== null && statsAvgMaintenance !== null
+    ? statsAvgIntake - statsAvgMaintenance
+    : null;
+
+  const statsEstKg = statsDailyGap !== null ? (statsDailyGap * daysWithLogs) / 7700 : null;
 
   const weightProgressPct = useMemo(() => {
     if (!settings?.startingWeightKg || !settings?.goalWeightKg || displayWeight === null) return 0;
@@ -643,38 +658,65 @@ export default function ProgressPage() {
 
           <div className="mt-5 border border-[#1C1714]">
             <div className="grid grid-cols-3 divide-x divide-[#1C1714]/10">
-              <div className="px-3 py-4 text-center">
-                <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">{t("calorieDeficit")}</p>
-                <p
-                  className={`text-base tabular-nums font-medium ${periodDeficit < 0 ? "text-red-600" : ""}`}
-                  data-testid="text-period-deficit"
-                >
-                  {Math.abs(periodDeficit).toLocaleString()}
-                </p>
-                <p className={`text-xs mt-0.5 ${periodDeficit < 0 ? "text-red-500" : "text-[#6B6560]"}`}>
-                  {periodDeficit >= 0 ? t("deficitLabel") : t("surplusLabel")}
-                </p>
-              </div>
+
+              {/* Col 1 — Avg intake */}
               <div className="px-3 py-4 text-center">
                 <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">{t("avgPerDay")}</p>
                 <p className="text-base tabular-nums font-medium" data-testid="text-period-avg">
-                  {avgPerDay.toLocaleString()}
+                  {statsAvgIntake !== null ? statsAvgIntake.toLocaleString() : "—"}
                 </p>
-                <p className="text-xs text-[#6B6560] mt-0.5">kcal</p>
+                <p className="text-xs text-[#6B6560] mt-0.5">
+                  {lang === "ru" ? "ккал съедено" : "kcal eaten"}
+                </p>
               </div>
+
+              {/* Col 2 — Daily gap vs maintenance */}
+              <div className="px-3 py-4 text-center">
+                <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">{t("avgPerDay")}</p>
+                <p
+                  className="text-base tabular-nums font-medium"
+                  style={{ color: statsDailyGap !== null && statsDailyGap < 0 ? "#9e4515" : undefined }}
+                  data-testid="text-period-deficit"
+                >
+                  {statsDailyGap !== null
+                    ? (statsDailyGap >= 0 ? "+" : "") + Math.round(statsDailyGap).toLocaleString()
+                    : "—"}
+                </p>
+                <p
+                  className="text-xs mt-0.5"
+                  style={{ color: statsDailyGap !== null && statsDailyGap < 0 ? "#9e4515" : "#6B6560" }}
+                >
+                  {statsDailyGap === null
+                    ? "kcal"
+                    : statsDailyGap < 0
+                    ? (lang === "ru" ? "ккал дефицит" : "kcal deficit")
+                    : (lang === "ru" ? "ккал профицит" : "kcal surplus")}
+                </p>
+              </div>
+
+              {/* Col 3 — Estimated weight change */}
               <div className="px-3 py-4 text-center">
                 <p className="text-xs uppercase tracking-widest text-[#6B6560] mb-1">
-                  {goalMode === "weight_gain" ? t("estGained") : goalMode === "maintenance" ? t("estStable") : t("estLost")}
+                  {lang === "ru" ? "Расч. изменение" : "Est. Change"}
                 </p>
-                <p className="text-base tabular-nums font-medium" data-testid="text-period-kg-lost">
-                  {goalMode === "maintenance"
-                    ? `±${Math.abs(estimatedKgLost).toFixed(2)}`
-                    : estimatedKgLost >= 0
-                    ? estimatedKgLost.toFixed(2)
-                    : `+${Math.abs(estimatedKgLost).toFixed(2)}`}
+                <p
+                  className="text-base tabular-nums font-medium"
+                  style={{ color: statsEstKg !== null && statsEstKg < 0 ? "#9e4515" : undefined }}
+                  data-testid="text-period-kg-lost"
+                >
+                  {statsEstKg !== null
+                    ? (statsEstKg >= 0 ? "+" : "") + statsEstKg.toFixed(2)
+                    : "—"}
                 </p>
-                <p className="text-xs text-[#6B6560] mt-0.5">kg</p>
+                <p className="text-xs text-[#6B6560] mt-0.5">
+                  {period === "day"
+                    ? (lang === "ru" ? "кг сегодня" : "kg today")
+                    : period === "week"
+                    ? (lang === "ru" ? "кг за неделю" : "kg this week")
+                    : (lang === "ru" ? "кг за месяц" : "kg this month")}
+                </p>
               </div>
+
             </div>
           </div>
         </div>

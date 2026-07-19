@@ -159,6 +159,27 @@ export default function ProgressPage() {
     [settings, meals, activities, weights, goalMode, lang, canProject],
   );
 
+  const useMonthlyTicks = tickDates.length > 13;
+  const displayTicks = useMemo(() => {
+    if (!useMonthlyTicks) return tickDates;
+    return tickDates.filter((date, idx) => {
+      if (idx === 0) return true;
+      const prev = new Date(tickDates[idx - 1] + "T00:00:00");
+      const curr = new Date(date + "T00:00:00");
+      return curr.getMonth() !== prev.getMonth();
+    });
+  }, [tickDates, useMonthlyTicks]);
+
+  const projectionTickLabel = (date: string) => {
+    if (!date) return "";
+    if (useMonthlyTicks) {
+      return new Date(date + "T00:00:00").toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short" });
+    }
+    const idx = tickDates.indexOf(date);
+    if (idx === 0) return lang === "ru" ? "Нач" : "Start";
+    return `W${idx}`;
+  };
+
   const currentEstimatedWeight = currentRealKg ?? null;
 
   const mostRecentActualWeight = useMemo(() => {
@@ -406,17 +427,13 @@ export default function ProgressPage() {
                       <XAxis
                         dataKey="date"
                         type="category"
-                        ticks={tickDates}
+                        ticks={displayTicks}
                         tickLine={false}
                         axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                         tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
-                        tickFormatter={(date: string) => {
-                          if (!date) return "";
-                          const d = new Date(date + "T00:00:00");
-                          return d.toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", { month: "short", day: "numeric" });
-                        }}
+                        tickFormatter={projectionTickLabel}
                         interval={0}
-                        minTickGap={36}
+                        minTickGap={28}
                       />
                       <YAxis
                         tickLine={false}

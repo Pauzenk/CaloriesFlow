@@ -152,13 +152,21 @@ export default function ProgressPage() {
     [settings, meals, activities, weights, goalMode, lang, canProject],
   );
 
-  const displayTicks = tickDates;
+  // Numeric tick positions (day indices 0, 7, 14, …) for the numeric X axis
+  const tickDayIndices = useMemo(() => tickDates.map((_, idx) => idx * 7), [tickDates]);
 
-  const projectionTickLabel = (date: string) => {
-    if (!date) return "";
-    const idx = tickDates.indexOf(date);
-    if (idx === 0) return lang === "ru" ? "Нач" : "Start";
-    return `W${idx}`;
+  // Where today sits on the numeric axis (days since journey start)
+  const todayDayIdx = useMemo(() => {
+    if (!settings?.journeyStartDate || !todayDate) return null;
+    const startMs = new Date(settings.journeyStartDate + "T00:00:00").getTime();
+    const todayMs  = new Date(todayDate + "T00:00:00").getTime();
+    return Math.max(0, Math.floor((todayMs - startMs) / 86400000));
+  }, [settings?.journeyStartDate, todayDate]);
+
+  const projectionTickLabel = (dayIdx: number) => {
+    const week = dayIdx / 7;
+    if (week === 0) return lang === "ru" ? "Нач" : "Start";
+    return `W${week}`;
   };
 
   const currentEstimatedWeight = currentRealKg ?? null;
@@ -427,9 +435,10 @@ export default function ProgressPage() {
                     >
                       <CartesianGrid strokeDasharray="none" vertical={false} stroke="#1C1714" strokeOpacity={0.06} />
                       <XAxis
-                        dataKey="date"
-                        type="category"
-                        ticks={displayTicks}
+                        dataKey="dayIdx"
+                        type="number"
+                        domain={[0, "dataMax"]}
+                        ticks={tickDayIndices}
                         tickLine={false}
                         axisLine={{ stroke: "#1C1714", strokeOpacity: 0.2 }}
                         tick={{ fill: "#1C1714", fontSize: 9, opacity: 0.5, fontFamily: "'Space Mono'" }}
@@ -474,9 +483,9 @@ export default function ProgressPage() {
                       )}
 
                       {/* Today vertical marker */}
-                      {todayDate && (
+                      {todayDayIdx !== null && (
                         <ReferenceLine
-                          x={todayDate}
+                          x={todayDayIdx}
                           stroke="#1C1714"
                           strokeOpacity={0.35}
                           strokeWidth={1}

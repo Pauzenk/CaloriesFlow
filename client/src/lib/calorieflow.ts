@@ -176,7 +176,7 @@ export function threeLineWeightSeries(
   todayDate: string;
   tickDates: string[];
 } {
-  const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate, dailyCalorieGoal } =
+  const { heightCm, ageYears, sexAtBirth, goalWeightKg, startingWeightKg, journeyStartDate } =
     settings;
   const effectiveMode = goalMode ?? settings.goalMode ?? "weight_loss";
   const needsGoalWeight = effectiveMode !== "maintenance";
@@ -201,53 +201,55 @@ export function threeLineWeightSeries(
 
   const startMs = new Date(journeyStartDate + "T00:00:00").getTime();
   const todayMs = new Date(today + "T00:00:00").getTime();
-  const isLosing = goalWeightKg ? goalWeightKg < startingWeightKg : false;
 
-  let plannedWeight = startingWeightKg;
+  // Plan end date: derived from goalDurationMonths (the user-configured plan length)
+  const goalDurationMonths = settings.goalDurationMonths ?? 12;
+  const planEndDate = new Date(journeyStartDate + "T00:00:00");
+  planEndDate.setMonth(planEndDate.getMonth() + goalDurationMonths);
+  const planEndMs = planEndDate.getTime();
+  const totalPlanDays = Math.max(1, Math.floor((planEndMs - startMs) / 86400000));
+  const planEndDateStr = localDateStr(planEndDate);
+
   let realWeight = loggedWtMap.get(journeyStartDate) ?? startingWeightKg;
   let lastRealKg: number | undefined;
   let lastLoggedKg: number | undefined;
-  let projectedGoalDate: string | null = null;
 
   const points: ThreeLinePoint[] = [];
   const tickDates: string[] = [];
 
-  for (let i = 0; i <= 730; i++) {
+  // Chart runs from journey start to plan end + 2-week buffer (capped at 2 years)
+  const loopMax = Math.min(totalPlanDays + 14, 730);
+
+  for (let i = 0; i <= loopMax; i++) {
     const dMs = startMs + i * 86400000;
     const dateStr = localDateStr(new Date(dMs));
     const isPast = dMs <= todayMs;
-    const daysAhead = Math.floor((dMs - todayMs) / 86400000);
     const isWeeklyMilestone = i % 7 === 0;
 
-    if (daysAhead > 365) break;
-
-    if (i > 0) {
-      // PLANNED: recompute BMR from current planned weight each day
-      const maintPlanned = computeBMR(plannedWeight, heightCm, ageYears, sexAtBirth) * multiplier;
-      const deficitPlanned = effectiveMode === "maintenance" ? 0 : maintPlanned - (dailyCalorieGoal ?? maintPlanned);
-      plannedWeight -= deficitPlanned / 7700;
-
-      if (isPast) {
-        // REAL ESTIMATE: calorie-deficit model from logged intake
-        const eaten = mealCal.get(dateStr);
-        const burned = actCal.get(dateStr) ?? 0;
-        if (eaten !== undefined) {
-          const maintReal = computeBMR(realWeight, heightCm, ageYears, sexAtBirth) * multiplier;
-          const deficitReal = maintReal - (eaten - burned);
-          realWeight -= deficitReal / 7700;
-        }
-        // RE-ANCHOR: snap to logged weight when available
-        const logged = loggedWtMap.get(dateStr);
-        if (logged !== undefined) {
-          realWeight = logged;
-          lastLoggedKg = logged;
-        }
-      }
+    // PLANNED: straight diagonal — linear interpolation from start weight to goal weight
+    // over the configured plan duration. Clamp at goalWeightKg once the plan ends.
+    let plannedWeight: number;
+    if (effectiveMode === "maintenance" || !goalWeightKg) {
+      plannedWeight = startingWeightKg;
+    } else {
+      const t = Math.min(1, i / totalPlanDays);
+      plannedWeight = startingWeightKg + (goalWeightKg - startingWeightKg) * t;
     }
 
-    if (!projectedGoalDate && goalWeightKg) {
-      if ((isLosing && plannedWeight <= goalWeightKg) || (!isLosing && plannedWeight >= goalWeightKg)) {
-        projectedGoalDate = dateStr;
+    if (i > 0 && isPast) {
+      // REAL ESTIMATE: calorie-deficit model from logged intake
+      const eaten = mealCal.get(dateStr);
+      const burned = actCal.get(dateStr) ?? 0;
+      if (eaten !== undefined) {
+        const maintReal = computeBMR(realWeight, heightCm, ageYears, sexAtBirth) * multiplier;
+        const deficitReal = maintReal - (eaten - burned);
+        realWeight -= deficitReal / 7700;
+      }
+      // RE-ANCHOR: snap to logged weight when available
+      const logged = loggedWtMap.get(dateStr);
+      if (logged !== undefined) {
+        realWeight = logged;
+        lastLoggedKg = logged;
       }
     }
 
@@ -269,11 +271,9 @@ export function threeLineWeightSeries(
 
     // Collect sparse tick labels: weekly boundaries
     if (isWeeklyMilestone) tickDates.push(dateStr);
-
-    if (projectedGoalDate && daysAhead > 56) break;
   }
 
-  return { points, projectedGoalDate, currentRealKg: lastRealKg, lastLoggedKg, todayDate: today, tickDates };
+  return { points, projectedGoalDate: planEndDateStr, currentRealKg: lastRealKg, lastLoggedKg, todayDate: today, tickDates };
 }
 
 // ─── Iterative goal-days calculator ────────────────────────────────────────────

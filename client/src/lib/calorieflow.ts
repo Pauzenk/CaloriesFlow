@@ -255,10 +255,10 @@ export function threeLineWeightSeries(
 
     if (isPast) lastRealKg = +realWeight.toFixed(1);
 
-    // Emit a data point:
-    //   Past  → every day (daily resolution for WEIGHT line accuracy)
-    //   Future → weekly milestones only (keeps point count manageable for PLAN line)
-    if (isPast || isWeeklyMilestone) {
+    // Emit a data point only at weekly boundaries (every 7 days).
+    // Daily loop is still needed for calorie-deficit computation accuracy,
+    // but emitting daily past points caused unequal X-axis spacing.
+    if (isWeeklyMilestone) {
       points.push({
         date: dateStr,
         dayIdx: i,

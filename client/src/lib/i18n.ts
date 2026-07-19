@@ -234,7 +234,7 @@ export const translations = {
     restartConfirmDesc: "This will permanently delete all your meals, weight logs, and activities, and reset your settings. This cannot be undone.",
     restartConfirmBtn: "Yes, delete everything",
     restartSuccess: "All data cleared. You can set up your profile again.",
-    plannedLine: "Planned",
+    plannedLine: "Plan",
     realLine: "Real estimate",
     loggedLine: "Logged",
     weightDateLabel: "Date",

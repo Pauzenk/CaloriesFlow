@@ -255,10 +255,10 @@ export function threeLineWeightSeries(
 
     if (isPast) lastRealKg = +realWeight.toFixed(1);
 
-    // Emit a data point only at weekly boundaries (every 7 days).
-    // Daily loop is still needed for calorie-deficit computation accuracy,
-    // but emitting daily past points caused unequal X-axis spacing.
-    if (isWeeklyMilestone) {
+    // Emit a data point at weekly boundaries OR exactly on today.
+    // "Today" must always be in the series so the category-axis ReferenceLine renders.
+    const isToday = dateStr === today;
+    if (isWeeklyMilestone || isToday) {
       points.push({
         date: dateStr,
         dayIdx: i,

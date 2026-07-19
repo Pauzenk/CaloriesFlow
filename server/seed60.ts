@@ -1,8 +1,8 @@
 /**
  * 60-day mock seed for zubareva.gbhg@gmail.com
- * - Sets realistic parameters (height, age, sex, goal weight, activity level)
- * - Inserts 60 days of meals, ~2-3 workouts/week, weekly weight logs
- * - Idempotent: clears the 60-day window before inserting
+ * Profile: male, 40 y/o, 178 cm, 95 kg → goal 76 kg (10-month plan)
+ * BMI: 30.0 (obese) → 24.0 (normal range)
+ * TDEE ~2250 kcal (sedentary), goal 1750 kcal/day (~500 deficit)
  */
 import { db } from "./db";
 import { users, settings, meals, activities, weights } from "../shared/schema";
@@ -31,10 +31,10 @@ async function seed() {
   const uid = user.id;
   console.log(`  user_id: ${uid}`);
 
-  // ── 1. Upsert realistic settings/parameters ────────────────────────────────
-  const startKg = 68;
-  const goalKg = 60;
-  const calGoal = 1400;
+  // ── 1. Upsert settings ─────────────────────────────────────────────────────
+  const startKg = 95;
+  const goalKg = 76;
+  const calGoal = 1750;
   const journeyStart = daysAgo(59);
 
   await db
@@ -45,12 +45,12 @@ async function seed() {
       startingWeightKg: startKg,
       currentWeightKg: startKg,
       goalWeightKg: goalKg,
-      heightCm: 166,
-      ageYears: 29,
-      sexAtBirth: "female",
-      activityLevel: "light",
+      heightCm: 178,
+      ageYears: 40,
+      sexAtBirth: "male",
+      activityLevel: "sedentary",
       journeyStartDate: journeyStart,
-      goalDurationMonths: 5,
+      goalDurationMonths: 10,
       goalMode: "weight_loss",
       workoutCountingMode: "include_in_activity_level",
     })
@@ -61,17 +61,17 @@ async function seed() {
         startingWeightKg: startKg,
         currentWeightKg: startKg,
         goalWeightKg: goalKg,
-        heightCm: 166,
-        ageYears: 29,
-        sexAtBirth: "female",
-        activityLevel: "light",
+        heightCm: 178,
+        ageYears: 40,
+        sexAtBirth: "male",
+        activityLevel: "sedentary",
         journeyStartDate: journeyStart,
-        goalDurationMonths: 5,
+        goalDurationMonths: 10,
         goalMode: "weight_loss",
         workoutCountingMode: "include_in_activity_level",
       },
     });
-  console.log("  Settings upserted");
+  console.log("  Parameters set: male, 40 y/o, 178 cm, 95 → 76 kg, 10-month plan, 1750 kcal/day");
 
   // ── 2. Clear 60-day window ─────────────────────────────────────────────────
   const windowStart = daysAgo(59);
@@ -82,43 +82,43 @@ async function seed() {
   ]);
   console.log(`  Cleared: ${deleted[0].length} meals, ${deleted[1].length} activities, ${deleted[2].length} weights`);
 
-  // ── 3. Meals — 60 days ─────────────────────────────────────────────────────
+  // ── 3. Meals — 60 days — higher-calorie male portions ─────────────────────
   const mealTemplates = {
     breakfast: [
-      { name: "Oatmeal with berries and honey", p: 8, c: 40, f: 5 },
-      { name: "Greek yogurt parfait with granola", p: 12, c: 35, f: 6 },
-      { name: "Scrambled eggs on whole-grain toast", p: 15, c: 28, f: 10 },
-      { name: "Banana smoothie with spinach", p: 7, c: 42, f: 4 },
-      { name: "Avocado toast with poached egg", p: 13, c: 30, f: 14 },
-      { name: "Cottage cheese with fruit", p: 14, c: 20, f: 4 },
-      { name: "Whole-grain cereal with milk", p: 8, c: 45, f: 3 },
+      { name: "Oatmeal with banana and protein powder", p: 28, c: 55, f: 8 },
+      { name: "Eggs Benedict on whole-grain toast", p: 24, c: 36, f: 16 },
+      { name: "Scrambled eggs (3) with smoked salmon", p: 30, c: 12, f: 18 },
+      { name: "Greek yogurt with granola and berries", p: 20, c: 48, f: 8 },
+      { name: "Whole-grain pancakes with cottage cheese", p: 22, c: 52, f: 9 },
+      { name: "High-protein smoothie (whey, oat, banana)", p: 35, c: 60, f: 7 },
+      { name: "Avocado toast with 2 poached eggs", p: 22, c: 38, f: 20 },
     ],
     lunch: [
-      { name: "Grilled chicken salad with olive oil dressing", p: 35, c: 18, f: 12 },
-      { name: "Lentil soup with whole-grain bread", p: 18, c: 45, f: 5 },
-      { name: "Tuna wrap with hummus and veggies", p: 28, c: 40, f: 10 },
-      { name: "Brown rice bowl with roasted vegetables", p: 10, c: 55, f: 7 },
-      { name: "Greek salad with feta and pita", p: 14, c: 38, f: 16 },
-      { name: "Turkey and avocado sandwich", p: 30, c: 42, f: 14 },
-      { name: "Quinoa salad with chickpeas", p: 16, c: 48, f: 8 },
+      { name: "Grilled chicken breast with brown rice and salad", p: 52, c: 65, f: 12 },
+      { name: "Beef and vegetable stir-fry with noodles", p: 44, c: 70, f: 14 },
+      { name: "Turkey and avocado wrap (large)", p: 40, c: 56, f: 18 },
+      { name: "Tuna pasta salad with olive oil", p: 45, c: 68, f: 14 },
+      { name: "Lentil and chicken soup with bread", p: 38, c: 72, f: 8 },
+      { name: "Grilled salmon with quinoa and greens", p: 48, c: 58, f: 16 },
+      { name: "Baked cod with sweet potato and broccoli", p: 42, c: 62, f: 10 },
     ],
     dinner: [
-      { name: "Baked salmon with broccoli and quinoa", p: 38, c: 30, f: 14 },
-      { name: "Grilled turkey breast with sweet potato", p: 42, c: 35, f: 8 },
-      { name: "Stir-fried tofu with bok choy and rice", p: 20, c: 45, f: 10 },
-      { name: "Chicken stew with vegetables", p: 30, c: 25, f: 6 },
-      { name: "Baked cod with asparagus and lentils", p: 36, c: 28, f: 9 },
-      { name: "Vegetable curry with brown rice", p: 14, c: 52, f: 8 },
-      { name: "Grilled chicken with roasted peppers", p: 40, c: 22, f: 10 },
+      { name: "Grilled steak (200 g) with roasted vegetables", p: 58, c: 32, f: 22 },
+      { name: "Baked chicken thighs with potato and salad", p: 54, c: 55, f: 18 },
+      { name: "Salmon fillet with asparagus and brown rice", p: 52, c: 48, f: 20 },
+      { name: "Turkey meatballs with whole-grain pasta", p: 50, c: 65, f: 14 },
+      { name: "Grilled pork tenderloin with roasted peppers", p: 55, c: 28, f: 16 },
+      { name: "Chicken and vegetable curry with rice", p: 46, c: 70, f: 12 },
+      { name: "Beef burger (no bun) with salad and sweet potato", p: 48, c: 42, f: 22 },
     ],
     snack: [
-      { name: "Apple with almond butter", p: 3, c: 20, f: 7 },
-      { name: "Mixed nuts (30 g)", p: 5, c: 8, f: 15 },
-      { name: "Greek yogurt (150 g)", p: 10, c: 8, f: 3 },
-      { name: "Dark chocolate + herbal tea", p: 2, c: 14, f: 6 },
-      { name: "Rice cake with cottage cheese", p: 8, c: 15, f: 2 },
-      { name: "Banana", p: 1, c: 27, f: 0 },
-      { name: "Handful of walnuts", p: 4, c: 4, f: 18 },
+      { name: "Protein bar (20 g protein)", p: 20, c: 28, f: 8 },
+      { name: "Mixed nuts and dried fruit (40 g)", p: 7, c: 18, f: 20 },
+      { name: "Cottage cheese (200 g) with cucumber", p: 22, c: 8, f: 4 },
+      { name: "Hard-boiled eggs (2)", p: 13, c: 1, f: 10 },
+      { name: "Apple and peanut butter (2 tbsp)", p: 7, c: 30, f: 16 },
+      { name: "Low-fat Greek yogurt with honey", p: 14, c: 22, f: 3 },
+      { name: "Whole-grain crackers with hummus", p: 8, c: 28, f: 10 },
     ],
   };
 
@@ -137,8 +137,9 @@ async function seed() {
     const date = daysAgo(59 - i);
     const r = Math.random();
     let total: number;
-    if (r < 0.06) total = rand(Math.round(calGoal * 0.72), Math.round(calGoal * 0.82));
-    else if (r < 0.18) total = rand(Math.round(calGoal * 1.25), Math.round(calGoal * 1.55));
+    // Mix: ~75% on-plan, ~13% over, ~7% under, ~5% skip snack
+    if (r < 0.07) total = rand(Math.round(calGoal * 0.70), Math.round(calGoal * 0.82));
+    else if (r < 0.20) total = rand(Math.round(calGoal * 1.20), Math.round(calGoal * 1.45));
     else total = rand(Math.round(calGoal * 0.88), Math.round(calGoal * 1.10));
 
     const bf = mealTemplates.breakfast[i % mealTemplates.breakfast.length];
@@ -146,15 +147,15 @@ async function seed() {
     const di = mealTemplates.dinner[i % mealTemplates.dinner.length];
     const sn = mealTemplates.snack[i % mealTemplates.snack.length];
 
-    const bfKcal = Math.round(total * 0.22);
-    const luKcal = Math.round(total * 0.32);
-    const diKcal = Math.round(total * 0.35);
+    const bfKcal = Math.round(total * 0.20);
+    const luKcal = Math.round(total * 0.33);
+    const diKcal = Math.round(total * 0.37);
     const snKcal = total - bfKcal - luKcal - diKcal;
 
     mealRows.push({ userId: uid, date, mealType: "breakfast", name: bf.name, calories: bfKcal, ...macrosFor(bfKcal, bf.p, bf.c, bf.f) });
     mealRows.push({ userId: uid, date, mealType: "lunch",     name: lu.name, calories: luKcal, ...macrosFor(luKcal, lu.p, lu.c, lu.f) });
     mealRows.push({ userId: uid, date, mealType: "dinner",    name: di.name, calories: diKcal, ...macrosFor(diKcal, di.p, di.c, di.f) });
-    if (snKcal > 50) {
+    if (snKcal > 60) {
       mealRows.push({ userId: uid, date, mealType: "snack", name: sn.name, calories: snKcal, ...macrosFor(snKcal, sn.p, sn.c, sn.f) });
     }
   }
@@ -162,41 +163,32 @@ async function seed() {
   await db.insert(meals).values(mealRows);
   console.log(`  Inserted ${mealRows.length} meal entries`);
 
-  // ── 4. Activities — ~2-3 per week across 60 days ───────────────────────────
+  // ── 4. Activities — ~2 per week (sedentary → gradually more active) ────────
   const workoutTemplates = [
-    { name: "Morning run — 5 km",           durationMinutes: 35, caloriesBurned: 300, activityType: "cardio"   as const },
-    { name: "Strength — upper body",         durationMinutes: 50, caloriesBurned: 260, activityType: "strength" as const },
-    { name: "Cycling — outdoor 12 km",       durationMinutes: 45, caloriesBurned: 340, activityType: "cardio"   as const },
-    { name: "Yoga & stretching",             durationMinutes: 40, caloriesBurned: 120, activityType: "other"    as const },
-    { name: "HIIT circuit (20 min)",          durationMinutes: 20, caloriesBurned: 230, activityType: "cardio"   as const },
-    { name: "Strength — legs & glutes",      durationMinutes: 55, caloriesBurned: 290, activityType: "strength" as const },
-    { name: "Swimming — 1 km",               durationMinutes: 30, caloriesBurned: 270, activityType: "cardio"   as const },
-    { name: "Pilates class",                 durationMinutes: 50, caloriesBurned: 190, activityType: "other"    as const },
-    { name: "Evening walk — 7 km",           durationMinutes: 65, caloriesBurned: 220, activityType: "cardio"   as const },
-    { name: "Jump rope + core",              durationMinutes: 25, caloriesBurned: 200, activityType: "cardio"   as const },
-    { name: "Full-body kettlebell circuit",  durationMinutes: 40, caloriesBurned: 330, activityType: "strength" as const },
-    { name: "Dance cardio class",            durationMinutes: 45, caloriesBurned: 310, activityType: "cardio"   as const },
-    { name: "Rowing machine — 20 min",       durationMinutes: 20, caloriesBurned: 240, activityType: "cardio"   as const },
-    { name: "Morning jog — 4 km",            durationMinutes: 28, caloriesBurned: 250, activityType: "cardio"   as const },
-    { name: "Barre class",                   durationMinutes: 55, caloriesBurned: 210, activityType: "other"    as const },
-    { name: "Strength — full body",          durationMinutes: 50, caloriesBurned: 280, activityType: "strength" as const },
-    { name: "Spin class — 45 min",           durationMinutes: 45, caloriesBurned: 380, activityType: "cardio"   as const },
-    { name: "Stretch & foam roll",           durationMinutes: 30, caloriesBurned: 80,  activityType: "other"    as const },
-    { name: "Trail walk — 6 km",             durationMinutes: 75, caloriesBurned: 230, activityType: "cardio"   as const },
-    { name: "Core & abs circuit",            durationMinutes: 25, caloriesBurned: 150, activityType: "strength" as const },
-    { name: "Outdoor run — 6 km",            durationMinutes: 40, caloriesBurned: 350, activityType: "cardio"   as const },
-    { name: "Boxing class",                  durationMinutes: 45, caloriesBurned: 360, activityType: "cardio"   as const },
-    { name: "Yoga flow — 60 min",            durationMinutes: 60, caloriesBurned: 160, activityType: "other"    as const },
-    { name: "Deadlifts & squats",            durationMinutes: 50, caloriesBurned: 300, activityType: "strength" as const },
-    { name: "Power walk — 5 km",             durationMinutes: 55, caloriesBurned: 200, activityType: "cardio"   as const },
-    { name: "Cycling — 10 km",               durationMinutes: 35, caloriesBurned: 280, activityType: "cardio"   as const },
+    { name: "Brisk walk — 5 km",              durationMinutes: 55, caloriesBurned: 280, activityType: "cardio"   as const },
+    { name: "Strength — upper body",           durationMinutes: 50, caloriesBurned: 310, activityType: "strength" as const },
+    { name: "Treadmill walk/jog — 30 min",    durationMinutes: 30, caloriesBurned: 270, activityType: "cardio"   as const },
+    { name: "Strength — lower body",           durationMinutes: 50, caloriesBurned: 330, activityType: "strength" as const },
+    { name: "Cycling — stationary 30 min",    durationMinutes: 30, caloriesBurned: 300, activityType: "cardio"   as const },
+    { name: "Full-body circuit training",      durationMinutes: 45, caloriesBurned: 380, activityType: "strength" as const },
+    { name: "Swimming — 800 m",               durationMinutes: 35, caloriesBurned: 340, activityType: "cardio"   as const },
+    { name: "Evening walk — 6 km",             durationMinutes: 65, caloriesBurned: 260, activityType: "cardio"   as const },
+    { name: "Dumbbell workout — full body",    durationMinutes: 45, caloriesBurned: 360, activityType: "strength" as const },
+    { name: "Rowing machine — 25 min",         durationMinutes: 25, caloriesBurned: 310, activityType: "cardio"   as const },
+    { name: "Bodyweight circuit",              durationMinutes: 35, caloriesBurned: 290, activityType: "strength" as const },
+    { name: "Outdoor jog — 4 km",             durationMinutes: 32, caloriesBurned: 350, activityType: "cardio"   as const },
+    { name: "Strength — chest & back",        durationMinutes: 50, caloriesBurned: 320, activityType: "strength" as const },
+    { name: "Power walk — 7 km",              durationMinutes: 75, caloriesBurned: 300, activityType: "cardio"   as const },
+    { name: "Elliptical — 30 min",            durationMinutes: 30, caloriesBurned: 320, activityType: "cardio"   as const },
+    { name: "Deadlifts & squats session",     durationMinutes: 55, caloriesBurned: 370, activityType: "strength" as const },
+    { name: "Stair climbing — 20 min",        durationMinutes: 20, caloriesBurned: 260, activityType: "cardio"   as const },
+    { name: "Core & mobility session",        durationMinutes: 30, caloriesBurned: 150, activityType: "other"    as const },
   ];
 
-  // ~2-3 workouts per week = ~17-20 over 60 days
+  // ~2 sessions/week over 60 days = ~17 sessions
   const workoutOffsets = [
-    59, 57, 54, 52, 50, 47, 45, 43, 40, 38,
-    36, 33, 31, 28, 26, 24, 21, 19, 17, 14,
-    12, 10, 7, 5, 3, 1,
+    58, 55, 51, 48, 44, 41, 37, 34, 30, 27,
+    23, 20, 16, 13, 9, 6, 2,
   ];
 
   const activityRows: typeof activities.$inferInsert[] = workoutOffsets.map((offset, idx) => ({
@@ -211,17 +203,18 @@ async function seed() {
   await db.insert(activities).values(activityRows);
   console.log(`  Inserted ${activityRows.length} activity entries`);
 
-  // ── 5. Weight logs — weekly, realistic downward trend 68 → ~65.2 kg ────────
+  // ── 5. Weight logs — ~weekly, 95 → ~90.6 kg over 60 days ─────────────────
+  // ~0.5 kg/week realistic loss for a 500 kcal deficit
   const weightEntries = [
-    { offset: 59, delta: 0.0 },
-    { offset: 52, delta: -0.4 },
-    { offset: 45, delta: -0.8 },
-    { offset: 38, delta: -1.2 },
-    { offset: 31, delta: -1.6 },
-    { offset: 24, delta: -2.0 },
-    { offset: 17, delta: -2.3 },
-    { offset: 10, delta: -2.6 },
-    { offset: 3,  delta: -2.8 },
+    { offset: 59, delta:  0.0  },
+    { offset: 52, delta: -0.5  },
+    { offset: 45, delta: -0.9  },
+    { offset: 38, delta: -1.5  },
+    { offset: 31, delta: -2.1  },
+    { offset: 24, delta: -2.6  },
+    { offset: 17, delta: -3.2  },
+    { offset: 10, delta: -3.8  },
+    { offset:  3, delta: -4.3  },
   ];
 
   const weightRows: typeof weights.$inferInsert[] = weightEntries.map(({ offset, delta }) => ({
@@ -233,12 +226,15 @@ async function seed() {
   await db.insert(weights).values(weightRows);
   console.log(`  Inserted ${weightRows.length} weight entries`);
 
-  console.log(`\n  ✓ 60-day seed complete for ${TARGET_EMAIL}`);
-  console.log(`  Date range:  ${daysAgo(59)} → ${daysAgo(0)}`);
-  console.log(`  Parameters:  29 y/o female, 166 cm, ${startKg} kg → goal ${goalKg} kg, 5-month plan`);
+  const finalKg = startKg + weightEntries[weightEntries.length - 1].delta;
+  console.log(`\n  ✓ Seed complete for ${TARGET_EMAIL}`);
+  console.log(`  Profile:     male, 40 y/o, 178 cm`);
+  console.log(`  BMI start:   ${(startKg / (1.78 * 1.78)).toFixed(1)} (obese) → goal BMI ${(goalKg / (1.78 * 1.78)).toFixed(1)} (normal)`);
+  console.log(`  Plan:        ${startKg} kg → ${goalKg} kg over 10 months, 1750 kcal/day`);
+  console.log(`  Progress:    ${startKg} → ${finalKg} kg in 60 days (~${(startKg - finalKg).toFixed(1)} kg lost)`);
   console.log(`  Meals:       ${mealRows.length} entries`);
   console.log(`  Activities:  ${activityRows.length} workouts`);
-  console.log(`  Weights:     ${weightRows.length} entries (${startKg} → ${startKg + weightEntries[weightEntries.length - 1].delta} kg)\n`);
+  console.log(`  Weights:     ${weightRows.length} entries\n`);
 
   process.exit(0);
 }

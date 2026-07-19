@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Mail, Check, Flame } from "lucide-react";
+import { ArrowLeft, Mail, Check, Leaf } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -164,7 +164,7 @@ export default function ForgotPasswordPage() {
 
             <div className="flex items-center gap-3 mb-6">
               <div className="flex h-9 w-9 items-center justify-center bg-[#3c3a40] text-white">
-                <Flame size={16} />
+                <Leaf size={16} />
               </div>
               <span className="text-[20px] font-bold tracking-tight text-[#1C1714]">CalorieFlow</span>
             </div>

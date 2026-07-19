@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Flame } from "lucide-react";
+import { Leaf } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -123,7 +123,7 @@ export default function AuthPage() {
       <div className="hidden md:flex flex-col justify-center gap-4 bg-[#302e35] px-14 py-16 text-white min-h-screen">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center bg-white/15">
-            <Flame className="h-5 w-5" />
+            <Leaf className="h-5 w-5" />
           </div>
           <span className="text-xl font-bold tracking-tight">CalorieFlow</span>
         </div>
@@ -153,7 +153,7 @@ export default function AuthPage() {
           {/* Mobile logo */}
           <div className="mb-6 flex items-center gap-3 md:hidden">
             <div className="flex h-9 w-9 items-center justify-center bg-[#3c3a40] text-white">
-              <Flame className="h-4 w-4" />
+              <Leaf className="h-4 w-4" />
             </div>
             <span className="text-xl font-bold text-[#1C1714]">CalorieFlow</span>
           </div>

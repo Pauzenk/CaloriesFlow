@@ -43,7 +43,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
         <aside className="hidden w-64 shrink-0 flex-col border-r border-[#1C1714]/10 bg-[#F2EDE7] md:flex">
           <div className="flex h-full flex-col px-4 py-6">
             <header className="ml-2 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#3c3a40] text-white">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#3c3a40] text-white" style={{ borderRadius: '50%' }}>
                 <Leaf className="h-4 w-4" />
               </div>
               <div className="flex flex-col">

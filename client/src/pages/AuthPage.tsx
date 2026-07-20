@@ -122,7 +122,7 @@ export default function AuthPage() {
       {/* Left brand panel — full height on desktop */}
       <div className="hidden md:flex flex-col justify-center gap-4 bg-[#302e35] px-14 py-16 text-white min-h-screen">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center bg-white/15">
+          <div className="flex h-10 w-10 items-center justify-center bg-white/15" style={{ borderRadius: '50%' }}>
             <Leaf className="h-5 w-5" />
           </div>
           <span className="text-xl font-bold tracking-tight">CalorieFlow</span>
@@ -152,7 +152,7 @@ export default function AuthPage() {
         <div className="w-full max-w-sm border border-[#D4CFC8] bg-white p-6 md:p-10">
           {/* Mobile logo */}
           <div className="mb-6 flex items-center gap-3 md:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3c3a40] text-white">
+            <div className="flex h-9 w-9 items-center justify-center bg-[#3c3a40] text-white" style={{ borderRadius: '50%' }}>
               <Leaf className="h-4 w-4" />
             </div>
             <span className="text-xl font-bold text-[#1C1714]">CalorieFlow</span>

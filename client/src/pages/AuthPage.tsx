@@ -152,7 +152,7 @@ export default function AuthPage() {
         <div className="w-full max-w-sm border border-[#D4CFC8] bg-white p-6 md:p-10">
           {/* Mobile logo */}
           <div className="mb-6 flex items-center gap-3 md:hidden">
-            <div className="flex h-9 w-9 items-center justify-center bg-[#3c3a40] text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3c3a40] text-white">
               <Leaf className="h-4 w-4" />
             </div>
             <span className="text-xl font-bold text-[#1C1714]">CalorieFlow</span>

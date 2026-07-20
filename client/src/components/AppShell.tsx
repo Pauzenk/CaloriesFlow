@@ -96,7 +96,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
           {/* Top header */}
           <header className="flex items-center justify-between border-b border-[#D4CFC8] bg-[#F2EDE7] px-4 py-4 md:px-10 md:py-5">
             <div className="flex items-center gap-2 md:hidden">
-              <div className="flex h-8 w-8 items-center justify-center bg-[#3c3a40] text-white">
+              <div className="flex h-8 w-8 items-center justify-center bg-[#3c3a40] text-white" style={{ borderRadius: '50%' }}>
                 <Leaf className="h-4 w-4" />
               </div>
               <span className="text-base font-bold text-[#1C1714]">CalorieFlow</span>

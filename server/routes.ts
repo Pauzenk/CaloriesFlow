@@ -542,9 +542,15 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
                   activityEstimate = v.data;
                   // Server-side correction: always recalculate caloriesBurned from the
                   // MET formula to prevent AI from using minutes instead of hours.
+                  // Also rewrite the explanation to show unambiguous hours notation.
                   if (activityEstimate.met && activityEstimate.met > 0 && userWeightKg > 0) {
-                    const correctCalories = Math.round(activityEstimate.met * userWeightKg * (activityEstimate.durationMinutes / 60));
-                    activityEstimate = { ...activityEstimate, caloriesBurned: correctCalories };
+                    const durationHours = activityEstimate.durationMinutes / 60;
+                    const correctCalories = Math.round(activityEstimate.met * userWeightKg * durationHours);
+                    const hoursDisplay = Number.isInteger(durationHours)
+                      ? `${durationHours} h`
+                      : `${durationHours.toFixed(2).replace(/0+$/, "")} h`;
+                    const correctedExplanation = `MET ${activityEstimate.met} × ${userWeightKg} kg × ${hoursDisplay} = ${correctCalories} kcal burned`;
+                    activityEstimate = { ...activityEstimate, caloriesBurned: correctCalories, explanation: correctedExplanation };
                   }
                 }
               }

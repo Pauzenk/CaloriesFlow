@@ -387,10 +387,12 @@ CALIBRATION REFERENCES:
 
 ━━━ ACTIVITY ESTIMATION RULES ━━━
 Use standard MET values to estimate calories burned. User body weight = ${userWeightKg} kg.
-Formula: calories = MET × ${userWeightKg} kg × (durationMinutes / 60)
+Formula: calories = MET × weight_kg × duration_hours   (IMPORTANT: duration in HOURS, not minutes — divide minutes by 60)
+Example: 60 min at MET 5.0 for ${userWeightKg} kg → 5.0 × ${userWeightKg} × (60/60) = ${Math.round(5.0 * userWeightKg * 1)} kcal
 Common MET values: walking (3.5), light cycling (6), running/jogging (8), HIIT/cardio (10), strength training (5), swimming (7), yoga (2.5).
 - activityType must be one of: "cardio", "strength", "other"
-- Include "met" (the MET value used) and "explanation" (1-sentence formula breakdown, e.g. "MET 8.0 × ${userWeightKg} kg × 30 min = 300 kcal") in activityEstimate.
+- Include "met" (the MET value used) and "explanation" (1-sentence formula breakdown, e.g. "MET 5.0 × ${userWeightKg} kg × 1.0 h = ${Math.round(5.0 * userWeightKg * 1)} kcal") in activityEstimate.
+- ALWAYS express duration as hours in the explanation (e.g. "0.5 h" for 30 min, "1.0 h" for 60 min).
 
 ━━━ RECIPE / MEAL PLAN RULES (TYPE D) ━━━
 When the user asks for meal ideas or a full-day plan:
@@ -404,7 +406,7 @@ When the user asks for meal ideas or a full-day plan:
 - Output ONLY the JSON block. No text before or after it. The card UI will display the result.
 - NEVER ask clarifying questions about portion size, ingredients, or meal details. If the portion is unspecified, use a realistic standard portion. If the food is ambiguous, pick the most common interpretation.
 - For food (TYPE A/C): include "explanation" in the estimate — a concise 1-2 sentence ingredient breakdown (e.g. "Oats 80g (300 kcal) + milk 200ml (95 kcal) + banana 100g (89 kcal) = 484 kcal total").
-- For activity (TYPE B): include "met" (MET value used) and "explanation" in activityEstimate — one sentence with the formula (e.g. "MET 8.0 × 75 kg × 30 min = 300 kcal burned").
+- For activity (TYPE B): include "met" (MET value used) and "explanation" in activityEstimate — one sentence with the formula (e.g. "MET 8.0 × 75 kg × 0.5 h = 300 kcal burned").
 - If the user says "add it", "log it", "log this", "yes", "save it", "add to lunch", or any short affirmative/action phrase referring to food or an activity you already estimated in this conversation: re-emit the same estimate in JSON so it can be added to the log. Re-read your previous message to reconstruct the numbers.
 - Numbers: calories = integer, proteins/carbs/fats = 1 decimal place, caloriesBurned = integer.
 - ALWAYS include "portionAssumption" in every food estimate — state the assumed portion and weight in grams (e.g., "1 medium banana, ~118 g" or "1 cup cooked oatmeal (~240 g) + 1 tbsp honey").
@@ -423,7 +425,7 @@ For single food:
 
 For activity only:
 \`\`\`json
-{"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other","met":<num>,"explanation":"<e.g. MET 8.0 × 75 kg × 30 min = 300 kcal burned>"}}
+{"activityEstimate":{"name":"<activity name>","durationMinutes":<int>,"caloriesBurned":<int>,"activityType":"cardio|strength|other","met":<num>,"explanation":"<e.g. MET 8.0 × 75 kg × 0.5 h = 300 kcal burned>"}}
 \`\`\`
 
 For both food and activity:
@@ -536,7 +538,15 @@ For recipe suggestions or meal plan (TYPE D) — ALWAYS use this format:
               }
               if ("activityEstimate" in p && typeof p.activityEstimate === "object" && p.activityEstimate !== null) {
                 const v = activityEstimateSchema.safeParse(p.activityEstimate);
-                if (v.success) activityEstimate = v.data;
+                if (v.success) {
+                  activityEstimate = v.data;
+                  // Server-side correction: always recalculate caloriesBurned from the
+                  // MET formula to prevent AI from using minutes instead of hours.
+                  if (activityEstimate.met && activityEstimate.met > 0 && userWeightKg > 0) {
+                    const correctCalories = Math.round(activityEstimate.met * userWeightKg * (activityEstimate.durationMinutes / 60));
+                    activityEstimate = { ...activityEstimate, caloriesBurned: correctCalories };
+                  }
+                }
               }
             }
           } catch {

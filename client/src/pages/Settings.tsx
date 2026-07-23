@@ -329,8 +329,9 @@ export default function SettingsPage() {
       <div className="w-full font-['Space_Mono'] text-[#1C1714] max-w-2xl">
 
         {/* ── Page heading ── */}
-        <div className="flex flex-col mb-8 gap-[0px]">
+        <div className="flex flex-col mb-8 gap-1">
           <h2 className="text-[22px] font-bold text-[#1C1714] m-0">{lang === "ru" ? "Параметры" : "Parameters"}</h2>
+          <p className="text-sm text-[#6B6560]">{lang === "ru" ? "Язык интерфейса для всего приложения" : "Interface language for the whole app"}</p>
         </div>
 
         {/* ── Welcome banner for new users ── */}

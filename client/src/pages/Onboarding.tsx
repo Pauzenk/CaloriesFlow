@@ -219,22 +219,41 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-[#F2EDE7] flex flex-col items-center justify-start px-4 py-10 font-['Space_Mono'] text-[#1C1714]">
       <div className="w-full max-w-sm">
 
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-10">
-          <div
-            className="h-9 w-9 flex-shrink-0 flex items-center justify-center"
-            style={{ borderRadius: "50%", background: "#1C1714" }}
-          >
-            <Leaf size={18} color="#F2EDE7" />
+        {/* ── Step 1: logo header ── */}
+        {step === 1 && (
+          <div className="flex items-center gap-3 mb-10">
+            <div
+              className="h-9 w-9 flex-shrink-0 flex items-center justify-center"
+              style={{ borderRadius: "50%", background: "#1C1714" }}
+            >
+              <Leaf size={18} color="#F2EDE7" />
+            </div>
+            <span className="text-sm font-bold tracking-widest uppercase">CalorieFlow</span>
           </div>
-          <span className="text-sm font-bold tracking-widest uppercase">CalorieFlow</span>
-        </div>
+        )}
+
+        {/* ── Steps 2-4: back + step counter row ── */}
+        {step > 1 && (
+          <div className="flex items-center justify-between mb-6">
+            <button
+              type="button"
+              onClick={handleBack}
+              data-testid={`button-onboard-back-${step}`}
+              className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#6B6560] hover:text-[#1C1714] transition-colors"
+            >
+              ← Back
+            </button>
+            <span className={LABEL_CLS}>Step {step} / {STEP_COUNT}</span>
+          </div>
+        )}
 
         {/* Progress bar */}
         <StepBar step={step} />
 
-        {/* Step label */}
-        <div className={LABEL_CLS + " mb-6"}>Step {step} / {STEP_COUNT}</div>
+        {/* Step 1 label */}
+        {step === 1 && (
+          <div className={LABEL_CLS + " mb-6"}>Step {step} / {STEP_COUNT}</div>
+        )}
 
         {/* ── Step 1: Goal ── */}
         {step === 1 && (
@@ -280,15 +299,7 @@ export default function OnboardingPage() {
         {/* ── Step 2: About you ── */}
         {step === 2 && (
           <div>
-            <button
-              type="button"
-              onClick={handleBack}
-              data-testid="button-onboard-back-2"
-              className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#6B6560] mb-6 hover:text-[#1C1714] transition-colors"
-            >
-              ← Back
-            </button>
-            <h1 className="text-2xl font-bold mb-2">Tell us about you</h1>
+            <h1 className="text-2xl font-bold mb-2 mt-6">Tell us about you</h1>
             <p className="text-sm text-[#6B6560] mb-8">
               Just the basics we need to calculate your target.
             </p>
@@ -348,15 +359,7 @@ export default function OnboardingPage() {
         {/* ── Step 3: Walking / daily movement ── */}
         {step === 3 && (
           <div>
-            <button
-              type="button"
-              onClick={handleBack}
-              data-testid="button-onboard-back-3"
-              className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#6B6560] mb-6 hover:text-[#1C1714] transition-colors"
-            >
-              ← Back
-            </button>
-            <h1 className="text-2xl font-bold mb-2">How much do you walk?</h1>
+            <h1 className="text-2xl font-bold mb-2 mt-6">How much do you walk?</h1>
             <p className="text-sm text-[#6B6560] mb-8">
               Think about your typical day — not counting workouts, which you'll log separately.
             </p>
@@ -396,28 +399,18 @@ export default function OnboardingPage() {
 
         {/* ── Step 4: Plan summary ── */}
         {step === 4 && plan && (
-          <div>
-            <button
-              type="button"
-              onClick={handleBack}
-              data-testid="button-onboard-back-4"
-              className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-[#6B6560] mb-6 hover:text-[#1C1714] transition-colors"
-            >
-              ← Back
-            </button>
-            <h1 className="text-2xl font-bold mb-2">Your plan is ready</h1>
+          <div className="mt-4">
+            {/* "YOUR PLAN IS READY" label */}
+            <div className={LABEL_CLS + " mb-4"}>Your plan is ready</div>
 
             {/* Main target card */}
-            <div className="border border-[#1C1714] p-6 mb-4 mt-6">
-              <div className={LABEL_CLS + " mb-1"}>Daily target</div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-4xl font-bold" data-testid="text-plan-target">
-                  {plan.dailyTarget.toLocaleString()}
-                </span>
-                <span className="text-sm text-[#6B6560]">kcal / day</span>
+            <div className="border border-[#1C1714] p-6 mb-4">
+              <div className={LABEL_CLS + " mb-2"}>Daily target</div>
+              <div className="text-[56px] font-bold leading-none tabular-nums mb-2" data-testid="text-plan-target">
+                {plan.dailyTarget.toLocaleString()}
               </div>
               <div className="text-xs text-[#6B6560]">
-                maintenance {plan.tdee.toLocaleString()}
+                kcal / day · maintenance {plan.tdee.toLocaleString()}
                 {goalMode === "weight_loss" && ` − ${plan.deficit}`}
                 {goalMode === "weight_gain" && ` + ${plan.deficit}`}
               </div>
@@ -427,68 +420,57 @@ export default function OnboardingPage() {
             {goalMode !== "maintenance" && (
               <div className="grid grid-cols-3 border border-[#1C1714]/20 mb-6">
                 <div className="p-4 border-r border-[#1C1714]/20">
-                  <div className={LABEL_CLS + " mb-1"}>{goalMode === "weight_loss" ? "Lose" : "Gain"}</div>
-                  <div className="text-xl font-bold">{plan.weightDiff.toFixed(1)}</div>
-                  <div className="text-xs text-[#6B6560]">kg</div>
+                  <div className={LABEL_CLS + " mb-2"}>{goalMode === "weight_loss" ? "Lose" : "Gain"}</div>
+                  <div className="text-xl font-bold tabular-nums">{plan.weightDiff.toFixed(1)} <span className="text-sm font-normal">kg</span></div>
                 </div>
                 <div className="p-4 border-r border-[#1C1714]/20">
-                  <div className={LABEL_CLS + " mb-1"}>Timeline</div>
-                  <div className="text-xl font-bold">~{plan.months ?? "—"}</div>
-                  <div className="text-xs text-[#6B6560]">months</div>
+                  <div className={LABEL_CLS + " mb-2"}>Timeline</div>
+                  <div className="text-xl font-bold tabular-nums">~{plan.months ?? "—"} <span className="text-sm font-normal">mo</span></div>
                 </div>
                 <div className="p-4">
-                  <div className={LABEL_CLS + " mb-1"}>Goal</div>
-                  <div className="text-base font-bold leading-tight">{plan.goalDate ?? "—"}</div>
+                  <div className={LABEL_CLS + " mb-2"}>Goal</div>
+                  <div className="text-xl font-bold leading-tight">{plan.goalDate ?? "—"}</div>
                 </div>
               </div>
             )}
 
-            {/* ── Change your plan ── */}
+            {/* ── Change your plan — Settings-style section ── */}
             {goalMode !== "maintenance" && (
-              <div className="border border-[#1C1714]/20 mb-8">
-                <div className="px-5 py-3 border-b border-[#1C1714]/20">
-                  <span className={LABEL_CLS}>Change your plan</span>
+              <div className="mb-8">
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
+                  Change your plan
                 </div>
-                <div className="p-4">
-                  <p className="text-xs text-[#6B6560] mb-4">
-                    Choose how fast you want to progress. A slower pace is easier to sustain.
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {(["gentle", "moderate", "aggressive"] as Pace[]).map((p) => {
-                      const preview = getPlan(p);
-                      const sign = goalMode === "weight_loss" ? "−" : "+";
-                      return (
-                        <button
-                          key={p}
-                          type="button"
-                          data-testid={`option-pace-${p}`}
-                          onClick={() => setPace(p)}
-                          className="flex items-center justify-between px-4 py-3 border text-left transition-all"
-                          style={{
-                            borderColor: pace === p ? "#1C1714" : "rgba(28,23,20,0.2)",
-                            background: pace === p ? "#1C1714" : "transparent",
-                            color: pace === p ? "#F2EDE7" : "#1C1714",
-                          }}
-                        >
-                          <div>
-                            <div className="text-xs font-bold uppercase tracking-widest capitalize">{p}</div>
-                            <div
-                              className="text-xs mt-0.5"
-                              style={{ opacity: pace === p ? 0.65 : 0.5 }}
-                            >
-                              {sign}{PACE_DEFICIT[p]} kcal/day from maintenance
-                            </div>
+                <p className="text-xs text-[#6B6560] mt-3 mb-4">
+                  Choose how fast you want to progress. A slower pace is easier to sustain.
+                </p>
+                <div className="flex flex-col border border-[#1C1714]/20">
+                  {(["gentle", "moderate", "aggressive"] as Pace[]).map((p) => {
+                    const preview = getPlan(p);
+                    const sign = goalMode === "weight_loss" ? "−" : "+";
+                    const active = pace === p;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        data-testid={`option-pace-${p}`}
+                        onClick={() => setPace(p)}
+                        className={`flex items-center justify-between px-4 py-3 text-left border-b last:border-b-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
+                      >
+                        <div>
+                          <div className={`text-xs font-bold uppercase tracking-widest ${active ? "opacity-90" : "text-[#1C1714]"}`}>{p}</div>
+                          <div className={`text-xs mt-0.5 ${active ? "opacity-65" : "text-[#6B6560]"}`}>
+                            {sign}{PACE_DEFICIT[p]} kcal/day from maintenance
                           </div>
-                          <div className="text-right ml-4 flex-shrink-0">
-                            <div className="text-sm font-bold">{preview.dailyTarget.toLocaleString()}</div>
-                            <div className="text-xs" style={{ opacity: 0.6 }}>
-                              kcal · ~{preview.months ?? "—"} mo
-                            </div>
+                        </div>
+                        <div className="text-right ml-4 flex-shrink-0">
+                          <div className={`text-sm font-bold tabular-nums ${active ? "" : "text-[#1C1714]"}`}>{preview.dailyTarget.toLocaleString()}</div>
+                          <div className={`text-xs tabular-nums ${active ? "opacity-60" : "text-[#6B6560]"}`}>
+                            kcal · ~{preview.months ?? "—"} mo
                           </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -500,7 +482,7 @@ export default function OnboardingPage() {
               disabled={saveMutation.isPending}
               className={BTN + " bg-[#1C1714] text-[#F2EDE7] hover:bg-[#2e2420] disabled:opacity-50 mb-4"}
             >
-              {saveMutation.isPending ? "Saving…" : "Start tracking"}
+              {saveMutation.isPending ? "Saving…" : "Start tracking →"}
             </button>
 
             <p className="text-xs text-center text-[#6B6560]">

@@ -50,8 +50,14 @@ function DashboardRoute() {
 
 function OnboardRoute() {
   const { user, isLoading } = useAuth();
-  if (isLoading) return LOADING;
+  const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    enabled: !!user,
+  });
+
+  if (isLoading || (!!user && settingsLoading)) return LOADING;
   if (!user) return <Redirect to="/login" />;
+  if (!needsOnboarding(settings)) return <Redirect to="/" />;
   return <OnboardingPage />;
 }
 

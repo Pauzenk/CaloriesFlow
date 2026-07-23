@@ -395,10 +395,12 @@ export default function OnboardingPage() {
         {step === 4 && plan && (() => {
           const recPlan = getPlan("moderate");
           const localMonths = planMonths ?? recPlan.months ?? 8;
-          const adjustedDeficit = recPlan.weightDiff > 0
+          const adjustedDelta = recPlan.weightDiff > 0
             ? (recPlan.weightDiff * 7700) / (localMonths * 30.44)
             : 0;
-          const adjustedCalorie = Math.round(Math.max(1200, recPlan.tdee - adjustedDeficit));
+          const adjustedCalorie = goalMode === "weight_gain"
+            ? Math.round(recPlan.tdee + adjustedDelta)
+            : Math.round(Math.max(1200, recPlan.tdee - adjustedDelta));
           const monthlyRate = recPlan.weightDiff > 0 ? recPlan.weightDiff / localMonths : 0;
           const minMonths = Math.max(1, Math.round((recPlan.weightDiff * 7700) / (750 * 30.44)));
 

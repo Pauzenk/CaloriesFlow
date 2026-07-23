@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { computeBMR, computeTDEE } from "@/lib/calorieflow";
 import { ACTIVITY_MULTIPLIERS } from "@shared/schema";
-import logoPath from "@assets/logo_leaf_flame.png";
+import { Leaf } from "lucide-react";
 
 type GoalMode = "weight_loss" | "maintenance" | "weight_gain";
 type Sex = "male" | "female";
@@ -222,14 +222,10 @@ export default function OnboardingPage() {
         {/* Logo */}
         <div className="flex items-center gap-3 mb-10">
           <div
-            className="h-9 w-9 overflow-hidden flex-shrink-0"
+            className="h-9 w-9 flex-shrink-0 flex items-center justify-center"
             style={{ borderRadius: "50%", background: "#1C1714" }}
           >
-            <img
-              src={logoPath}
-              alt="CalorieFlow"
-              className="h-full w-full object-cover"
-            />
+            <Leaf size={18} color="#F2EDE7" />
           </div>
           <span className="text-sm font-bold tracking-widest uppercase">CalorieFlow</span>
         </div>

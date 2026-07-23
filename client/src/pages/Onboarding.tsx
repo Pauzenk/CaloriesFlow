@@ -4,13 +4,20 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { computeBMR, computeTDEE } from "@/lib/calorieflow";
 import { ACTIVITY_MULTIPLIERS } from "@shared/schema";
-const logoPath = "/logo.png";
+import logoPath from "@assets/logo_leaf_flame.png";
 
 type GoalMode = "weight_loss" | "maintenance" | "weight_gain";
 type Sex = "male" | "female";
 type ActivityLevel = "sedentary" | "light" | "active";
+type Pace = "gentle" | "moderate" | "aggressive";
 
 const STEP_COUNT = 4;
+
+const PACE_DEFICIT: Record<Pace, number> = {
+  gentle: 250,
+  moderate: 500,
+  aggressive: 750,
+};
 
 function StepBar({ step }: { step: number }) {
   return (
@@ -53,10 +60,7 @@ function OptionCard({
     >
       <div className="font-bold text-sm tracking-wide">{label}</div>
       {sublabel && (
-        <div
-          className="text-xs mt-0.5"
-          style={{ opacity: selected ? 0.65 : 0.5 }}
-        >
+        <div className="text-xs mt-0.5" style={{ opacity: selected ? 0.65 : 0.5 }}>
           {sublabel}
         </div>
       )}
@@ -81,9 +85,7 @@ function NumericField({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs uppercase tracking-widest text-[#6B6560]">
-        {label}
-      </label>
+      <label className="text-xs uppercase tracking-widest text-[#6B6560]">{label}</label>
       <div className="flex items-center border border-[#1C1714]/30 focus-within:border-[#1C1714] transition-colors">
         <input
           type="number"
@@ -94,9 +96,7 @@ function NumericField({
           className="flex-1 bg-transparent px-3 py-2.5 font-['Space_Mono'] text-sm text-[#1C1714] outline-none"
         />
         {unit && (
-          <span className="pr-3 text-xs text-[#6B6560] font-['Space_Mono']">
-            {unit}
-          </span>
+          <span className="pr-3 text-xs text-[#6B6560] font-['Space_Mono']">{unit}</span>
         )}
       </div>
     </div>
@@ -115,6 +115,7 @@ export default function OnboardingPage() {
   const [currentWeightKg, setCurrentWeightKg] = useState("");
   const [goalWeightKg, setGoalWeightKg] = useState("");
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>("sedentary");
+  const [pace, setPace] = useState<Pace>("moderate");
   const [errors, setErrors] = useState<string[]>([]);
 
   const saveMutation = useMutation({
@@ -128,13 +129,11 @@ export default function OnboardingPage() {
 
   function todayStr() {
     const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
-  function getPlan() {
+  function getPlan(overridePace?: Pace) {
+    const usedPace = overridePace ?? pace;
     const w = parseFloat(currentWeightKg) || 75;
     const h = parseFloat(heightCm) || 175;
     const a = parseInt(age) || 30;
@@ -142,9 +141,10 @@ export default function OnboardingPage() {
     const multiplier = ACTIVITY_MULTIPLIERS[activityLevel] ?? 1.2;
     const bmr = computeBMR(w, h, a, s);
     const tdee = Math.round(computeTDEE(bmr, multiplier));
+    const deficit = PACE_DEFICIT[usedPace];
     let dailyTarget: number;
-    if (goalMode === "weight_loss") dailyTarget = Math.max(1200, tdee - 500);
-    else if (goalMode === "weight_gain") dailyTarget = tdee + 500;
+    if (goalMode === "weight_loss") dailyTarget = Math.max(1200, tdee - deficit);
+    else if (goalMode === "weight_gain") dailyTarget = tdee + deficit;
     else dailyTarget = tdee;
     const goalW = parseFloat(goalWeightKg) || w;
     const weightDiff = Math.abs(w - goalW);
@@ -158,10 +158,10 @@ export default function OnboardingPage() {
         ? (() => {
             const d = new Date();
             d.setMonth(d.getMonth() + months);
-            return d.toLocaleDateString("en-US", { month: "short", year: "'yy" }).replace(" '", " '");
+            return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
           })()
         : null;
-    return { tdee, dailyTarget, weightDiff, months, goalDate };
+    return { tdee, dailyTarget, weightDiff, months, goalDate, deficit };
   }
 
   function validateStep2() {
@@ -195,7 +195,6 @@ export default function OnboardingPage() {
 
   function handleStart() {
     const { dailyTarget } = getPlan();
-    const today = todayStr();
     saveMutation.mutate({
       goalMode,
       sexAtBirth: sex,
@@ -206,49 +205,47 @@ export default function OnboardingPage() {
       goalWeightKg: goalMode !== "maintenance" ? parseFloat(goalWeightKg) : null,
       activityLevel,
       dailyCalorieGoal: dailyTarget,
-      journeyStartDate: today,
+      journeyStartDate: todayStr(),
       workoutCountingMode: "include_in_activity_level",
     });
   }
 
   const plan = step === 4 ? getPlan() : null;
 
-  const LABEL_CLS =
-    "text-xs uppercase tracking-widest text-[#6B6560] font-['Space_Mono']";
-  const BTN =
-    "w-full py-3 text-xs uppercase tracking-widest font-['Space_Mono'] font-bold transition-colors";
+  const LABEL_CLS = "text-xs uppercase tracking-widest text-[#6B6560] font-['Space_Mono']";
+  const BTN = "w-full py-3 text-xs uppercase tracking-widest font-['Space_Mono'] font-bold transition-colors";
 
   return (
     <div className="min-h-screen bg-[#F2EDE7] flex flex-col items-center justify-start px-4 py-10 font-['Space_Mono'] text-[#1C1714]">
       <div className="w-full max-w-sm">
+
         {/* Logo */}
         <div className="flex items-center gap-3 mb-10">
-          <img
-            src={logoPath}
-            alt="CalorieFlow"
-            className="h-8 w-8 object-cover"
-            style={{ borderRadius: "50%" }}
-          />
-          <span className="text-sm font-bold tracking-widest uppercase">
-            CalorieFlow
-          </span>
+          <div
+            className="h-9 w-9 overflow-hidden flex-shrink-0"
+            style={{ borderRadius: "50%", background: "#1C1714" }}
+          >
+            <img
+              src={logoPath}
+              alt="CalorieFlow"
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <span className="text-sm font-bold tracking-widest uppercase">CalorieFlow</span>
         </div>
 
         {/* Progress bar */}
         <StepBar step={step} />
 
         {/* Step label */}
-        <div className={LABEL_CLS + " mb-6"}>
-          Step {step} / {STEP_COUNT}
-        </div>
+        <div className={LABEL_CLS + " mb-6"}>Step {step} / {STEP_COUNT}</div>
 
         {/* ── Step 1: Goal ── */}
         {step === 1 && (
           <div>
             <h1 className="text-2xl font-bold mb-2">What's your goal?</h1>
             <p className="text-sm text-[#6B6560] mb-8">
-              We'll tailor your daily calories around it. You can change this
-              anytime.
+              We'll tailor your daily calories around it. You can change this anytime.
             </p>
             <div className="flex flex-col gap-3 mb-10">
               <OptionCard
@@ -300,7 +297,6 @@ export default function OnboardingPage() {
               Just the basics we need to calculate your target.
             </p>
             <div className="flex flex-col gap-5 mb-6">
-              {/* Sex toggle */}
               <div className="flex flex-col gap-1">
                 <span className={LABEL_CLS}>Sex</span>
                 <div className="flex border border-[#1C1714]/30" data-testid="toggle-sex">
@@ -321,30 +317,9 @@ export default function OnboardingPage() {
                   ))}
                 </div>
               </div>
-
-              <NumericField
-                label="Age"
-                value={age}
-                onChange={setAge}
-                placeholder="30"
-                testId="input-onboard-age"
-              />
-              <NumericField
-                label="Height"
-                value={heightCm}
-                onChange={setHeightCm}
-                unit="cm"
-                placeholder="175"
-                testId="input-onboard-height"
-              />
-              <NumericField
-                label="Current weight"
-                value={currentWeightKg}
-                onChange={setCurrentWeightKg}
-                unit="kg"
-                placeholder="80.0"
-                testId="input-onboard-current-weight"
-              />
+              <NumericField label="Age" value={age} onChange={setAge} placeholder="30" testId="input-onboard-age" />
+              <NumericField label="Height" value={heightCm} onChange={setHeightCm} unit="cm" placeholder="175" testId="input-onboard-height" />
+              <NumericField label="Current weight" value={currentWeightKg} onChange={setCurrentWeightKg} unit="kg" placeholder="80.0" testId="input-onboard-current-weight" />
               {goalMode !== "maintenance" && (
                 <NumericField
                   label="Goal weight"
@@ -356,17 +331,13 @@ export default function OnboardingPage() {
                 />
               )}
             </div>
-
             {errors.length > 0 && (
               <div className="mb-4 flex flex-col gap-1">
                 {errors.map((e) => (
-                  <p key={e} className="text-xs text-red-600">
-                    {e}
-                  </p>
+                  <p key={e} className="text-xs text-red-600">{e}</p>
                 ))}
               </div>
             )}
-
             <button
               type="button"
               data-testid="button-onboard-continue-2"
@@ -378,7 +349,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 3: Activity ── */}
+        {/* ── Step 3: Walking / daily movement ── */}
         {step === 3 && (
           <div>
             <button
@@ -389,30 +360,30 @@ export default function OnboardingPage() {
             >
               ← Back
             </button>
-            <h1 className="text-2xl font-bold mb-2">How active are you?</h1>
+            <h1 className="text-2xl font-bold mb-2">How much do you walk?</h1>
             <p className="text-sm text-[#6B6560] mb-8">
-              Outside of workouts you log — this sets your baseline burn.
+              Think about your typical day — not counting workouts, which you'll log separately.
             </p>
             <div className="flex flex-col gap-3 mb-10">
               <OptionCard
                 selected={activityLevel === "sedentary"}
                 onClick={() => setActivityLevel("sedentary")}
-                label="Sedentary"
-                sublabel="Desk job, little exercise"
+                label="Mostly sitting"
+                sublabel="Little walking — desk job or mostly at home"
                 testId="option-activity-sedentary"
               />
               <OptionCard
                 selected={activityLevel === "light"}
                 onClick={() => setActivityLevel("light")}
-                label="Light"
-                sublabel="Exercise 1–3× a week"
+                label="Some walking"
+                sublabel="Light movement — short walks, occasional errands"
                 testId="option-activity-light"
               />
               <OptionCard
                 selected={activityLevel === "active"}
                 onClick={() => setActivityLevel("active")}
-                label="Active"
-                sublabel="Exercise 4+× a week"
+                label="Lots of walking"
+                sublabel="On your feet most of the day — active job or lifestyle"
                 testId="option-activity-active"
               />
             </div>
@@ -441,43 +412,87 @@ export default function OnboardingPage() {
             <h1 className="text-2xl font-bold mb-2">Your plan is ready</h1>
 
             {/* Main target card */}
-            <div className="border border-[#1C1714] p-6 mb-4 mt-8">
+            <div className="border border-[#1C1714] p-6 mb-4 mt-6">
               <div className={LABEL_CLS + " mb-1"}>Daily target</div>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-4xl font-bold">
+                <span className="text-4xl font-bold" data-testid="text-plan-target">
                   {plan.dailyTarget.toLocaleString()}
                 </span>
                 <span className="text-sm text-[#6B6560]">kcal / day</span>
               </div>
               <div className="text-xs text-[#6B6560]">
                 maintenance {plan.tdee.toLocaleString()}
-                {goalMode === "weight_loss" && " − 500"}
-                {goalMode === "weight_gain" && " + 500"}
+                {goalMode === "weight_loss" && ` − ${plan.deficit}`}
+                {goalMode === "weight_gain" && ` + ${plan.deficit}`}
               </div>
             </div>
 
             {/* Stats row */}
             {goalMode !== "maintenance" && (
-              <div className="grid grid-cols-3 border border-[#1C1714]/20 mb-8">
+              <div className="grid grid-cols-3 border border-[#1C1714]/20 mb-6">
                 <div className="p-4 border-r border-[#1C1714]/20">
-                  <div className={LABEL_CLS + " mb-1"}>
-                    {goalMode === "weight_loss" ? "Lose" : "Gain"}
-                  </div>
-                  <div className="text-xl font-bold">
-                    {plan.weightDiff.toFixed(1)}
-                  </div>
+                  <div className={LABEL_CLS + " mb-1"}>{goalMode === "weight_loss" ? "Lose" : "Gain"}</div>
+                  <div className="text-xl font-bold">{plan.weightDiff.toFixed(1)}</div>
                   <div className="text-xs text-[#6B6560]">kg</div>
                 </div>
                 <div className="p-4 border-r border-[#1C1714]/20">
                   <div className={LABEL_CLS + " mb-1"}>Timeline</div>
-                  <div className="text-xl font-bold">
-                    ~{plan.months ?? "—"}
-                  </div>
+                  <div className="text-xl font-bold">~{plan.months ?? "—"}</div>
                   <div className="text-xs text-[#6B6560]">months</div>
                 </div>
                 <div className="p-4">
                   <div className={LABEL_CLS + " mb-1"}>Goal</div>
-                  <div className="text-xl font-bold">{plan.goalDate ?? "—"}</div>
+                  <div className="text-base font-bold leading-tight">{plan.goalDate ?? "—"}</div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Change your plan ── */}
+            {goalMode !== "maintenance" && (
+              <div className="border border-[#1C1714]/20 mb-8">
+                <div className="px-5 py-3 border-b border-[#1C1714]/20">
+                  <span className={LABEL_CLS}>Change your plan</span>
+                </div>
+                <div className="p-4">
+                  <p className="text-xs text-[#6B6560] mb-4">
+                    Choose how fast you want to progress. A slower pace is easier to sustain.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {(["gentle", "moderate", "aggressive"] as Pace[]).map((p) => {
+                      const preview = getPlan(p);
+                      const sign = goalMode === "weight_loss" ? "−" : "+";
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          data-testid={`option-pace-${p}`}
+                          onClick={() => setPace(p)}
+                          className="flex items-center justify-between px-4 py-3 border text-left transition-all"
+                          style={{
+                            borderColor: pace === p ? "#1C1714" : "rgba(28,23,20,0.2)",
+                            background: pace === p ? "#1C1714" : "transparent",
+                            color: pace === p ? "#F2EDE7" : "#1C1714",
+                          }}
+                        >
+                          <div>
+                            <div className="text-xs font-bold uppercase tracking-widest capitalize">{p}</div>
+                            <div
+                              className="text-xs mt-0.5"
+                              style={{ opacity: pace === p ? 0.65 : 0.5 }}
+                            >
+                              {sign}{PACE_DEFICIT[p]} kcal/day from maintenance
+                            </div>
+                          </div>
+                          <div className="text-right ml-4 flex-shrink-0">
+                            <div className="text-sm font-bold">{preview.dailyTarget.toLocaleString()}</div>
+                            <div className="text-xs" style={{ opacity: 0.6 }}>
+                              kcal · ~{preview.months ?? "—"} mo
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
@@ -487,10 +502,7 @@ export default function OnboardingPage() {
               data-testid="button-onboard-start"
               onClick={handleStart}
               disabled={saveMutation.isPending}
-              className={
-                BTN +
-                " bg-[#1C1714] text-[#F2EDE7] hover:bg-[#2e2420] disabled:opacity-50 mb-4"
-              }
+              className={BTN + " bg-[#1C1714] text-[#F2EDE7] hover:bg-[#2e2420] disabled:opacity-50 mb-4"}
             >
               {saveMutation.isPending ? "Saving…" : "Start tracking"}
             </button>

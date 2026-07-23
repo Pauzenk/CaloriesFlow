@@ -116,6 +116,7 @@ export default function OnboardingPage() {
   const [goalWeightKg, setGoalWeightKg] = useState("");
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>("sedentary");
   const [pace, setPace] = useState<Pace>("moderate");
+  const [planMonths, setPlanMonths] = useState<number | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
 
   const saveMutation = useMutation({
@@ -180,34 +181,27 @@ export default function OnboardingPage() {
     return errs;
   }
 
+  function goalDateFromMonths(m: number) {
+    const d = new Date();
+    d.setMonth(d.getMonth() + m);
+    return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  }
+
   function handleNext() {
     if (step === 2) {
       const errs = validateStep2();
       if (errs.length) { setErrors(errs); return; }
       setErrors([]);
     }
+    if (step === 3) {
+      const rec = getPlan("moderate");
+      setPlanMonths(rec.months ?? 8);
+    }
     setStep((s) => Math.min(s + 1, 4) as 1 | 2 | 3 | 4);
   }
 
   function handleBack() {
     setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3 | 4);
-  }
-
-  function handleStart() {
-    const { dailyTarget } = getPlan();
-    saveMutation.mutate({
-      goalMode,
-      sexAtBirth: sex,
-      ageYears: parseInt(age),
-      heightCm: parseInt(heightCm),
-      startingWeightKg: parseFloat(currentWeightKg),
-      currentWeightKg: parseFloat(currentWeightKg),
-      goalWeightKg: goalMode !== "maintenance" ? parseFloat(goalWeightKg) : null,
-      activityLevel,
-      dailyCalorieGoal: dailyTarget,
-      journeyStartDate: todayStr(),
-      workoutCountingMode: "include_in_activity_level",
-    });
   }
 
   const plan = step === 4 ? getPlan() : null;
@@ -398,106 +392,140 @@ export default function OnboardingPage() {
         )}
 
         {/* ── Step 4: Plan summary ── */}
-        {step === 4 && plan && (
-          <div className="mt-4">
-            {/* "YOUR PLAN IS READY" label */}
-            <div className={LABEL_CLS + " mb-4"}>Your plan is ready</div>
+        {step === 4 && plan && (() => {
+          const recPlan = getPlan("moderate");
+          const localMonths = planMonths ?? recPlan.months ?? 8;
+          const adjustedDeficit = recPlan.weightDiff > 0
+            ? (recPlan.weightDiff * 7700) / (localMonths * 30.44)
+            : 0;
+          const adjustedCalorie = Math.round(Math.max(1200, recPlan.tdee - adjustedDeficit));
+          const monthlyRate = recPlan.weightDiff > 0 ? recPlan.weightDiff / localMonths : 0;
+          const minMonths = Math.max(1, Math.round((recPlan.weightDiff * 7700) / (750 * 30.44)));
 
-            {/* Main target card */}
-            <div className="border border-[#1C1714] p-6 mb-4">
-              <div className={LABEL_CLS + " mb-2"}>Daily target</div>
-              <div className="text-[56px] font-bold leading-none tabular-nums mb-2" data-testid="text-plan-target">
-                {plan.dailyTarget.toLocaleString()}
-              </div>
-              <div className="text-xs text-[#6B6560]">
-                kcal / day · maintenance {plan.tdee.toLocaleString()}
-                {goalMode === "weight_loss" && ` − ${plan.deficit}`}
-                {goalMode === "weight_gain" && ` + ${plan.deficit}`}
-              </div>
-            </div>
+          return (
+            <div className="mt-4 space-y-4">
+              {/* "YOUR PLAN IS READY" label */}
+              <div className={LABEL_CLS}>Your plan is ready</div>
 
-            {/* Stats row */}
-            {goalMode !== "maintenance" && (
-              <div className="grid grid-cols-3 border border-[#1C1714]/20 mb-6">
-                <div className="p-4 border-r border-[#1C1714]/20">
-                  <div className={LABEL_CLS + " mb-2"}>{goalMode === "weight_loss" ? "Lose" : "Gain"}</div>
-                  <div className="text-xl font-bold tabular-nums">{plan.weightDiff.toFixed(1)} <span className="text-sm font-normal">kg</span></div>
+              {/* ── RECOMMENDED card ── */}
+              <div className="border-2 border-[#1C1714] p-5" data-testid="panel-recommended">
+                <p className={LABEL_CLS + " mb-3"}>Recommended</p>
+                <div className="text-5xl tabular-nums tracking-tighter leading-none font-['Space_Mono'] mb-1" data-testid="text-plan-target">
+                  {recPlan.dailyTarget.toLocaleString()}
                 </div>
-                <div className="p-4 border-r border-[#1C1714]/20">
-                  <div className={LABEL_CLS + " mb-2"}>Timeline</div>
-                  <div className="text-xl font-bold tabular-nums">~{plan.months ?? "—"} <span className="text-sm font-normal">mo</span></div>
-                </div>
-                <div className="p-4">
-                  <div className={LABEL_CLS + " mb-2"}>Goal</div>
-                  <div className="text-xl font-bold leading-tight">{plan.goalDate ?? "—"}</div>
-                </div>
+                <p className="text-xs text-[#6B6560] mb-4">kcal / day</p>
+                {goalMode !== "maintenance" && (
+                  <div className="border-t border-[#1C1714]/10 pt-3 flex gap-6 flex-wrap">
+                    <div>
+                      <p className={LABEL_CLS + " mb-0.5"}>{goalMode === "weight_loss" ? "Lose" : "Gain"}</p>
+                      <p className="text-sm tabular-nums">{recPlan.weightDiff.toFixed(1)} kg</p>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLS + " mb-0.5"}>Timeline</p>
+                      <p className="text-sm tabular-nums">~{recPlan.months ?? "—"} mo</p>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLS + " mb-0.5"}>Monthly</p>
+                      <p className="text-sm tabular-nums">
+                        ~{recPlan.months ? (recPlan.weightDiff / recPlan.months).toFixed(1) : "—"} kg
+                        <span className="text-xs text-[#6B6560] ml-1">/ mo</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLS + " mb-0.5"}>Goal date</p>
+                      <p className="text-sm">{recPlan.goalDate ?? "—"}</p>
+                    </div>
+                  </div>
+                )}
+                {goalMode === "maintenance" && (
+                  <div className="border-t border-[#1C1714]/10 pt-3">
+                    <p className={LABEL_CLS + " mb-0.5"}>Maintenance</p>
+                    <p className="text-sm tabular-nums">{recPlan.tdee.toLocaleString()} kcal / day</p>
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* ── Change your plan — Settings-style section ── */}
-            {goalMode !== "maintenance" && (
-              <div className="mb-8">
-                <div className="text-xs font-semibold uppercase tracking-widest text-[#1C1714] mb-1 border-b border-[#1C1714]/20 pb-2">
-                  Change your plan
-                </div>
-                <p className="text-xs text-[#6B6560] mt-3 mb-4">
-                  Choose how fast you want to progress. A slower pace is easier to sustain.
-                </p>
-                <div className="flex flex-col border border-[#1C1714]/20">
-                  {(["gentle", "moderate", "aggressive"] as Pace[]).map((p) => {
-                    const preview = getPlan(p);
-                    const sign = goalMode === "weight_loss" ? "−" : "+";
-                    const active = pace === p;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        data-testid={`option-pace-${p}`}
-                        onClick={() => setPace(p)}
-                        className={`flex items-center justify-between px-4 py-3 text-left border-b last:border-b-0 border-[#1C1714]/20 transition-colors ${active ? "bg-[#1C1714] text-[#F2EDE7]" : "bg-transparent hover:bg-[#1C1714]/5"}`}
-                      >
-                        <div>
-                          <div className={`text-xs font-bold uppercase tracking-widest ${active ? "opacity-90" : "text-[#1C1714]"}`}>{p}</div>
-                          <div className={`text-xs mt-0.5 ${active ? "opacity-65" : "text-[#6B6560]"}`}>
-                            {sign}{PACE_DEFICIT[p]} kcal/day from maintenance
-                          </div>
+              {/* ── ADJUST YOUR PLAN block ── */}
+              {goalMode !== "maintenance" && (
+                <div className="border border-[#1C1714]/30 p-5 space-y-4" data-testid="panel-planner">
+                  <p className={LABEL_CLS}>Adjust your plan</p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={LABEL_CLS + " block mb-2"}>Months to goal</label>
+                      <div className="flex border border-[#1C1714]/40 h-14">
+                        <button
+                          type="button"
+                          data-testid="button-months-dec"
+                          onClick={() => setPlanMonths(Math.max(minMonths, localMonths - 1))}
+                          disabled={localMonths <= minMonths}
+                          className="px-3 border-r border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none disabled:opacity-20 disabled:cursor-not-allowed"
+                        >−</button>
+                        <div className="flex-1 h-full flex items-center justify-center text-3xl tabular-nums font-['Space_Mono'] text-[#1C1714]">
+                          {localMonths}
                         </div>
-                        <div className="text-right ml-4 flex-shrink-0">
-                          <div className={`text-sm font-bold tabular-nums ${active ? "" : "text-[#1C1714]"}`}>{preview.dailyTarget.toLocaleString()}</div>
-                          <div className={`text-xs tabular-nums ${active ? "opacity-60" : "text-[#6B6560]"}`}>
-                            kcal · ~{preview.months ?? "—"} mo
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        <button
+                          type="button"
+                          data-testid="button-months-inc"
+                          onClick={() => setPlanMonths(localMonths + 1)}
+                          className="px-3 border-l border-[#1C1714]/20 hover:bg-[#1C1714]/5 text-lg font-bold transition-colors shrink-0 select-none"
+                        >+</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className={LABEL_CLS + " block mb-2"}>Daily calories</label>
+                      <div className="flex items-center justify-center h-14 border border-[#1C1714]/20 bg-[#1C1714]/[0.03]">
+                        <span className="text-3xl tabular-nums font-['Space_Mono'] text-[#1C1714]">
+                          {adjustedCalorie.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6B6560] mt-1">kcal / day</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-8 pt-1 border-t border-[#1C1714]/10">
+                    <div>
+                      <p className={LABEL_CLS + " mb-0.5"}>Monthly</p>
+                      <p className="text-sm tabular-nums">
+                        ~{monthlyRate.toFixed(1)} kg
+                        <span className="text-xs text-[#6B6560] ml-1">/ mo</span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className={LABEL_CLS + " mb-0.5"}>Goal date</p>
+                      <p className="text-sm">{goalDateFromMonths(localMonths)}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <button
-              type="button"
-              data-testid="button-onboard-start"
-              onClick={handleStart}
-              disabled={saveMutation.isPending}
-              className={BTN + " bg-[#1C1714] text-[#F2EDE7] hover:bg-[#2e2420] disabled:opacity-50 mb-4"}
-            >
-              {saveMutation.isPending ? "Saving…" : "Start tracking →"}
-            </button>
-
-            <p className="text-xs text-center text-[#6B6560]">
-              You can fine-tune everything in{" "}
               <button
                 type="button"
-                onClick={() => navigate("/settings")}
-                className="underline hover:text-[#1C1714]"
+                data-testid="button-onboard-start"
+                onClick={() => {
+                  const finalCalorie = goalMode !== "maintenance" ? adjustedCalorie : recPlan.tdee;
+                  saveMutation.mutate({
+                    goalMode,
+                    sexAtBirth: sex,
+                    ageYears: parseInt(age),
+                    heightCm: parseInt(heightCm),
+                    startingWeightKg: parseFloat(currentWeightKg),
+                    currentWeightKg: parseFloat(currentWeightKg),
+                    goalWeightKg: goalMode !== "maintenance" ? parseFloat(goalWeightKg) : null,
+                    activityLevel,
+                    dailyCalorieGoal: finalCalorie,
+                    journeyStartDate: todayStr(),
+                    workoutCountingMode: "include_in_activity_level",
+                  });
+                }}
+                disabled={saveMutation.isPending}
+                className={BTN + " bg-[#1C1714] text-[#F2EDE7] hover:bg-[#2e2420] disabled:opacity-50"}
               >
-                Settings
-              </button>{" "}
-              anytime.
-            </p>
-          </div>
-        )}
+                {saveMutation.isPending ? "Saving…" : "Start tracking →"}
+              </button>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

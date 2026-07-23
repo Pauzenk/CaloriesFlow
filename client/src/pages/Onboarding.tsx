@@ -402,7 +402,7 @@ export default function OnboardingPage() {
             ? Math.round(recPlan.tdee + adjustedDelta)
             : Math.round(Math.max(1200, recPlan.tdee - adjustedDelta));
           const monthlyRate = recPlan.weightDiff > 0 ? recPlan.weightDiff / localMonths : 0;
-          const minMonths = Math.max(1, Math.round((recPlan.weightDiff * 7700) / (750 * 30.44)));
+          const minMonths = 1;
 
           return (
             <div className="mt-4 space-y-4">

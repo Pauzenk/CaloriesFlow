@@ -111,7 +111,12 @@ export default function AuthPage() {
         if (isServiceUnavailable(err)) {
           setDbDown(true);
         } else {
-          toast({ title: "Sign up failed", description: describeError(err), variant: "destructive" });
+          const msg = describeError(err);
+          if (msg.toLowerCase().includes("email") || msg.toLowerCase().includes("registered")) {
+            registerForm.setError("email", { message: msg });
+          } else {
+            toast({ title: "Sign up failed", description: msg, variant: "destructive" });
+          }
         }
       },
     });

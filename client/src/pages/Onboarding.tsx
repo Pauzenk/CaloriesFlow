@@ -121,7 +121,7 @@ export default function OnboardingPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) =>
-      apiRequest("PATCH", "/api/settings", data),
+      apiRequest("PUT", "/api/settings", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       navigate("/");

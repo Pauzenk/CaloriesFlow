@@ -9,7 +9,7 @@ export function usePwaInstall() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [dismissed, setDismissed] = useState(() =>
-    localStorage.getItem("pwa-install-dismissed") === "1"
+    sessionStorage.getItem("pwa-install-dismissed") === "1"
   );
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function usePwaInstall() {
   };
 
   const dismiss = () => {
-    localStorage.setItem("pwa-install-dismissed", "1");
+    sessionStorage.setItem("pwa-install-dismissed", "1");
     setDismissed(true);
   };
 

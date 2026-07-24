@@ -219,7 +219,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 data-testid="button-pwa-install"
-                onClick={() => pwa.hasNativePrompt ? pwa.install() : toast({ description: "Tap ⋮ → Add to Home Screen in your browser menu" })}
+                onClick={pwa.install}
                 className="border border-[#F2EDE7]/40 px-4 py-1.5 uppercase tracking-widest hover:bg-[#F2EDE7]/10 transition-colors"
               >
                 Install

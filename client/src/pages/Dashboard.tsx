@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays, Download } from "lucide-react";
+import { Plus, Activity, Trash2, ChevronLeft, ChevronRight, Pencil, Check, X, CalendarDays } from "lucide-react";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import {
   AlertDialog,
@@ -214,22 +214,13 @@ export default function Dashboard() {
         {/* ── PWA install banner ── */}
         {pwa.canShow && (
           <div className="mb-4 flex items-center justify-between gap-3 bg-[#1C1714] px-4 py-3 text-xs text-[#F2EDE7]">
-            <div className="flex items-center gap-3 min-w-0">
-              <Download className="h-4 w-4 shrink-0 opacity-70" />
-              <span className="uppercase tracking-widest">Install the app for quick access</span>
-            </div>
+            <span className="uppercase tracking-widest opacity-70">Install the app</span>
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 data-testid="button-pwa-install"
-                onClick={() => {
-                  if (pwa.hasNativePrompt) {
-                    pwa.install();
-                  } else {
-                    toast({ description: "Tap ⋮ → Add to Home Screen in your browser menu" });
-                  }
-                }}
-                className="border border-[#F2EDE7]/40 px-3 py-1.5 uppercase tracking-widest hover:bg-[#F2EDE7]/10 transition-colors whitespace-nowrap"
+                onClick={() => pwa.hasNativePrompt ? pwa.install() : toast({ description: "Tap ⋮ → Add to Home Screen in your browser menu" })}
+                className="border border-[#F2EDE7]/40 px-4 py-1.5 uppercase tracking-widest hover:bg-[#F2EDE7]/10 transition-colors"
               >
                 Install
               </button>

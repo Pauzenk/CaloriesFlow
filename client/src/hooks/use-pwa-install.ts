@@ -5,18 +5,22 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
 export function usePwaInstall() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(isStandalone);
   const [dismissed, setDismissed] = useState(() =>
     sessionStorage.getItem("pwa-install-dismissed") === "1"
   );
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-      return;
-    }
+    if (isStandalone()) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -32,11 +36,12 @@ export function usePwaInstall() {
   }, []);
 
   const install = async () => {
-    if (!prompt) return;
-    await prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    if (outcome === "accepted") setIsInstalled(true);
-    setPrompt(null);
+    if (prompt) {
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === "accepted") setIsInstalled(true);
+      setPrompt(null);
+    }
   };
 
   const dismiss = () => {
@@ -44,7 +49,12 @@ export function usePwaInstall() {
     setDismissed(true);
   };
 
-  const canShow = !isInstalled && !dismissed && prompt !== null;
+  // Show banner whenever not installed and not dismissed — regardless of whether
+  // beforeinstallprompt has fired yet (Chrome may delay it after uninstall).
+  const canShow = !isInstalled && !dismissed;
 
-  return { canShow, install, dismiss };
+  // True when we can trigger the native prompt; false = show manual instructions
+  const hasNativePrompt = prompt !== null;
+
+  return { canShow, hasNativePrompt, install, dismiss };
 }

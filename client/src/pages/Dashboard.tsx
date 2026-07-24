@@ -214,19 +214,25 @@ export default function Dashboard() {
         {/* ── PWA install banner ── */}
         {pwa.canShow && (
           <div className="mb-4 flex items-center justify-between gap-3 bg-[#1C1714] px-4 py-3 text-xs text-[#F2EDE7]">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <Download className="h-4 w-4 shrink-0 opacity-70" />
-              <span className="uppercase tracking-widest">Install the app for quick access</span>
+              {pwa.hasNativePrompt ? (
+                <span className="uppercase tracking-widest">Install the app for quick access</span>
+              ) : (
+                <span className="opacity-70">Tap <strong className="opacity-100">⋮ → Add to Home Screen</strong> to install</span>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                data-testid="button-pwa-install"
-                onClick={pwa.install}
-                className="border border-[#F2EDE7]/40 px-3 py-1.5 uppercase tracking-widest hover:bg-[#F2EDE7]/10 transition-colors whitespace-nowrap"
-              >
-                Install
-              </button>
+              {pwa.hasNativePrompt && (
+                <button
+                  type="button"
+                  data-testid="button-pwa-install"
+                  onClick={pwa.install}
+                  className="border border-[#F2EDE7]/40 px-3 py-1.5 uppercase tracking-widest hover:bg-[#F2EDE7]/10 transition-colors whitespace-nowrap"
+                >
+                  Install
+                </button>
+              )}
               <button
                 type="button"
                 data-testid="button-pwa-dismiss"

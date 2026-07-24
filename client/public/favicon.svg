@@ -1,14 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <circle cx="16" cy="16" r="16" fill="#1C1714"/>
-  <!-- Leaf body: filled, no stroke. Scaled from lucide 24x24 → fits in 32x32 circle -->
-  <g transform="translate(4.5, 3.5) scale(0.95)">
-    <path
-      d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"
-      fill="#F2EDE7"
-    />
-    <path
-      d="M2 21c0-3 1.85-5.36 5.08-6"
-      fill="none" stroke="#F2EDE7" stroke-width="2.2" stroke-linecap="round"
-    />
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="12" cy="12" r="12" fill="#1C1714"/>
+  <!-- Lucide Leaf: main body as filled shape -->
+  <path
+    d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"
+    fill="#F2EDE7"
+  />
+  <!-- Stem as thick stroke -->
+  <path
+    d="M2 21c0-3 1.85-5.36 5.08-6"
+    fill="none"
+    stroke="#F2EDE7"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
 </svg>

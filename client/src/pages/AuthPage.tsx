@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Leaf } from "lucide-react";
+import { Leaf, UtensilsCrossed, BarChart2, TrendingDown, Bell } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -136,18 +136,22 @@ export default function AuthPage() {
         <p className="mt-2 text-base text-white/80">
           Track your daily calories, watch your weight trend, and stay consistent with your weight-loss journey.
         </p>
-        <ul className="mt-8 space-y-3 text-sm text-white/70">
-          <li className="flex items-center gap-2">
-            <span className="h-px w-4 bg-white/40" />
+        <ul className="mt-8 space-y-4 text-sm text-white/70">
+          <li className="flex items-center gap-3">
+            <UtensilsCrossed className="h-4 w-4 shrink-0 text-white/50" />
             Log breakfast, lunch, dinner &amp; snacks
           </li>
-          <li className="flex items-center gap-2">
-            <span className="h-px w-4 bg-white/40" />
+          <li className="flex items-center gap-3">
+            <BarChart2 className="h-4 w-4 shrink-0 text-white/50" />
             See macros and weekly progress at a glance
           </li>
-          <li className="flex items-center gap-2">
-            <span className="h-px w-4 bg-white/40" />
+          <li className="flex items-center gap-3">
+            <TrendingDown className="h-4 w-4 shrink-0 text-white/50" />
             Track weight loss week by week
+          </li>
+          <li className="flex items-center gap-3">
+            <Bell className="h-4 w-4 shrink-0 text-white/50" />
+            Stay consistent with daily reminders
           </li>
         </ul>
       </div>

@@ -74,6 +74,7 @@ export default function Dashboard() {
   const [activityEditState, setActivityEditState] = useState<ActivityEditState>(null);
   const [pendingDeleteMeal, setPendingDeleteMeal] = useState<string | null>(null);
   const [pendingDeleteActivity, setPendingDeleteActivity] = useState<string | null>(null);
+  const [showPwaHint, setShowPwaHint] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const { t, lang } = useLanguage();
   const { toast } = useToast();
@@ -213,27 +214,37 @@ export default function Dashboard() {
 
         {/* ── PWA install banner ── */}
         {pwa.canShow && (
-          <div className="mb-4 flex items-center justify-between gap-3 bg-[#1C1714] px-4 py-3 text-xs text-[#F2EDE7]">
-            <span className="uppercase tracking-widest opacity-70">Install the app</span>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                data-testid="button-pwa-install"
-                onClick={pwa.install}
-                className="border border-[#F2EDE7]/40 px-4 py-1.5 uppercase tracking-widest hover:bg-[#F2EDE7]/10 transition-colors"
-              >
-                Install
-              </button>
-              <button
-                type="button"
-                data-testid="button-pwa-dismiss"
-                onClick={pwa.dismiss}
-                aria-label="Dismiss"
-                className="p-1 opacity-50 hover:opacity-100 transition-opacity"
-              >
-                <X className="h-4 w-4" />
-              </button>
+          <div className="mb-4 bg-[#1C1714] px-4 py-3 text-xs text-[#F2EDE7]">
+            <div className="flex items-center justify-between gap-3">
+              <span className="uppercase tracking-widest opacity-70">Install the app</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  data-testid="button-pwa-install"
+                  onClick={() => {
+                    if (pwa.hasNativePrompt) { pwa.install(); }
+                    else { setShowPwaHint(h => !h); }
+                  }}
+                  className="border border-[#F2EDE7]/40 px-4 py-1.5 uppercase tracking-widest hover:bg-[#F2EDE7]/10 transition-colors"
+                >
+                  Install
+                </button>
+                <button
+                  type="button"
+                  data-testid="button-pwa-dismiss"
+                  onClick={pwa.dismiss}
+                  aria-label="Dismiss"
+                  className="p-1 opacity-50 hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
+            {showPwaHint && !pwa.hasNativePrompt && (
+              <p className="mt-2 opacity-60">
+                Tap <strong className="opacity-100">⋮</strong> → <strong className="opacity-100">Add to Home Screen</strong> in your browser menu
+              </p>
+            )}
           </div>
         )}
 
